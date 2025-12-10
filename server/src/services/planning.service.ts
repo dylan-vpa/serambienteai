@@ -71,6 +71,7 @@ ${templatesList}
         let selectedTemplate;
         try {
             const aiResponse = await aiService.chat(prompt);
+            console.log('AI Response for template selection:', aiResponse);
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
 
             if (jsonMatch) {
@@ -78,9 +79,12 @@ ${templatesList}
                 selectedTemplate = await prisma.samplingTemplate.findUnique({
                     where: { id: templateSuggestion.templateId }
                 });
+            } else {
+                console.log('No JSON found in AI response');
             }
         } catch (error) {
-            console.error('Error selecting template with AI:', error);
+            console.error('Failed to parse AI response:', error);
+            console.error('Error details:', error instanceof Error ? error.message : String(error));
         }
 
         // Fallback to first template if AI fails
