@@ -1,0 +1,40 @@
+COTIZACIÓN DE SERVICIOS
+
+Número de cotización: COT-2024-TEST-001
+Referencia OIT: OIT-2024-TEST-001
+Fecha de cotización: 01/12/2024
+Vigencia: 30 días
+Cliente: SERVICIOS INDUSTRIALES S.A.S.
+
+DESGLOSE ECONÓMICO
+
+Ítem 1: Servicio de Inspección de Seguridad Industrial
+Descripción: Inspección en planta según alcance OIT-2024-TEST-001. Incluye revisión de NTC 2050 y Res. 2400.
+Cantidad: 1
+Valor Unitario: $ 2.500.000 COP
+Subtotal: $ 2.500.000 COP
+
+Ítem 2: Alquiler de Equipos de Medición
+Descripción: Uso de luxómetro y medidor de ruido certificados.
+Cantidad: 1
+Valor Unitario: $ 500.000 COP
+Subtotal: $ 500.000 COP
+
+Ítem 3: Informe Técnico Detallado
+Descripción: Elaboración y entrega de informe final con hallazgos y recomendaciones.
+Cantidad: 1
+Valor Unitario: $ 800.000 COP
+Subtotal: $ 800.000 COP
+
+RESUMEN DE COSTOS
+Subtotal Servicios: $ 3.800.000 COP
+IVA (19%): $ 722.000 COP
+Total General: $ 4.522.000 COP
+
+CONDICIONES COMERCIALES
+Forma de pago: 50% anticipo, 50% contra entrega de informe.
+Tiempo de ejecución: 3 días hábiles.
+
+Atentamente,
+Departamento Comercial
+Paradixe Solutions

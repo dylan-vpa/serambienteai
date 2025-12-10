@@ -1,0 +1,521 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import api from '@/lib/api';
+import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SamplingExecutor } from '@/components/sampling/SamplingExecutor';
+import { ReportGenerator } from '@/components/oit/ReportGenerator';
+
+export default function OITDetailPage() {
+    const { id } = useParams<{ id: string }>();
+    const [oit, setOit] = useState<any>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isManualScheduling, setIsManualScheduling] = useState(false);
+
+    // Polling for status updates
+    useEffect(() => {
+        if (!id) return;
+
+        let intervalId: ReturnType<typeof setInterval>;
+
+        const fetchOIT = async () => {
+            try {
+                const response = await api.get(`/oits/${id}`);
+                setOit(response.data);
+
+                if (response.data.status !== 'ANALYZING' && response.data.status !== 'UPLOADING') {
+                    clearInterval(intervalId);
+                }
+            } catch (error) {
+                console.error('Error fetching OIT:', error);
+            }
+        };
+
+        fetchOIT();
+
+        intervalId = setInterval(() => {
+            if (oit && (oit.status === 'ANALYZING' || oit.status === 'UPLOADING')) {
+                fetchOIT();
+            }
+        }, 3000);
+
+        return () => clearInterval(intervalId);
+    }, [id, oit?.status]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'oit' | 'quotation') => {
+        const file = e.target.files?.[0];
+        if (!file || !id) return;
+
+        if (file.type === 'application/pdf') {
+            setIsProcessing(true);
+            try {
+                const formData = new FormData();
+                formData.append(type === 'oit' ? 'oitFile' : 'quotationFile', file);
+                await api.patch(`/oits/${id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                });
+                toast.success(`${type === 'oit' ? 'Documento OIT' : 'Cotización'} actualizado`);
+                const response = await api.get(`/oits/${id}`);
+                setOit(response.data);
+            } catch (error) {
+                console.error('Error updating file:', error);
+                toast.error('Error al actualizar archivo');
+            } finally {
+                setIsProcessing(false);
+                // Reset input
+                e.target.value = '';
+            }
+        }
+    };
+    const handleCheckCompliance = async () => {
+        try {
+            setIsProcessing(true);
+            toast.info('Iniciando verificación de normativa con IA...');
+            const response = await api.post(`/oits/${id}/compliance`);
+            const result = response.data;
+
+            if (result.compliant) {
+                toast.success(`Cumple con la normativa (Score: ${result.score}/100)`);
+            } else {
+                toast.warning(`No cumple con la normativa (Score: ${result.score}/100)`);
+            }
+
+            // Refresh OIT data to show new notification/status if any
+            const oitResponse = await api.get(`/oits/${id}`);
+            setOit(oitResponse.data);
+        } catch (error) {
+            console.error('Error checking compliance:', error);
+            toast.error('Error al verificar cumplimiento');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    if (!oit) return <div className="flex items-center justify-center min-h-screen bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
+
+    const aiData = oit.aiData ? JSON.parse(oit.aiData) : null;
+    const resources = oit.resources ? JSON.parse(oit.resources) : [];
+
+    return (
+        <div className="min-h-screen bg-slate-50/50 pb-12">
+            {/* Header Section */}
+            <div className="bg-slate-50/50 border-b border-slate-200">
+                <div className="container mx-auto py-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
+                                    {oit.oitNumber || `OIT #${oit.id.slice(0, 8)}`}
+                                </h1>
+                                <Badge variant={oit.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
+                                    {oit.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                                    {oit.status}
+                                </Badge>
+                            </div>
+                            <p className="text-slate-500 text-sm max-w-2xl truncate">{oit.description || 'Sin descripción'}</p>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{new Date(oit.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full">
+                                <Hash className="h-3.5 w-3.5" />
+                                <span className="font-mono">{oit.id.slice(0, 8)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="container mx-auto py-8 space-y-8">
+                {/* Analysis Alert */}
+                {oit.status === 'ANALYZING' && (
+                    <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200 rounded-xl p-6 flex items-center gap-4 shadow-sm">
+                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-blue-900">Analizando documentos...</p>
+                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información y recursos. Esto puede tomar unos momentos.</p>
+                        </div>
+                    </div>
+                )}
+
+                <Tabs defaultValue="info" className="w-full">
+                    <div className="flex justify-center mb-8">
+                        <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-white p-1 rounded-full border border-slate-200 shadow-sm">
+                            <TabsTrigger value="info" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                <FileText className="mr-2 h-4 w-4" /> Info
+                            </TabsTrigger>
+                            <TabsTrigger value="scheduling" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                <Calendar className="mr-2 h-4 w-4" /> Agendamiento
+                            </TabsTrigger>
+                            <TabsTrigger value="sampling" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                <Beaker className="mr-2 h-4 w-4" /> Muestreo
+                            </TabsTrigger>
+                            <TabsTrigger value="report" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                <FileBarChart className="mr-2 h-4 w-4" /> Informe
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="info" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid md:grid-cols-3 gap-6">
+                            {/* Main Info Card */}
+                            <Card className="md:col-span-2 border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle>Información General</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Número OIT</strong>
+                                            <p className="text-lg font-medium text-slate-900">{oit.oitNumber}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
+                                            <p className="text-lg font-medium text-slate-900">{oit.status}</p>
+                                        </div>
+                                        <div className="col-span-2 space-y-1">
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</strong>
+                                            <p className="text-slate-700 leading-relaxed">{oit.description}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 pt-6 border-t border-slate-100">
+                                        <div className="flex-1 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between group hover:border-slate-300 transition-colors">
+                                            <div>
+                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Documento OIT</strong>
+                                                <span className="text-sm text-slate-700 truncate block max-w-[150px]">
+                                                    {oit.oitFileUrl ? 'Archivo cargado' : 'No disponible'}
+                                                </span>
+                                            </div>
+                                            {oit.oitFileUrl && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <a href={oit.oitFileUrl} download className="flex items-center cursor-pointer">
+                                                                <Download className="mr-2 h-4 w-4" />
+                                                                Descargar
+                                                            </a>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => document.getElementById('oitFileInput')?.click()}>
+                                                            <RefreshCcw className="mr-2 h-4 w-4" />
+                                                            Reemplazar
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between group hover:border-slate-300 transition-colors">
+                                            <div>
+                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                <span className="text-sm text-slate-700 truncate block max-w-[150px]">
+                                                    {oit.quotationFileUrl ? 'Archivo cargado' : 'No disponible'}
+                                                </span>
+                                            </div>
+                                            {oit.quotationFileUrl && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <a href={oit.quotationFileUrl} download className="flex items-center cursor-pointer">
+                                                                <Download className="mr-2 h-4 w-4" />
+                                                                Descargar
+                                                            </a>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => document.getElementById('quotationFileInput')?.click()}>
+                                                            <RefreshCcw className="mr-2 h-4 w-4" />
+                                                            Reemplazar
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Hidden file inputs */}
+                                    <input type="file" id="oitFileInput" accept=".pdf" onChange={(e) => handleFileChange(e, 'oit')} className="hidden" />
+                                    <input type="file" id="quotationFileInput" accept=".pdf" onChange={(e) => handleFileChange(e, 'quotation')} className="hidden" />
+                                </CardContent>
+                            </Card>
+
+                            {/* AI Analysis Card */}
+                            <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm h-fit">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        Análisis IA
+                                        {aiData && (aiData.valid ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />)}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {aiData ? (
+                                        <div className="space-y-4">
+                                            <div className={`p-4 rounded-lg text-sm border ${aiData.valid ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
+                                                {aiData.message}
+                                            </div>
+                                            {aiData.errors?.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Errores Detectados</p>
+                                                    <ul className="space-y-1">
+                                                        {aiData.errors.map((e: string, i: number) => (
+                                                            <li key={i} className="text-xs text-red-600 flex items-start gap-2">
+                                                                <span className="mt-0.5 block h-1 w-1 rounded-full bg-red-400 flex-shrink-0" />
+                                                                {e}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-400">
+                                            <p className="text-sm">Esperando análisis...</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="scheduling" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <>
+                            <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle>Programación de Visita</CardTitle>
+                                    <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {/* AI Proposal Section */}
+                                    {aiData?.data?.proposedDate && !isManualScheduling && !oit.scheduledDate ? (
+                                        <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-xl animate-in fade-in slide-in-from-top-2">
+                                            <div className="flex items-start gap-4">
+                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                                                </div>
+                                                <div className="flex-1 space-y-3">
+                                                    <div>
+                                                        <h4 className="text-base font-semibold text-indigo-900">Propuesta de Agendamiento IA</h4>
+                                                        <p className="text-sm text-indigo-700 mt-1">
+                                                            Basado en el análisis de documentos, se sugiere la siguiente fecha:
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 w-fit">
+                                                        <Calendar className="h-5 w-5 text-indigo-600" />
+                                                        <span className="text-lg font-semibold text-indigo-900">
+                                                            {new Date(aiData.data.proposedDate).toLocaleDateString()}
+                                                        </span>
+                                                        {aiData.data.proposedTime && (
+                                                            <>
+                                                                <span className="text-indigo-300">|</span>
+                                                                <Clock className="h-5 w-5 text-indigo-600" />
+                                                                <span className="text-lg font-semibold text-indigo-900">
+                                                                    {aiData.data.proposedTime}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 pt-2">
+                                                        <Button
+                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                                            onClick={async () => {
+                                                                const dateStr = aiData.data.proposedDate;
+                                                                const timeStr = aiData.data.proposedTime || '09:00';
+                                                                const fullDate = new Date(`${dateStr}T${timeStr}`);
+
+                                                                try {
+                                                                    await api.patch(`/oits/${id}`, { scheduledDate: fullDate.toISOString(), status: 'SCHEDULED' });
+                                                                    toast.success('Propuesta aceptada y agendada');
+                                                                    const response = await api.get(`/oits/${id}`);
+                                                                    setOit(response.data);
+                                                                } catch (error) {
+                                                                    toast.error('Error al aceptar propuesta');
+                                                                }
+                                                            }}
+                                                        >
+                                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                            Aceptar Propuesta
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                                            onClick={() => setIsManualScheduling(true)}
+                                                        >
+                                                            Modificar Manualmente
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid md:grid-cols-2 gap-6 animate-in fade-in">
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium text-slate-700">Fecha y Hora Programada</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="datetime-local"
+                                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().slice(0, 16) : ''}
+                                                            onChange={async (e) => {
+                                                                const date = new Date(e.target.value);
+                                                                try {
+                                                                    await api.patch(`/oits/${id}`, { scheduledDate: date.toISOString(), status: 'SCHEDULED' });
+                                                                    toast.success('Fecha programada actualizada');
+                                                                    const response = await api.get(`/oits/${id}`);
+                                                                    setOit(response.data);
+                                                                } catch (error) {
+                                                                    toast.error('Error al actualizar fecha');
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-slate-500">
+                                                        Selecciona la fecha y hora exacta para la visita de muestreo.
+                                                    </p>
+                                                </div>
+
+                                                {aiData?.data?.proposedDate && (
+                                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm text-slate-600 flex items-center gap-2">
+                                                        <Sparkles className="h-4 w-4 text-indigo-500" />
+                                                        <span>IA sugirió: {new Date(aiData.data.proposedDate).toLocaleDateString()}</span>
+                                                        <Button
+                                                            variant="link"
+                                                            className="h-auto p-0 text-indigo-600 ml-auto"
+                                                            onClick={() => setIsManualScheduling(false)}
+                                                        >
+                                                            Ver propuesta
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle>Recursos Identificados</CardTitle>
+                                    <CardDescription>Personal y equipos extraídos automáticamente de los documentos.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {resources.length > 0 ? (
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            {resources.map((res: any, idx: number) => (
+                                                <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                            {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
+                                                            <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                        </div>
+                                                    </div>
+                                                    {typeof res !== 'string' && res.quantity && (
+                                                        <Badge variant="outline" className="bg-slate-50">x{res.quantity}</Badge>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 text-slate-400">
+                                            <p>No se han identificado recursos automáticamente.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </>
+                    </TabsContent>
+
+                    <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {(() => {
+                            // Check if planning has been accepted
+                            if (!oit.planningAccepted) {
+                                return (
+                                    <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                            <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
+                                                <Calendar className="h-8 w-8 text-amber-500" />
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-slate-900">Planeación Pendiente</h3>
+                                            <p className="text-slate-500 max-w-md mt-2">
+                                                Debes aceptar la propuesta de planeación en la pestaña "Agendamiento" antes de iniciar el muestreo.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            }
+
+                            // Check if template is selected
+                            if (!oit.selectedTemplateId) {
+                                return (
+                                    <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                            <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                                <Beaker className="h-8 w-8 text-slate-400" />
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-slate-900">Plantilla no seleccionada</h3>
+                                            <p className="text-slate-500 max-w-md mt-2">
+                                                No hay una plantilla de muestreo asociada a este OIT.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            }
+
+                            return (
+                                <div className="space-y-6">
+                                    <Card className="border-indigo-200 bg-indigo-50/50">
+                                        <CardContent className="pt-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold text-indigo-900">Muestreo Dinámico</h4>
+                                                    <p className="text-sm text-indigo-700">Los pasos se cargarán dinámicamente según la plantilla seleccionada</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <SamplingExecutor
+                                        templateId={oit.selectedTemplateId}
+                                        oitId={id!}
+                                        onComplete={(samplingData) => {
+                                            toast.success('Muestreo completado exitosamente');
+                                            // Refresh OIT
+                                            api.get(`/oits/${id}`).then(res => setOit(res.data));
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })()}
+                    </TabsContent>
+
+                    <TabsContent value="report" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <ReportGenerator oitId={id!} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </div >
+    );
+}

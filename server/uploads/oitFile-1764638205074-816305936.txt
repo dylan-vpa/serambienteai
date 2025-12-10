@@ -1,0 +1,25 @@
+ORDEN DE INSPECCIÓN DE TRABAJO (OIT)
+
+Número de OIT: OIT-2024-TEST-001
+Fecha de emisión: 01/12/2024
+Cliente/Empresa: SERVICIOS INDUSTRIALES S.A.S.
+
+DESCRIPCIÓN DEL TRABAJO
+Tipo de inspección: Inspección de Seguridad Industrial y Salud Ocupacional
+Alcance: Realizar inspección detallada de las instalaciones de la planta de producción, verificando el cumplimiento de normas de seguridad, estado de extintores, señalización y uso de EPP por parte del personal.
+Ubicación: Zona Industrial, Bodega 5, Bogotá D.C.
+
+REQUISITOS TÉCNICOS
+Normas aplicables: NTC 2050, Resolución 2400 de 1979
+Equipos/Recursos necesarios:
+- Medidor de nivel de ruido
+- Luxómetro
+- Cámara fotográfica
+- Kit de inspección visual
+Personal asignado:
+- Ing. Juan Pérez (Inspector Senior)
+- Téc. María González (Asistente)
+
+FIRMAS
+Solicitado por: Carlos Rodríguez (Gerente de Planta)
+Aprobado por: Ana Martínez (Directora de Operaciones)

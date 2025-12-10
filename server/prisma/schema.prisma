@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          String         @default("USER") // ADMIN, USER
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+}
+
+model OIT {
+  id                    String         @id @default(uuid())
+  oitNumber             String         @unique
+  description           String?
+  status                String         @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
+  oitFileUrl            String?
+  quotationFileUrl      String?
+  samplingReportUrl     String?        // Generated sampling report
+  labResultsUrl         String?        // Uploaded lab analysis
+  finalReportUrl        String?        // Final AI-generated report
+  aiData                String?        // JSON string
+  resources             String?        // JSON string
+  scheduledDate         DateTime?
+  samplingData          String?        // JSON with offline sampling data
+  pendingSync           Boolean        @default(false)
+  selectedTemplateId    String?
+  planningProposal      String?        // JSON with AI planning proposal
+  planningAccepted      Boolean        @default(false)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  notifications         Notification[]
+}
+
+model Resource {
+  id          String   @id @default(uuid())
+  name        String
+  type        String
+  quantity    Int
+  status      String   @default("AVAILABLE") // AVAILABLE, IN_USE, MAINTENANCE
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  oitId     String?
+  oit       OIT?     @relation(fields: [oitId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Standard {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  type        String   // OIT, QUOTATION
+  fileUrl     String?  // URL to the uploaded standard document
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SamplingTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  oitType     String   // Tipo de OIT al que aplica
+  steps       String   // JSON con los pasos del flujo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
