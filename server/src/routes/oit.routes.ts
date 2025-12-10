@@ -26,6 +26,7 @@ router.post('/', createOIT);
 // Async creation endpoint with file uploads (oitFile and quotationFile)
 router.post(
     '/async',
+    authMiddleware,
     upload.fields([
         { name: 'oitFile', maxCount: 1 },
         { name: 'quotationFile', maxCount: 1 },
