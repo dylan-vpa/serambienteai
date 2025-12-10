@@ -4,6 +4,7 @@ import { FileText, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TodaySchedule } from '@/components/dashboard/TodaySchedule';
 
 export default function DashboardPage() {
     const { stats, isLoading } = useDashboardStats();
@@ -131,6 +132,10 @@ export default function DashboardPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-1">
+                <TodaySchedule />
             </div>
         </div>
     );

@@ -9,7 +9,7 @@ node_modules/
 # Production
 /build
 /dist
-
+/temp
 # Misc
 .DS_Store
 .env

@@ -10,10 +10,19 @@
   --radius: 0.75rem;
 }
 
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
 body {
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+#root {
+  height: 100%;
 }
 
 /* Glassmorphism */
