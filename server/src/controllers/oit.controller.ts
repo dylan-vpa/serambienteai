@@ -282,11 +282,14 @@ export const createOITAsync = async (req: Request, res: Response) => {
             return res.status(401).json({ error: 'Usuario no autenticado' });
         }
 
+        // Generate oitNumber if not provided
+        const finalOitNumber = oitNumber || `OIT-${Date.now()}`;
+
         // Create OIT with UPLOADING status
         const oit = await prisma.oIT.create({
             data: {
-                oitNumber,
-                description: description || '',
+                oitNumber: finalOitNumber,
+                description: description || 'Análisis en curso...',
                 status: 'UPLOADING'
             }
         });
