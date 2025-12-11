@@ -22,6 +22,8 @@ export default function OITDetailPage() {
     const [stepValidations, setStepValidations] = useState<any>({});
     const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
+    const [isLocationVerified, setIsLocationVerified] = useState(false);
+    const [verificationMsg, setVerificationMsg] = useState('');
 
     // Polling for status updates
     useEffect(() => {
@@ -580,6 +582,29 @@ export default function OITDetailPage() {
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    {/* Location Input */}
+                                                    <div className="space-y-2 mt-4">
+                                                        <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Ubicación del Muestreo</label>
+                                                        <div className="relative">
+                                                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                            <input
+                                                                type="text"
+                                                                className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                value={oit.location || ''}
+                                                                placeholder="Dirección o Coordenadas (Ej: Calle 123 # 45-67)"
+                                                                onChange={(e) => setOit({ ...oit, location: e.target.value })}
+                                                                onBlur={async (e) => {
+                                                                    try {
+                                                                        await api.patch(`/oits/${id}`, { location: e.target.value });
+                                                                        toast.success('Ubicación actualizada');
+                                                                    } catch (error) {
+                                                                        toast.error('Error al actualizar ubicación');
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                     <p className="text-xs text-slate-500 mt-3">
                                                         Selecciona la fecha y hora para la visita de muestreo.
                                                     </p>
@@ -689,6 +714,75 @@ export default function OITDetailPage() {
 
                     <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {(() => {
+                            // 0. Verification of Conditions (Time & Location)
+                            if (!isLocationVerified) {
+                                return (
+                                    <Card className="border-indigo-200 bg-indigo-50/50 mb-6">
+                                        <CardHeader>
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="h-5 w-5 text-indigo-600" />
+                                                <CardTitle className="text-lg">Verificación de Sitio y Hora</CardTitle>
+                                            </div>
+                                            <CardDescription>
+                                                Para iniciar, valida que estás en el sitio ({oit.location || 'No definido'}) y en el horario agendado.
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {verificationMsg && (
+                                                <div className={`p-4 rounded-lg flex items-center gap-3 ${verificationMsg.includes('Exitoso') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {verificationMsg.includes('Exitoso') ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                                    <p className="text-sm font-medium">{verificationMsg}</p>
+                                                </div>
+                                            )}
+
+                                            <Button
+                                                className="w-full bg-slate-900 hover:bg-slate-800"
+                                                size="lg"
+                                                onClick={() => {
+                                                    setVerificationMsg('Verificando condiciones...');
+
+                                                    if (!oit.scheduledDate) {
+                                                        setVerificationMsg('No hay fecha agendada.');
+                                                        return;
+                                                    }
+
+                                                    const scheduled = new Date(oit.scheduledDate);
+                                                    const now = new Date();
+                                                    const diffMs = Math.abs(now.getTime() - scheduled.getTime());
+                                                    const minutes = diffMs / (1000 * 60);
+
+                                                    // 15 min tolerance
+                                                    if (minutes > 15) {
+                                                        setVerificationMsg(`Fuera de rango (15 min). Agendado: ${scheduled.toLocaleTimeString()} vs Ahora: ${now.toLocaleTimeString()}`);
+                                                        return;
+                                                    }
+
+                                                    if (!navigator.geolocation) {
+                                                        setVerificationMsg('Geolocalización no soportada por el navegador.');
+                                                        return;
+                                                    }
+
+                                                    navigator.geolocation.getCurrentPosition(
+                                                        (pos) => {
+                                                            setIsLocationVerified(true);
+                                                            setVerificationMsg('Verificación Exitosa');
+                                                            toast.success('Ubicación y Hora Validadas');
+                                                        },
+                                                        (err) => {
+                                                            console.error(err);
+                                                            setVerificationMsg('Error obteniendo ubicación GPS. Asegúrate de dar permisos.');
+                                                        },
+                                                        { enableHighAccuracy: true, timeout: 10000 }
+                                                    );
+                                                }}
+                                            >
+                                                Verificar Condiciones para Iniciar
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            }
+
                             // Check if planning has been accepted
                             if (!oit.planningAccepted) {
                                 return (
