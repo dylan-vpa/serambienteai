@@ -37,6 +37,9 @@ model OIT {
   selectedTemplateId    String?
   planningProposal      String?        // JSON with AI planning proposal
   planningAccepted      Boolean        @default(false)
+  samplingProgress      String?        // JSON: { currentStep: number, completedSteps: number[] }
+  stepValidations       String?        // JSON: { [stepIndex]: { validated: bool, feedback: string, data: any } }
+  finalAnalysis         String?        // AI comprehensive analysis when sampling completes
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]

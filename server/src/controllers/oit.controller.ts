@@ -606,3 +606,150 @@ export const checkCompliance = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al verificar cumplimiento' });
     }
 };
+
+// Validate Sampling Step Data
+export const validateStepData = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { stepIndex, stepDescription, stepRequirements, userData } = req.body;
+
+        const { validationService } = require('../services/validation.service');
+
+        // Validate the step data using AI
+        const validationResult = await validationService.validateStepData(
+            stepDescription,
+            stepRequirements,
+            userData
+        );
+
+        // Update OIT with validation result
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        // Parse existing validations
+        const stepValidations = oit.stepValidations ? JSON.parse(oit.stepValidations) : {};
+        stepValidations[stepIndex] = {
+            validated: validationResult.validated,
+            feedback: validationResult.feedback,
+            confidence: validationResult.confidence,
+            data: userData,
+            timestamp: new Date().toISOString()
+        };
+
+        // Update progress if validated
+        let samplingProgress = oit.samplingProgress ? JSON.parse(oit.samplingProgress) : { currentStep: 0, completedSteps: [] };
+        if (validationResult.validated) {
+            if (!samplingProgress.completedSteps.includes(stepIndex)) {
+                samplingProgress.completedSteps.push(stepIndex);
+            }
+            samplingProgress.currentStep = stepIndex + 1;
+        }
+
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                stepValidations: JSON.stringify(stepValidations),
+                samplingProgress: JSON.stringify(samplingProgress)
+            }
+        });
+
+        res.json(validationResult);
+    } catch (error) {
+        console.error('Error validating step:', error);
+        res.status(500).json({ error: 'Error al validar el paso' });
+    }
+};
+
+// Finalize Sampling and Generate Analysis
+export const finalizeSampling = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        // Verify all steps are completed
+        const samplingProgress = oit.samplingProgress ? JSON.parse(oit.samplingProgress) : null;
+        const stepValidations = oit.stepValidations ? JSON.parse(oit.stepValidations) : {};
+        const aiData = oit.aiData ? JSON.parse(oit.aiData) : {};
+        const steps = aiData?.data?.steps || [];
+
+        if (!samplingProgress || samplingProgress.completedSteps.length !== steps.length) {
+            return res.status(400).json({ error: 'No todos los pasos están completados' });
+        }
+
+        // Prepare data for analysis
+        const allStepsData = steps.map((step: any, index: number) => ({
+            step: step.description || `Paso ${index + 1}`,
+            data: stepValidations[index]?.data || {},
+            validation: stepValidations[index] || {}
+        }));
+
+        const { validationService } = require('../services/validation.service');
+
+        // Generate final analysis
+        const finalAnalysis = await validationService.generateFinalAnalysis(
+            oit.oitNumber,
+            aiData?.data?.selectedTemplate || 'Plantilla',
+            allStepsData
+        );
+
+        // Update OIT with final analysis and status
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                finalAnalysis,
+                status: 'COMPLETED'
+            }
+        });
+
+        res.json({
+            success: true,
+            analysis: finalAnalysis
+        });
+    } catch (error) {
+        console.error('Error finalizing sampling:', error);
+        res.status(500).json({ error: 'Error al finalizar el muestreo' });
+    }
+};
+
+// Generate Sampling Report PDF
+export const generateSamplingReport = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        if (!oit.finalAnalysis) {
+            return res.status(400).json({ error: 'El muestreo no ha sido finalizado' });
+        }
+
+        // Import PDF service
+        const { pdfService } = require('../services/pdf.service');
+
+        // Generate PDF
+        const pdfPath = await pdfService.generateSamplingReport(oit);
+
+        // Update OIT with report URL
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingReportUrl: pdfPath
+            }
+        });
+
+        // Send PDF file
+        res.download(pdfPath, `Informe_Muestreo_${oit.oitNumber}.pdf`);
+    } catch (error) {
+        console.error('Error generating report:', error);
+        res.status(500).json({ error: 'Error al generar el informe PDF' });
+    }
+};
+

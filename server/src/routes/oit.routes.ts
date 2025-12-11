@@ -12,7 +12,10 @@ import {
     saveSamplingData,
     getSamplingData,
     uploadLabResults,
-    generateFinalReport
+    generateFinalReport,
+    validateStepData,
+    finalizeSampling,
+    generateSamplingReport
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -52,6 +55,11 @@ router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 // Lab results and final report
 router.post('/:id/lab-results', authMiddleware, upload.single('file'), uploadLabResults);
 router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
+
+// Sampling validation workflow
+router.post('/:id/validate-step', authMiddleware, validateStepData);
+router.post('/:id/finalize-sampling', authMiddleware, finalizeSampling);
+router.get('/:id/sampling-report', authMiddleware, generateSamplingReport);
 
 router.delete('/:id', deleteOIT);
 

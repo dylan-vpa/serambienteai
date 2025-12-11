@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SamplingExecutor } from '@/components/sampling/SamplingExecutor';
+import { SamplingStep } from '@/components/SamplingStep';
+import { FileDown } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
 
 export default function OITDetailPage() {
@@ -16,6 +18,8 @@ export default function OITDetailPage() {
     const [oit, setOit] = useState<any>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isManualScheduling, setIsManualScheduling] = useState(false);
+    const [stepValidations, setStepValidations] = useState<any>({});
+    const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
 
     // Polling for status updates
     useEffect(() => {
@@ -27,6 +31,14 @@ export default function OITDetailPage() {
             try {
                 const response = await api.get(`/oits/${id}`);
                 setOit(response.data);
+
+                // Load validations and analysis
+                if (response.data.stepValidations) {
+                    setStepValidations(JSON.parse(response.data.stepValidations));
+                }
+                if (response.data.finalAnalysis) {
+                    setFinalAnalysis(response.data.finalAnalysis);
+                }
 
                 if (response.data.status !== 'ANALYZING' && response.data.status !== 'UPLOADING') {
                     clearInterval(intervalId);
@@ -118,6 +130,45 @@ export default function OITDetailPage() {
             toast.error('Error al verificar cumplimiento');
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    const handleFinalizeSampling = async () => {
+        if (!id) return;
+        try {
+            setIsProcessing(true);
+            const response = await api.post(`/oits/${id}/finalize-sampling`);
+            setFinalAnalysis(response.data.analysis);
+            toast.success('Muestreo finalizado y análisis generado');
+
+            // Refresh OIT
+            const oitRes = await api.get(`/oits/${id}`);
+            setOit(oitRes.data);
+        } catch (error) {
+            console.error('Error finalizing:', error);
+            toast.error('Error al finalizar el muestreo');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleDownloadReport = async () => {
+        if (!id) return;
+        try {
+            const response = await api.get(`/oits/${id}/sampling-report`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Informe_Muestreo_${oit.oitNumber}.html`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success('Informe descargado');
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            toast.error('Error al descargar el informe');
         }
     };
 
@@ -665,22 +716,79 @@ export default function OITDetailPage() {
                                                     <Sparkles className="h-5 w-5 text-indigo-600" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-semibold text-indigo-900">Muestreo Dinámico</h4>
-                                                    <p className="text-sm text-indigo-700">Los pasos se cargarán dinámicamente según la plantilla seleccionada</p>
+                                                    <h4 className="font-semibold text-indigo-900">Muestreo Validado por IA</h4>
+                                                    <p className="text-sm text-indigo-700">Completa cada paso secuencialmente. La IA validará tus datos.</p>
                                                 </div>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    <SamplingExecutor
-                                        templateId={oit.selectedTemplateId}
-                                        oitId={id!}
-                                        onComplete={(samplingData) => {
-                                            toast.success('Muestreo completado exitosamente');
-                                            // Refresh OIT
-                                            api.get(`/oits/${id}`).then(res => setOit(res.data));
-                                        }}
-                                    />
+                                    <div className="space-y-4">
+                                        {aiData?.data?.steps?.map((step: any, index: number) => {
+                                            const isLocked = index > 0 && !stepValidations[index - 1]?.validated;
+                                            return (
+                                                <SamplingStep
+                                                    key={index}
+                                                    oitId={id!}
+                                                    step={step}
+                                                    stepIndex={index}
+                                                    isLocked={isLocked}
+                                                    validation={stepValidations[index]}
+                                                    onValidationComplete={async () => {
+                                                        const response = await api.get(`/oits/${id}`);
+                                                        setOit(response.data);
+                                                        if (response.data.stepValidations) {
+                                                            setStepValidations(JSON.parse(response.data.stepValidations));
+                                                        }
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Final Actions */}
+                                    <div className="flex flex-col items-center gap-4 py-6">
+                                        {!finalAnalysis && aiData?.data?.steps?.length > 0 &&
+                                            Object.keys(stepValidations).length >= aiData?.data?.steps?.length &&
+                                            Object.values(stepValidations).every((v: any) => v.validated) && (
+                                                <Button
+                                                    size="lg"
+                                                    onClick={handleFinalizeSampling}
+                                                    disabled={isProcessing}
+                                                    className="bg-green-600 hover:bg-green-700"
+                                                >
+                                                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                                                    Finalizar Muestreo y Generar Análisis
+                                                </Button>
+                                            )}
+
+                                        {finalAnalysis && (
+                                            <div className="w-full space-y-6 animate-in fade-in">
+                                                <Card className="bg-slate-900 text-slate-50 border-slate-800">
+                                                    <CardHeader>
+                                                        <div className="flex items-center gap-2">
+                                                            <Sparkles className="text-indigo-400" />
+                                                            <CardTitle className="text-xl">Análisis Final de IA</CardTitle>
+                                                        </div>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="prose prose-invert max-w-none">
+                                                            <pre className="whitespace-pre-wrap font-sans text-sm text-slate-300">
+                                                                {finalAnalysis}
+                                                            </pre>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                <div className="flex justify-center">
+                                                    <Button size="lg" onClick={handleDownloadReport} className="shadow-lg">
+                                                        <FileDown className="mr-2 h-5 w-5" />
+                                                        Descargar Informe PDF
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })()}
