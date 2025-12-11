@@ -138,16 +138,38 @@ export default function NotificationsPage() {
                         {unreadCount > 0 ? `${unreadCount} sin leer` : 'Todo al día'}
                     </p>
                 </div>
-                {unreadCount > 0 && (
-                    <Button
-                        onClick={markAllAsRead}
-                        variant="outline"
-                        className="gap-2"
-                    >
-                        <CheckCheck className="h-4 w-4" />
-                        Marcar todas como leídas
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {Notification.permission !== 'granted' && (
+                        <Button
+                            onClick={() => {
+                                Notification.requestPermission().then(res => {
+                                    if (res === 'granted') {
+                                        toast.success('Alertas activadas');
+                                        // Force re-render/update
+                                        window.location.reload();
+                                    } else {
+                                        toast.error('Permiso denegado');
+                                    }
+                                });
+                            }}
+                            variant="outline"
+                            className="gap-2 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        >
+                            <Bell className="h-4 w-4" />
+                            Activar Alertas
+                        </Button>
+                    )}
+                    {unreadCount > 0 && (
+                        <Button
+                            onClick={markAllAsRead}
+                            variant="outline"
+                            className="gap-2"
+                        >
+                            <CheckCheck className="h-4 w-4" />
+                            Marcar leídas
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Notifications List */}

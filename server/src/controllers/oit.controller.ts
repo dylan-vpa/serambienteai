@@ -331,7 +331,14 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
                 where: { id: oitId },
                 data: { status: 'REVIEW_REQUIRED' }
             });
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error('Compliance check error:', e);
+            // Fallback: update status anyway so it doesn't get stuck
+            await prisma.oIT.update({
+                where: { id: oitId },
+                data: { status: 'REVIEW_REQUIRED' }
+            });
+        }
 
         // Planning
         try {

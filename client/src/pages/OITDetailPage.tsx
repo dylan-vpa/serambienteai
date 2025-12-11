@@ -366,7 +366,7 @@ export default function OITDetailPage() {
                                             }}
                                         >
                                             <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${(isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING') ? 'animate-spin' : ''}`} />
-                                            Re-analizar
+                                            Reiniciar Análisis
                                         </Button>
                                     </CardTitle>
                                 </CardHeader>
