@@ -65,8 +65,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {/* Branding */}
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/50">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-900 flex items-center justify-center">
-                            <div className="h-4 w-4 rounded-full border-2 border-white" />
+                        <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
+                            <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
                         </div>
                         <div className="text-left">
                             <p className="text-sm font-medium text-slate-900 leading-none">ALS</p>

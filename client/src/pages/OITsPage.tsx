@@ -240,9 +240,17 @@ export default function OITsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
+                    {/* Desktop Headers */}
+                    <div className="hidden sm:flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <div className="flex-1">OIT / Descripción</div>
+                        <div className="w-32 text-right">Fecha</div>
+                        <div className="w-32 text-right">Estado</div>
+                    </div>
+
                     <div className="divide-y divide-slate-100">
                         {isLoading ? (
                             <div className="p-4 space-y-4">
+                                {/* Skeletons */}
                                 {[...Array(3)].map((_, i) => (
                                     <div key={i} className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
@@ -267,21 +275,25 @@ export default function OITsPage() {
                                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50/50 transition-colors cursor-pointer group gap-4 sm:gap-0"
                                     onClick={() => navigate(`/oits/${oit.id}`)}
                                 >
-                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                    <div className="flex items-center gap-4 w-full sm:flex-1 min-w-0">
                                         <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-white group-hover:shadow-sm transition-all">
                                             <FileText className="h-4 w-4 text-slate-500 group-hover:text-slate-900" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-slate-900 truncate">{oit.oitNumber || `OIT-${oit.id.slice(0, 8)}`}</p>
-                                            <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-none">{oit.description || 'Sin descripción'}</p>
+                                            <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-[400px]">{oit.description || 'Sin descripción'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto pl-14 sm:pl-0">
-                                        <span className="text-xs text-slate-400 font-mono">
-                                            {new Date(oit.createdAt).toLocaleDateString()}
-                                        </span>
-                                        <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(oit.status)}`}>
-                                            {getStatusLabel(oit.status)}
+                                        <div className="sm:w-32 sm:text-right">
+                                            <span className="text-xs text-slate-400 font-mono">
+                                                {new Date(oit.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="sm:w-32 sm:text-right flex justify-end">
+                                            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(oit.status)}`}>
+                                                {getStatusLabel(oit.status)}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
