@@ -434,43 +434,90 @@ export default function OITDetailPage() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="grid md:grid-cols-2 gap-6 animate-in fade-in">
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-slate-700">Fecha y Hora Programada</label>
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="datetime-local"
-                                                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                            value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().slice(0, 16) : ''}
-                                                            onChange={async (e) => {
-                                                                const date = new Date(e.target.value);
-                                                                try {
-                                                                    await api.patch(`/oits/${id}`, { scheduledDate: date.toISOString(), status: 'SCHEDULED' });
-                                                                    toast.success('Fecha programada actualizada');
-                                                                    const response = await api.get(`/oits/${id}`);
-                                                                    setOit(response.data);
-                                                                } catch (error) {
-                                                                    toast.error('Error al actualizar fecha');
-                                                                }
-                                                            }}
-                                                        />
+                                        <div className="space-y-6 animate-in fade-in">
+                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-slate-900 mb-4">Programar Fecha y Hora</h4>
+                                                    <div className="grid md:grid-cols-2 gap-4">
+                                                        {/* Date Input */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Fecha</label>
+                                                            <div className="relative">
+                                                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                <input
+                                                                    type="date"
+                                                                    className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                    value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().split('T')[0] : ''}
+                                                                    onChange={async (e) => {
+                                                                        const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
+                                                                        const newDate = new Date(e.target.value);
+                                                                        newDate.setHours(currentDate.getHours(), currentDate.getMinutes());
+
+                                                                        try {
+                                                                            await api.patch(`/oits/${id}`, { scheduledDate: newDate.toISOString(), status: 'SCHEDULED' });
+                                                                            toast.success('Fecha actualizada');
+                                                                            const response = await api.get(`/oits/${id}`);
+                                                                            setOit(response.data);
+                                                                        } catch (error) {
+                                                                            toast.error('Error al actualizar fecha');
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Time Input */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Hora</label>
+                                                            <div className="relative">
+                                                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                <input
+                                                                    type="time"
+                                                                    className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                    value={oit.scheduledDate ? new Date(oit.scheduledDate).toTimeString().slice(0, 5) : '09:00'}
+                                                                    onChange={async (e) => {
+                                                                        const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
+                                                                        const [hours, minutes] = e.target.value.split(':');
+                                                                        currentDate.setHours(parseInt(hours), parseInt(minutes));
+
+                                                                        try {
+                                                                            await api.patch(`/oits/${id}`, { scheduledDate: currentDate.toISOString(), status: 'SCHEDULED' });
+                                                                            toast.success('Hora actualizada');
+                                                                            const response = await api.get(`/oits/${id}`);
+                                                                            setOit(response.data);
+                                                                        } catch (error) {
+                                                                            toast.error('Error al actualizar hora');
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-xs text-slate-500">
-                                                        Selecciona la fecha y hora exacta para la visita de muestreo.
+                                                    <p className="text-xs text-slate-500 mt-3">
+                                                        Selecciona la fecha y hora para la visita de muestreo.
                                                     </p>
                                                 </div>
 
                                                 {aiData?.data?.proposedDate && (
-                                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm text-slate-600 flex items-center gap-2">
-                                                        <Sparkles className="h-4 w-4 text-indigo-500" />
-                                                        <span>IA sugirió: {new Date(aiData.data.proposedDate).toLocaleDateString()}</span>
+                                                    <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                            <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
+                                                        </div>
+                                                        <p className="text-sm text-indigo-700">
+                                                            {new Date(aiData.data.proposedDate).toLocaleDateString('es-ES', {
+                                                                weekday: 'long',
+                                                                year: 'numeric',
+                                                                month: 'long',
+                                                                day: 'numeric'
+                                                            })} a las {aiData.data.proposedTime || '09:00'}
+                                                        </p>
                                                         <Button
                                                             variant="link"
-                                                            className="h-auto p-0 text-indigo-600 ml-auto"
+                                                            className="h-auto p-0 text-indigo-600 text-sm mt-1"
                                                             onClick={() => setIsManualScheduling(false)}
                                                         >
-                                                            Ver propuesta
+                                                            ← Volver a la propuesta
                                                         </Button>
                                                     </div>
                                                 )}

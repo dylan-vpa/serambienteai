@@ -12,6 +12,9 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { templateId } = req.body;
 
+        // Get OIT with aiData to extract assigned resources
+        const existingOit = await prisma.oIT.findUnique({ where: { id } });
+
         const oit = await prisma.oIT.update({
             where: { id },
             data: {
@@ -21,6 +24,28 @@ export const acceptPlanning = async (req: Request, res: Response) => {
             }
         });
 
+        // Update resource statuses if there are assigned resources
+        if (existingOit?.aiData) {
+            try {
+                const aiData = JSON.parse(existingOit.aiData);
+                if (aiData?.data?.assignedResources && Array.isArray(aiData.data.assignedResources)) {
+                    // Update each resource status to IN_USE
+                    for (const resource of aiData.data.assignedResources) {
+                        if (resource.id) {
+                            await prisma.resource.update({
+                                where: { id: resource.id },
+                                data: { status: 'IN_USE' }
+                            });
+                            console.log(`Resource ${resource.name} set to IN_USE for OIT ${oit.oitNumber}`);
+                        }
+                    }
+                }
+            } catch (parseError) {
+                console.error('Error parsing aiData for resource updates:', parseError);
+                // Continue even if resource update fails
+            }
+        }
+
         // Create notification
         if ((req as any).user?.userId) {
             await prisma.notification.create({
@@ -28,7 +53,7 @@ export const acceptPlanning = async (req: Request, res: Response) => {
                     userId: (req as any).user.userId,
                     oitId: id,
                     title: 'Planeación Aceptada',
-                    message: `La propuesta de planeación para OIT ${oit.oitNumber} ha sido aceptada`,
+                    message: `La propuesta de planeación para OIT ${oit.oitNumber} ha sido aceptada. Recursos asignados y programados.`,
                     type: 'SUCCESS'
                 }
             });
