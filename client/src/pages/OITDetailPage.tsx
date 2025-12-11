@@ -781,7 +781,16 @@ export default function OITDetailPage() {
                                                         },
                                                         (err) => {
                                                             console.error(err);
-                                                            setVerificationMsg('Error obteniendo ubicación GPS. Asegúrate de dar permisos.');
+                                                            let errMsg = 'Error GPS.';
+                                                            if (err.code === 1) errMsg = 'Permiso denegado. Revisa configuración del sitio.';
+                                                            else if (err.code === 2) errMsg = 'Ubicación no disponible.';
+                                                            else if (err.code === 3) errMsg = 'Tiempo de espera agotado.';
+
+                                                            if (!window.isSecureContext) {
+                                                                errMsg += ' (Tu conexión es HTTP no segura. El navegador bloquea GPS).';
+                                                            }
+
+                                                            setVerificationMsg(`${errMsg} (${err.message})`);
                                                         },
                                                         { enableHighAccuracy: true, timeout: 10000 }
                                                     );
