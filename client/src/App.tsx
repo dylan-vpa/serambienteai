@@ -16,6 +16,8 @@ import StandardsPage from '@/pages/StandardsPage';
 import SamplingTemplatesPage from '@/pages/SamplingTemplatesPage';
 import CreateStandardPage from '@/pages/CreateStandardPage';
 import CreateTemplatePage from '@/pages/CreateTemplatePage';
+import EditStandardPage from '@/pages/EditStandardPage';
+import EditTemplatePage from '@/pages/EditTemplatePage';
 
 function App() {
   return (
@@ -33,8 +35,10 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="standards" element={<StandardsPage />} />
             <Route path="standards/create" element={<CreateStandardPage />} />
+            <Route path="standards/edit/:id" element={<EditStandardPage />} />
             <Route path="sampling-templates" element={<SamplingTemplatesPage />} />
             <Route path="sampling-templates/create" element={<CreateTemplatePage />} />
+            <Route path="sampling-templates/edit/:id" element={<EditTemplatePage />} />
             <Route path="ai" element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="calendar" element={<CalendarPage />} />

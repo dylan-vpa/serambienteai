@@ -45,6 +45,8 @@ export default function ResourcesPage() {
         quantity: 0,
         status: 'AVAILABLE'
     });
+    const [editingResource, setEditingResource] = useState<any>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -69,6 +71,30 @@ export default function ResourcesPage() {
                 return 'Mantenimiento';
             default:
                 return status;
+        }
+    };
+
+    const handleEdit = (resource: any) => {
+        setEditingResource(resource);
+        setFormData({
+            name: resource.name,
+            type: resource.type,
+            quantity: resource.quantity,
+            status: resource.status
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este recurso?')) {
+            return;
+        }
+        try {
+            await api.delete(`/resources/${id}`);
+            window.location.reload();
+        } catch (error) {
+            console.error('Error deleting resource:', error);
+            alert('Error al eliminar recurso');
         }
     };
 
@@ -315,6 +341,81 @@ export default function ResourcesPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Edit Resource Dialog */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Editar Recurso</DialogTitle>
+                            <DialogDescription>
+                                Actualiza la información del recurso.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-name">Nombre</Label>
+                                <Input
+                                    id="edit-name"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-type">Tipo</Label>
+                                <Input
+                                    id="edit-type"
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-quantity">Cantidad</Label>
+                                <Input
+                                    id="edit-quantity"
+                                    type="number"
+                                    value={formData.quantity}
+                                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-status">Estado</Label>
+                                <Select
+                                    value={formData.status}
+                                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                                        <SelectItem value="IN_USE">En Uso</SelectItem>
+                                        <SelectItem value="MAINTENANCE">Mantenimiento</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={async () => {
+                                    try {
+                                        await api.put(`/resources/${editingResource.id}`, formData);
+                                        setIsEditDialogOpen(false);
+                                        window.location.reload();
+                                    } catch (error) {
+                                        console.error('Error updating resource:', error);
+                                        alert('Error al actualizar recurso');
+                                    }
+                                }}
+                                className="bg-slate-900 hover:bg-slate-800"
+                            >
+                                Guardar Cambios
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <Card className="border-slate-200 shadow-sm bg-white">
@@ -391,10 +492,10 @@ export default function ResourcesPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                        <DropdownMenuItem>Editar recurso</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleEdit(resource)}>Editar recurso</DropdownMenuItem>
                                                         <DropdownMenuItem>Ver detalles</DropdownMenuItem>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-red-600">Eliminar recurso</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(resource.id)}>Eliminar recurso</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </td>

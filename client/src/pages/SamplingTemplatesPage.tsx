@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, MoreHorizontal, Workflow, Trash2 } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Workflow, Trash2, Edit } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -190,6 +190,10 @@ export default function SamplingTemplatesPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => navigate(`/sampling-templates/edit/${template.id}`)}>
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                Editar
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(template.id)}>
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Eliminar

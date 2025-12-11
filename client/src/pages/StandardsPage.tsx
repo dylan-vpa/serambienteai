@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, MoreHorizontal, FileText, Scale, Download } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, FileText, Scale, Download, Edit, Trash2 } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -233,7 +233,12 @@ export default function StandardsPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => navigate(`/standards/edit/${std.id}`)}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Editar
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(std.id)}>
+                                                            <Trash2 className="mr-2 h-4 w-4" />
                                                             Eliminar
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
