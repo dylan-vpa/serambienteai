@@ -177,7 +177,7 @@ export default function OITDetailPage() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Informe_Muestreo_${oit.oitNumber}.html`);
+            link.setAttribute('download', `Informe_Muestreo_${oit.oitNumber}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -785,27 +785,11 @@ export default function OITDetailPage() {
                                             )}
 
                                         {finalAnalysis && (
-                                            <div className="w-full space-y-6 animate-in fade-in">
-                                                <Card className="bg-slate-900 text-slate-50 border-slate-800">
-                                                    <CardHeader>
-                                                        <div className="flex items-center gap-2">
-                                                            <Sparkles className="text-indigo-400" />
-                                                            <CardTitle className="text-xl">Análisis Final de IA</CardTitle>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="prose prose-invert max-w-none text-slate-300">
-                                                            <ReactMarkdown>{finalAnalysis}</ReactMarkdown>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <div className="flex justify-center">
-                                                    <Button size="lg" onClick={handleDownloadReport} className="shadow-lg">
-                                                        <FileDown className="mr-2 h-5 w-5" />
-                                                        Descargar Informe PDF
-                                                    </Button>
-                                                </div>
+                                            <div className="w-full flex justify-center py-6 animate-in fade-in">
+                                                <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white">
+                                                    <FileDown className="mr-2 h-5 w-5" />
+                                                    Descargar Informe PDF
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
