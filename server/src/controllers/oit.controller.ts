@@ -611,7 +611,19 @@ export const checkCompliance = async (req: Request, res: Response) => {
 export const validateStepData = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { stepIndex, stepDescription, stepRequirements, userData } = req.body;
+        const { stepIndex, stepDescription, stepRequirements, data } = req.body;
+
+        console.log('--- VALIDATE STEP START ---');
+        console.log('OIT ID:', id);
+        console.log('Step Index:', stepIndex);
+        console.log('Step Description:', stepDescription);
+        console.log('Data recieved payload:', JSON.stringify(data, null, 2));
+        console.log('Req Body keys:', Object.keys(req.body));
+
+        if (!data) {
+            console.error('MISSING DATA IN REQUEST BODY');
+            return res.status(400).json({ error: 'Faltan datos para validar' });
+        }
 
         const { validationService } = require('../services/validation.service');
 
@@ -619,7 +631,7 @@ export const validateStepData = async (req: Request, res: Response) => {
         const validationResult = await validationService.validateStepData(
             stepDescription,
             stepRequirements,
-            userData
+            data
         );
 
         // Update OIT with validation result
@@ -634,7 +646,7 @@ export const validateStepData = async (req: Request, res: Response) => {
             validated: validationResult.validated,
             feedback: validationResult.feedback,
             confidence: validationResult.confidence,
-            data: userData,
+            data: data,
             timestamp: new Date().toISOString()
         };
 
