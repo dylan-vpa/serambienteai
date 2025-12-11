@@ -35,6 +35,10 @@ router.post(
 );
 
 router.put('/:id', updateOIT);
+router.patch('/:id', authMiddleware, upload.fields([
+    { name: 'oitFile', maxCount: 1 },
+    { name: 'quotationFile', maxCount: 1 },
+]), updateOIT);
 router.post('/:id/compliance', authMiddleware, checkCompliance);
 
 // Planning endpoints

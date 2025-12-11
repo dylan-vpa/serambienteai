@@ -341,6 +341,7 @@ async function processOITFilesAsync(
 
         // Process files with AI
         const aiData: any = {};
+        let extractedDescription: string | null = null;
 
         if (oitFile) {
             const pdfParse = (await import('pdf-parse')).default;
@@ -349,6 +350,14 @@ async function processOITFilesAsync(
             const oitText = pdfData.text;
             const oitAnalysis = await aiService.analyzeDocument(oitText);
             aiData.oit = oitAnalysis;
+
+            // Extract description from analysis if available
+            if ((oitAnalysis as any).description) {
+                extractedDescription = (oitAnalysis as any).description;
+            } else if (oitText.length > 50) {
+                // Fallback: use first 200 characters of the document
+                extractedDescription = oitText.substring(0, 200).trim() + '...';
+            }
         }
 
         if (quotationFile) {
@@ -365,10 +374,11 @@ async function processOITFilesAsync(
             }
         }
 
-        // Update with AI data
+        // Update with AI data and extracted description
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
+                description: extractedDescription || 'Sin descripción disponible',
                 aiData: JSON.stringify(aiData),
                 resources: aiData.resources ? JSON.stringify(aiData.resources) : null
             }
