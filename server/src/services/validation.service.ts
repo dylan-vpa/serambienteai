@@ -116,6 +116,48 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             throw new Error('Error al generar el análisis final');
         }
     }
+    async generateFinalReportContent(oit: any, labResultsText: string): Promise<string> {
+        try {
+            const prompt = `
+            ACTÚA COMO: Consultor Ambiental Senior.
+            TAREA: Redactar el INFORME TÉCNICO FINAL para el cliente.
+            
+            CONTEXTO:
+            - Orden de Servicio: ${oit.oitNumber}
+            - Descripción: ${oit.description}
+            - Hallazgos de Campo: ${oit.finalAnalysis || 'Sin observaciones mayores'}
+            
+            DATOS DE LABORATORIO (Extraídos del anexo):
+            "${labResultsText.slice(0, 8000)}"
+            
+            ESTRUCTURA DEL INFORME (Markdown):
+            # INFORME DE MONITOREO AMBIENTAL
+            
+            ## 1. RESUMEN EJECUTIVO
+            Breve síntesis de todo el trabajo y conclusión principal.
+            
+            ## 2. RESULTADOS DE CAMPO
+            Resumen de lo observado durante la toma de muestras.
+            
+            ## 3. ANÁLISIS DE LABORATORIO
+            Interpretación de los resultados obtenidos (No copies tablas enteras, interpreta los valores).
+            
+            ## 4. CONCLUSIONES
+            Veredicto final sobre el cumplimiento normativo.
+            
+            IMPORTANTE:
+            - Usa un tono formal y objetivo.
+            - Si los resultados de laboratorio mencionan límites normativos, compáralos.
+            - Formato limpio usando Markdown.
+            `;
+
+            const response = await aiService.chat(prompt);
+            return response;
+        } catch (error) {
+            console.error('Final Report generation error:', error);
+            throw new Error('Error al generar el contenido del informe final');
+        }
+    }
 
     private cleanAIResponse(response: string): string {
         let cleaned = response.trim();

@@ -14,6 +14,21 @@ interface OIT {
 
 class PDFService {
     /**
+     * Extract text from PDF file
+     */
+    async extractText(filePath: string): Promise<string> {
+        try {
+            const pdfParse = require('pdf-parse');
+            const dataBuffer = fs.readFileSync(filePath);
+            const data = await pdfParse(dataBuffer);
+            return data.text;
+        } catch (error) {
+            console.error('Error parsing PDF:', error);
+            return '';
+        }
+    }
+
+    /**
      * Generate sampling report PDF
      */
     async generateSamplingReport(oit: OIT): Promise<string> {
@@ -309,6 +324,39 @@ class PDFService {
 </body>
 </html>
         `;
+    }
+    async generatePDFFromHTML(htmlContent: string, filename: string): Promise<string> {
+        const uploadsDir = path.join(__dirname, '../../uploads/reports');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const filepath = path.join(uploadsDir, filename);
+
+        let browser;
+        try {
+            const puppeteer = require('puppeteer');
+            browser = await puppeteer.launch({
+                headless: 'new',
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            });
+            const page = await browser.newPage();
+            await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+            await page.pdf({
+                path: filepath,
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+            });
+            return filepath;
+        } catch (puppeteerError) {
+            console.error('Puppeteer error:', puppeteerError);
+            const htmlFile = filepath.replace('.pdf', '.html');
+            fs.writeFileSync(htmlFile, htmlContent, 'utf-8');
+            return htmlFile;
+        } finally {
+            if (browser) await browser.close();
+        }
     }
 }
 

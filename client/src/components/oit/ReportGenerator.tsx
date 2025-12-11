@@ -26,9 +26,9 @@ export function ReportGenerator({ oitId }: ReportGeneratorProps) {
 
         try {
             const formData = new FormData();
-            formData.append('labResults', file);
+            formData.append('file', file);
 
-            await api.patch(`/oits/${oitId}`, formData, {
+            await api.post(`/oits/${oitId}/lab-results`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
@@ -50,9 +50,13 @@ export function ReportGenerator({ oitId }: ReportGeneratorProps) {
 
         setIsGenerating(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            const response = await api.post(`/oits/${oitId}/generate-final-report`, {}, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            setFinalReportUrl(url);
             setReportGenerated(true);
-            setFinalReportUrl('/api/reports/generated-' + oitId + '.pdf');
             toast.success('Informe generado exitosamente');
         } catch (error) {
             console.error('Error generating report:', error);

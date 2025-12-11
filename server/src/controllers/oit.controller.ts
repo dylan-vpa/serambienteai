@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { aiService } from '../services/ai.service';
 import { createNotification } from './notification.controller';
 import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -762,6 +763,103 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error generating report:', error);
         res.status(500).json({ error: 'Error al generar el informe PDF' });
+    }
+};
+
+export const generateFinalReport = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        const { pdfService } = require('../services/pdf.service');
+        const { validationService } = require('../services/validation.service');
+
+        // 1. Extract Lab Results Text (from previously uploaded file via PATCH)
+        let labText = 'No hay resultados de laboratorio adjuntos.';
+        if (oit.labResultsUrl) {
+            const uploadsRoot = path.join(__dirname, '../../');
+            if (!oit.labResultsUrl.startsWith('http')) {
+                // If labResultsUrl is just filename or relative path
+                // Check if it exists in uploads/ OR uploads/lab_results/
+                // For now, assuming oit.labResultsUrl is what was stored (e.g. "uploads/filename")
+                const potentialPath = path.join(uploadsRoot, oit.labResultsUrl);
+                if (fs.existsSync(potentialPath)) {
+                    labText = await pdfService.extractText(potentialPath);
+                } else {
+                    // Try just uploads/ + filename if URL is just filename
+                    const potentialPath2 = path.join(uploadsRoot, 'uploads', oit.labResultsUrl);
+                    if (fs.existsSync(potentialPath2)) {
+                        labText = await pdfService.extractText(potentialPath2);
+                    }
+                }
+            }
+        }
+
+        // 2. AI Generation
+        const reportMarkdown = await validationService.generateFinalReportContent(oit, labText);
+
+        // 3. Convert to HTML & PDF 
+        const date = new Date().toLocaleDateString('es-CO');
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                    h1, h2, h3 { color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }
+                    h1 { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; font-size: 24px; }
+                    h2 { background: #f8f9fa; padding: 10px; border-left: 5px solid #2c3e50; font-size: 18px; }
+                    p { margin-bottom: 15px; text-align: justify; }
+                    ul { margin-bottom: 15px; }
+                    li { margin-bottom: 5px; }
+                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+                    .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="meta">
+                    <strong>ALS V2 - Sistema de Gestión Ambiental</strong><br>
+                    OIT: ${oit.oitNumber}<br>
+                    Fecha de Emisión: ${date}
+                </div>
+                
+                <div class="content">
+                    ${reportMarkdown
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
+                .replace(/\*(.*?)\*/gim, '<i>$1</i>')
+                .replace(/^- (.*$)/gim, '<li>$1</li>')
+                .replace(/\n\n/g, '<br>')
+            } 
+                </div>
+
+                <div class="footer">
+                    Este documento ha sido generado automáticamente por el sistema ALS V2.
+                </div>
+            </body>
+            </html>
+        `;
+
+        const filename = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
+        const pdfPath = await pdfService.generatePDFFromHTML(htmlContent, filename);
+
+        // 4. Update OIT
+        await prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: filename }
+        });
+
+        res.download(pdfPath);
+
+    } catch (error) {
+        console.error('Final Report Error:', error);
+        res.status(500).json({ error: 'Error generando informe final' });
     }
 };
 
