@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import api from '@/lib/api';
 import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -793,10 +794,8 @@ export default function OITDetailPage() {
                                                         </div>
                                                     </CardHeader>
                                                     <CardContent>
-                                                        <div className="prose prose-invert max-w-none">
-                                                            <pre className="whitespace-pre-wrap font-sans text-sm text-slate-300">
-                                                                {finalAnalysis}
-                                                            </pre>
+                                                        <div className="prose prose-invert max-w-none text-slate-300">
+                                                            <ReactMarkdown>{finalAnalysis}</ReactMarkdown>
                                                         </div>
                                                     </CardContent>
                                                 </Card>

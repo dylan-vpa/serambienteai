@@ -21,6 +21,7 @@ class PDFService {
             // Parse data
             const aiData = oit.aiData ? JSON.parse(oit.aiData) : {};
             const stepValidations = oit.stepValidations ? JSON.parse(oit.stepValidations) : {};
+            // Prefer template steps if available, logic might need adjustment but sticking to available data
             const steps = aiData?.data?.steps || [];
 
             // Create HTML content
@@ -33,12 +34,35 @@ class PDFService {
             }
 
             // Generate filename
-            const filename = `Informe_Muestreo_${oit.oitNumber}_${Date.now()}.html`;
+            const filename = `Informe_Muestreo_${oit.oitNumber}_${Date.now()}.pdf`;
             const filepath = path.join(uploadsDir, filename);
 
-            // Write HTML file (for now, we'll save as HTML instead of PDF)
-            // In production, you would use puppeteer or similar to convert to PDF
-            fs.writeFileSync(filepath, htmlContent, 'utf-8');
+            // Generate PDF using Puppeteer
+            // Note: Puppeteer must be installed in package.json
+            let browser;
+            try {
+                const puppeteer = require('puppeteer');
+                browser = await puppeteer.launch({
+                    headless: 'new',
+                    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                });
+                const page = await browser.newPage();
+                await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+                await page.pdf({
+                    path: filepath,
+                    format: 'A4',
+                    printBackground: true,
+                    margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+                });
+            } catch (puppeteerError) {
+                console.error('Puppeteer error:', puppeteerError);
+                // Fallback to HTML if puppeteer fails (e.g. missing libs)
+                const htmlFile = filepath.replace('.pdf', '.html');
+                fs.writeFileSync(htmlFile, htmlContent, 'utf-8');
+                return htmlFile;
+            } finally {
+                if (browser) await browser.close();
+            }
 
             return filepath;
         } catch (error) {
