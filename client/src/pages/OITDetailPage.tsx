@@ -221,14 +221,34 @@ export default function OITDetailPage() {
             <div className="container mx-auto py-8 space-y-8">
                 {/* Analysis Alert */}
                 {oit.status === 'ANALYZING' && (
-                    <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200 rounded-xl p-6 flex items-center gap-4 shadow-sm">
-                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                    <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200 rounded-xl p-6 flex flex-col sm:flex-row items-center gap-4 shadow-sm justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-blue-900">Analizando documentos...</p>
+                                <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información y recursos. Esto puede tomar unos momentos.</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="font-semibold text-blue-900">Analizando documentos...</p>
-                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información y recursos. Esto puede tomar unos momentos.</p>
-                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 whitespace-nowrap"
+                            onClick={async () => {
+                                const res = await api.get(`/oits/${id}`);
+                                setOit(res.data);
+                                if (res.data.status !== 'ANALYZING') {
+                                    toast.success('Análisis completado');
+                                    window.location.reload();
+                                } else {
+                                    toast.info('Aún analizando...');
+                                }
+                            }}
+                        >
+                            <RefreshCcw className="mr-2 h-4 w-4" />
+                            Actualizar Estado
+                        </Button>
                     </div>
                 )}
 
