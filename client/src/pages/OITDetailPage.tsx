@@ -725,16 +725,7 @@ export default function OITDetailPage() {
 
                                                     const scheduled = new Date(oit.scheduledDate);
                                                     const now = new Date();
-                                                    // Logic: Same Day + Allow from 15 min BEFORE scheduled time. No upper limit on lateness.
-                                                    const isSameDay =
-                                                        scheduled.getUTCDate() === now.getDate() &&
-                                                        scheduled.getUTCMonth() === now.getMonth() &&
-                                                        scheduled.getUTCFullYear() === now.getFullYear();
-
-                                                    if (!isSameDay) {
-                                                        setVerificationMsg(`Día incorrecto. Agendado para: ${scheduled.toLocaleDateString()}`);
-                                                        return;
-                                                    }
+                                                    // Logic: Allow from 15 min BEFORE scheduled time. No upper limit on lateness (Past days allowed).
 
                                                     // Allow if now >= scheduled - 15min
                                                     const startWindow = new Date(scheduled.getTime() - 15 * 60000);
