@@ -38,11 +38,15 @@ export default function NotificationsPage() {
     useEffect(() => {
         if (notifications.length > prevCountRef.current && Notification.permission === 'granted') {
             const newNotification = notifications[0];
-            new Notification(newNotification.title, {
-                body: newNotification.message,
-                icon: '/logo.png',
-                badge: '/logo.png'
-            });
+            try {
+                new Notification(newNotification.title, {
+                    body: newNotification.message,
+                    icon: '/logo.png',
+                    badge: '/logo.png'
+                });
+            } catch (error) {
+                console.error('Error creating notification:', error);
+            }
         }
         prevCountRef.current = notifications.length;
     }, [notifications]);

@@ -40,6 +40,18 @@ export default function DashboardPage() {
         },
     ];
 
+    const getStatusLabel = (status: string) => {
+        const statusMap: Record<string, string> = {
+            'PENDING': 'Pendiente',
+            'IN_PROGRESS': 'En Progreso',
+            'COMPLETED': 'Completada',
+            'ANALYZING': 'Analizando',
+            'SCHEDULED': 'Programada',
+            'UPLOADING': 'Subiendo'
+        };
+        return statusMap[status] || status;
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
@@ -102,7 +114,7 @@ export default function DashboardPage() {
                                             ${oit.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
                                                 oit.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' :
                                                     'bg-slate-100 text-slate-700'}`}>
-                                            {oit.status}
+                                            {getStatusLabel(oit.status)}
                                         </div>
                                     </div>
                                 ))

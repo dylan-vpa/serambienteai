@@ -45,13 +45,17 @@ export function useNotifications() {
     // Show browser notification
     const showBrowserNotification = (title: string, body: string) => {
         if (permission === 'granted' && 'Notification' in window) {
-            new Notification(title, {
-                body,
-                icon: '/logo.png',
-                badge: '/logo.png',
-                tag: 'als-notification',
-                requireInteraction: false
-            });
+            try {
+                new Notification(title, {
+                    body,
+                    icon: '/logo.png',
+                    badge: '/logo.png',
+                    tag: 'als-notification',
+                    requireInteraction: false
+                });
+            } catch (error) {
+                console.error('Error creating browser notification:', error);
+            }
         }
     };
 

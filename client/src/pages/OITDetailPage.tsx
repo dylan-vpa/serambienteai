@@ -172,6 +172,18 @@ export default function OITDetailPage() {
     const aiData = oit.aiData ? JSON.parse(oit.aiData) : null;
     const resources = oit.resources ? JSON.parse(oit.resources) : [];
 
+    const getStatusLabel = (status: string) => {
+        const statusMap: Record<string, string> = {
+            'PENDING': 'Pendiente',
+            'IN_PROGRESS': 'En Progreso',
+            'COMPLETED': 'Completada',
+            'ANALYZING': 'Analizando',
+            'SCHEDULED': 'Programada',
+            'UPLOADING': 'Subiendo'
+        };
+        return statusMap[status] || status;
+    };
+
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
             {/* Header Section */}
@@ -185,7 +197,7 @@ export default function OITDetailPage() {
                                 </h1>
                                 <Badge variant={oit.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
                                     {oit.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                                    {oit.status}
+                                    {getStatusLabel(oit.status)}
                                 </Badge>
                             </div>
                             <p className="text-slate-500 text-sm max-w-2xl truncate">
@@ -222,17 +234,17 @@ export default function OITDetailPage() {
 
                 <Tabs defaultValue="info" className="w-full">
                     <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-white p-1 rounded-full border border-slate-200 shadow-sm">
-                            <TabsTrigger value="info" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                        <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4 bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto">
+                            <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <FileText className="mr-2 h-4 w-4" /> Info
                             </TabsTrigger>
-                            <TabsTrigger value="scheduling" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <Calendar className="mr-2 h-4 w-4" /> Agendamiento
+                            <TabsTrigger value="scheduling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                <Calendar className="mr-2 h-4 w-4" /> Agenda
                             </TabsTrigger>
-                            <TabsTrigger value="sampling" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                            <TabsTrigger value="sampling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <Beaker className="mr-2 h-4 w-4" /> Muestreo
                             </TabsTrigger>
-                            <TabsTrigger value="report" className="rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                            <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <FileBarChart className="mr-2 h-4 w-4" /> Informe
                             </TabsTrigger>
                         </TabsList>
@@ -246,14 +258,14 @@ export default function OITDetailPage() {
                                     <CardTitle>Información General</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Número OIT</strong>
                                             <p className="text-lg font-medium text-slate-900">{oit.oitNumber}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
-                                            <p className="text-lg font-medium text-slate-900">{oit.status}</p>
+                                            <p className="text-lg font-medium text-slate-900">{getStatusLabel(oit.status)}</p>
                                         </div>
                                         <div className="col-span-2 space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</strong>
@@ -457,9 +469,9 @@ export default function OITDetailPage() {
                                                         </div>
                                                     )}
 
-                                                    <div className="flex items-center gap-3 pt-2">
+                                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                                                         <Button
-                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
                                                             onClick={async () => {
                                                                 const dateStr = aiData.data.proposedDate;
                                                                 const timeStr = aiData.data.proposedTime || '09:00';
@@ -490,7 +502,7 @@ export default function OITDetailPage() {
                                                         </Button>
                                                         <Button
                                                             variant="outline"
-                                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
                                                             onClick={() => setIsManualScheduling(true)}
                                                         >
                                                             Modificar Manualmente

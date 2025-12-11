@@ -93,6 +93,12 @@ export default function CalendarPage() {
                 return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-200">En Progreso</Badge>;
             case 'COMPLETED':
                 return <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border-indigo-200">Completado</Badge>;
+            case 'PENDING':
+                return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">Pendiente</Badge>;
+            case 'ANALYZING':
+                return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">Analizando</Badge>;
+            case 'UPLOADING':
+                return <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200">Subiendo</Badge>;
             default:
                 return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">{status}</Badge>;
         }

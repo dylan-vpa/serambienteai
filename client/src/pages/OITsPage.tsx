@@ -223,17 +223,17 @@ export default function OITsPage() {
 
             <Card className="border-slate-200 shadow-sm bg-white">
                 <CardHeader className="border-b border-slate-100 pb-4">
-                    <div className="flex items-center justify-between">
-                        <div className="relative w-72">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="relative w-full sm:w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
                                 placeholder="Filtrar OITs..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors w-full"
                             />
                         </div>
-                        <Button variant="outline" size="sm" className="text-slate-600 border-slate-200">
+                        <Button variant="outline" size="sm" className="text-slate-600 border-slate-200 w-full sm:w-auto">
                             <Filter className="mr-2 h-3.5 w-3.5" />
                             Filtrar
                         </Button>
@@ -264,19 +264,19 @@ export default function OITsPage() {
                             oits.map((oit) => (
                                 <div
                                     key={oit.id}
-                                    className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50/50 transition-colors cursor-pointer group gap-4 sm:gap-0"
                                     onClick={() => navigate(`/oits/${oit.id}`)}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
+                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-white group-hover:shadow-sm transition-all">
                                             <FileText className="h-4 w-4 text-slate-500 group-hover:text-slate-900" />
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-900">{oit.oitNumber || `OIT-${oit.id.slice(0, 8)}`}</p>
-                                            <p className="text-xs text-slate-500">{oit.description || 'Sin descripción'}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 truncate">{oit.oitNumber || `OIT-${oit.id.slice(0, 8)}`}</p>
+                                            <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-none">{oit.description || 'Sin descripción'}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto pl-14 sm:pl-0">
                                         <span className="text-xs text-slate-400 font-mono">
                                             {new Date(oit.createdAt).toLocaleDateString()}
                                         </span>
