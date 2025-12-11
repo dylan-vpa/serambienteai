@@ -3,13 +3,12 @@ import { useParams } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import ReactMarkdown from 'react-markdown';
+
 import api from '@/lib/api';
 import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SamplingExecutor } from '@/components/sampling/SamplingExecutor';
 import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
@@ -127,29 +126,7 @@ export default function OITDetailPage() {
         }
     };
 
-    const handleCheckCompliance = async () => {
-        try {
-            setIsProcessing(true);
-            toast.info('Iniciando verificación de normativa con IA...');
-            const response = await api.post(`/oits/${id}/compliance`);
-            const result = response.data;
 
-            if (result.compliant) {
-                toast.success(`Cumple con la normativa (Score: ${result.score}/100)`);
-            } else {
-                toast.warning(`No cumple con la normativa (Score: ${result.score}/100)`);
-            }
-
-            // Refresh OIT data to show new notification/status if any
-            const oitResponse = await api.get(`/oits/${id}`);
-            setOit(oitResponse.data);
-        } catch (error) {
-            console.error('Error checking compliance:', error);
-            toast.error('Error al verificar cumplimiento');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
 
     const handleFinalizeSampling = async () => {
         if (!id) return;
@@ -753,7 +730,8 @@ export default function OITDetailPage() {
 
                                                     // 15 min tolerance
                                                     if (minutes > 15) {
-                                                        setVerificationMsg(`Fuera de rango (15 min). Agendado: ${scheduled.toLocaleTimeString()} vs Ahora: ${now.toLocaleTimeString()}`);
+                                                        const diffText = minutes.toFixed(1);
+                                                        setVerificationMsg(`Fuera de rango (${diffText} min). Agendado: ${scheduled.toLocaleString()} vs Ahora: ${now.toLocaleString()}`);
                                                         return;
                                                     }
 
