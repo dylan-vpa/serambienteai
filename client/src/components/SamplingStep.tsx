@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Lock, AlertCircle, Loader2, Camera, Upload, FileText } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { TemplateStep } from '@/types/sampling';
+import type { TemplateStep } from '@/types/sampling';
 
 interface ValidationResult {
     validated: boolean;
