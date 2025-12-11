@@ -69,7 +69,6 @@ export default function OITDetailPage() {
 
         intervalId = setInterval(() => {
             if (oit && (oit.status === 'ANALYZING' || oit.status === 'UPLOADING')) {
-                console.log('Polling OIT status...', oit.status);
                 fetchOIT();
             }
         }, 3000);
