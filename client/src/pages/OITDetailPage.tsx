@@ -205,7 +205,11 @@ export default function OITDetailPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem asChild>
-                                                            <a href={`/api/files/download/${oit.oitFileUrl.split('/').pop()}`} download className="flex items-center cursor-pointer">
+                                                            <a
+                                                                href={`/api/files/download/${oit.oitFileUrl.split('/').pop()?.split('\\').pop() || ''}`}
+                                                                download
+                                                                className="flex items-center cursor-pointer"
+                                                            >
                                                                 <Download className="mr-2 h-4 w-4" />
                                                                 Descargar
                                                             </a>
@@ -234,7 +238,11 @@ export default function OITDetailPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem asChild>
-                                                            <a href={`/api/files/download/${oit.quotationFileUrl.split('/').pop()}`} download className="flex items-center cursor-pointer">
+                                                            <a
+                                                                href={`/api/files/download/${oit.quotationFileUrl.split('/').pop()?.split('\\').pop() || ''}`}
+                                                                download
+                                                                className="flex items-center cursor-pointer"
+                                                            >
                                                                 <Download className="mr-2 h-4 w-4" />
                                                                 Descargar
                                                             </a>
@@ -268,6 +276,52 @@ export default function OITDetailPage() {
                                             <div className={`p-4 rounded-lg text-sm border ${aiData.valid ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
                                                 {aiData.message}
                                             </div>
+
+                                            {/* Detailed Analysis Info */}
+                                            {aiData.valid && aiData.data && (
+                                                <div className="space-y-3 pt-2">
+                                                    {aiData.data.templateName && (
+                                                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <Beaker className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                            <div className="flex-1">
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Plantilla Seleccionada</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.templateName}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {aiData.data.estimatedDuration && (
+                                                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                            <div className="flex-1">
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Duración Estimada</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.estimatedDuration}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {aiData.data.steps && Array.isArray(aiData.data.steps) && (
+                                                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <FileText className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                            <div className="flex-1">
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pasos de Muestreo</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.steps.length} pasos identificados</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {aiData.data.assignedResources && Array.isArray(aiData.data.assignedResources) && aiData.data.assignedResources.length > 0 && (
+                                                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                            <div className="flex-1">
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recursos Asignados</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.assignedResources.length} recursos propuestos</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {aiData.errors?.length > 0 && (
                                                 <div className="space-y-2">
                                                     <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Errores Detectados</p>
@@ -284,6 +338,7 @@ export default function OITDetailPage() {
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 text-slate-400">
+                                            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
                                             <p className="text-sm">Esperando análisis...</p>
                                         </div>
                                     )}
@@ -412,32 +467,70 @@ export default function OITDetailPage() {
 
                             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                 <CardHeader>
-                                    <CardTitle>Recursos Identificados</CardTitle>
-                                    <CardDescription>Personal y equipos extraídos automáticamente de los documentos.</CardDescription>
+                                    <CardTitle>Recursos</CardTitle>
+                                    <CardDescription>Personal y equipos identificados y propuestos para el muestreo.</CardDescription>
                                 </CardHeader>
-                                <CardContent>
-                                    {resources.length > 0 ? (
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            {resources.map((res: any, idx: number) => (
-                                                <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
-                                                            {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                <CardContent className="space-y-6">
+                                    {/* AI Proposed Resources */}
+                                    {aiData?.data?.assignedResources && aiData.data.assignedResources.length > 0 && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                <h4 className="text-sm font-semibold text-indigo-900">Recursos Propuestos por IA</h4>
+                                            </div>
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {aiData.data.assignedResources.map((res: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 shadow-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                                {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">{res.name}</p>
+                                                                <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
-                                                            <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
-                                                        </div>
+                                                        {res.quantity && (
+                                                            <Badge variant="outline" className="bg-white">x{res.quantity}</Badge>
+                                                        )}
                                                     </div>
-                                                    {typeof res !== 'string' && res.quantity && (
-                                                        <Badge variant="outline" className="bg-slate-50">x{res.quantity}</Badge>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {/* Document Extracted Resources */}
+                                    {resources.length > 0 && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-slate-600" />
+                                                <h4 className="text-sm font-semibold text-slate-700">Recursos Extraídos de Documentos</h4>
+                                            </div>
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {resources.map((res: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-600'}`}>
+                                                                {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
+                                                                <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                            </div>
+                                                        </div>
+                                                        {typeof res !== 'string' && res.quantity && (
+                                                            <Badge variant="outline" className="bg-slate-50">x{res.quantity}</Badge>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* No resources */}
+                                    {(!resources || resources.length === 0) && (!aiData?.data?.assignedResources || aiData.data.assignedResources.length === 0) && (
                                         <div className="text-center py-12 text-slate-400">
-                                            <p>No se han identificado recursos automáticamente.</p>
+                                            <p>No se han identificado recursos.</p>
                                         </div>
                                     )}
                                 </CardContent>
