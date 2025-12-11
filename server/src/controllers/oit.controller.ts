@@ -633,6 +633,25 @@ export const finalizeSampling = async (req: Request, res: Response) => {
             }
         });
 
+        // Release Resources (Set to AVAILABLE)
+        if (oit.resources) {
+            try {
+                const resources = JSON.parse(oit.resources);
+                const resourceIds = Array.isArray(resources)
+                    ? resources.map((r: any) => typeof r === 'string' ? r : r.id).filter(Boolean)
+                    : [];
+
+                if (resourceIds.length > 0) {
+                    await prisma.resource.updateMany({
+                        where: { id: { in: resourceIds } },
+                        data: { status: 'AVAILABLE' }
+                    });
+                }
+            } catch (e) {
+                console.error("Error releasing resources:", e);
+            }
+        }
+
         res.json({
             success: true,
             analysis: finalAnalysis
