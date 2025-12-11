@@ -15,7 +15,8 @@ import {
     generateFinalReport,
     validateStepData,
     finalizeSampling,
-    generateSamplingReport
+    generateSamplingReport,
+    reanalyzeOIT
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -43,6 +44,8 @@ router.patch('/:id', authMiddleware, upload.fields([
     { name: 'quotationFile', maxCount: 1 },
 ]), updateOIT);
 router.post('/:id/compliance', authMiddleware, checkCompliance);
+
+router.post('/:id/reanalyze', authMiddleware, reanalyzeOIT);
 
 // Planning endpoints
 router.post('/:id/accept-planning', authMiddleware, acceptPlanning);

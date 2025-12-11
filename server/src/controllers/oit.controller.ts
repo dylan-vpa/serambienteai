@@ -252,50 +252,36 @@ export const createOITAsync = async (req: Request, res: Response) => {
     }
 };
 
-async function processOITFilesAsync(
-    oitId: string,
-    files: { oitFile?: Express.Multer.File[], quotationFile?: Express.Multer.File[] },
-    userId: string
-) {
+// Separated Analysis Logic
+async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotationFilePath: string | null, userId: string) {
     try {
-        const oitFile = files?.oitFile?.[0];
-        const quotationFile = files?.quotationFile?.[0];
-
-        let updateData: any = {
-            status: 'ANALYZING'
-        };
-
-        // Save file URLs
-        if (oitFile) {
-            updateData.oitFileUrl = `/uploads/${oitFile.filename}`;
-        }
-        if (quotationFile) {
-            updateData.quotationFileUrl = `/uploads/${quotationFile.filename}`;
-        }
+        const { aiService } = await import('../services/ai.service');
+        const { complianceService } = await import('../services/compliance.service');
+        const { default: planningService } = await import('../services/planning.service');
 
         await prisma.oIT.update({
             where: { id: oitId },
-            data: updateData
+            data: { status: 'ANALYZING' }
         });
 
-        // Process files with AI
         const aiData: any = {};
         let extractedDescription: string | null = null;
         let extractedLocation: string | null = null;
 
-        if (oitFile) {
+        // Analyze OIT File
+        if (oitFilePath && fs.existsSync(oitFilePath)) {
             const pdfParse = (await import('pdf-parse')).default;
-            const dataBuffer = await fs.promises.readFile(oitFile.path);
+            const dataBuffer = await fs.promises.readFile(oitFilePath);
             const pdfData = await pdfParse(dataBuffer);
             const oitText = pdfData.text;
+
             const oitAnalysis = await aiService.analyzeDocument(oitText);
             aiData.oit = oitAnalysis;
 
-            // Extract description from analysis if available
+            // Extract description
             if ((oitAnalysis as any).description) {
                 extractedDescription = (oitAnalysis as any).description;
             } else if (oitText.length > 50) {
-                // Fallback: use first 200 characters of the document
                 extractedDescription = oitText.substring(0, 200).trim() + '...';
             }
 
@@ -311,9 +297,10 @@ async function processOITFilesAsync(
             }
         }
 
-        if (quotationFile) {
+        // Analyze Quotation File
+        if (quotationFilePath && fs.existsSync(quotationFilePath)) {
             const pdfParse = (await import('pdf-parse')).default;
-            const dataBuffer = await fs.promises.readFile(quotationFile.path);
+            const dataBuffer = await fs.promises.readFile(quotationFilePath);
             const pdfData = await pdfParse(dataBuffer);
             const quotationText = pdfData.text;
             const quotationAnalysis = await aiService.analyzeDocument(quotationText);
@@ -325,102 +312,111 @@ async function processOITFilesAsync(
             }
         }
 
-        // Update with AI data and extracted description
+        // Update with AI data
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                description: extractedDescription || 'Sin descripción disponible',
-                location: extractedLocation || null,
+                description: extractedDescription || undefined, // Only update if found
+                location: extractedLocation || undefined,
                 aiData: JSON.stringify(aiData),
-                resources: aiData.resources ? JSON.stringify(aiData.resources) : null
+                resources: aiData.resources ? JSON.stringify(aiData.resources) : undefined
             }
         });
 
-        // **AUTOMATIC STANDARDS VERIFICATION**
-        // Verify against standards from database
-        const { complianceService } = await import('../services/compliance.service');
-
-        await createNotification(
-            userId,
-            'Verificando Cumplimiento de Normas',
-            'Analizando OIT contra normas configuradas...',
-            'INFO',
-            oitId
-        );
-
+        // Compliance
+        await createNotification(userId, 'Verificando Cumplimiento', 'Analizando normas...', 'INFO', oitId);
         try {
             const complianceResult = await complianceService.checkCompliance(oitId, userId);
-
-            // Update status based on compliance
-            await prisma.oIT.update({
-                where: { id: oitId },
-                data: {
-                    status: complianceResult.compliant ? 'REVIEW_REQUIRED' : 'REVIEW_REQUIRED' // Assuming REVIEW_REQUIRED for both cases after initial analysis
-                }
-            });
-
-        } catch (complianceError) {
-            console.error('Error in compliance check:', complianceError);
-            // Continue even if compliance check fails
             await prisma.oIT.update({
                 where: { id: oitId },
                 data: { status: 'REVIEW_REQUIRED' }
             });
-        }
+        } catch (e) { console.error(e); }
 
-        // **AUTOMATIC PLANNING PROPOSAL GENERATION**
-        // Generate planning proposal with AI template selection
+        // Planning
         try {
-            await createNotification(
-                userId,
-                'Generando Propuesta de Planeación',
-                'La IA está seleccionando la mejor plantilla y creando una propuesta...',
-                'INFO',
-                oitId
-            );
+            await createNotification(userId, 'Generando Propuesta', 'Creando propuesta de planeación...', 'INFO', oitId);
+            const proposal = await planningService.generateProposal(oitId);
+            await createNotification(userId, 'Propuesta Lista', `Propuesta generada con plantilla "${proposal.templateName}"`, 'SUCCESS', oitId);
+        } catch (e) { console.error(e); }
 
-            const planningService = await import('../services/planning.service');
-            const proposal = await planningService.default.generateProposal(oitId);
-
-            await createNotification(
-                userId,
-                'Propuesta de Planeación Lista',
-                `Se ha generado una propuesta usando la plantilla "${proposal.templateName}". Revísala en la pestaña Agendamiento.`,
-                'SUCCESS',
-                oitId
-            );
-
-        } catch (planningError) {
-            console.error('Error generating planning proposal:', planningError);
-            // Continue even if planning fails - user can create manually
-        }
-
-        // Final notification
-        await createNotification(
-            userId,
-            'OIT Procesada',
-            `OIT ${(await prisma.oIT.findUnique({ where: { id: oitId } }))?.oitNumber} ha sido analizada completamente.`,
-            'SUCCESS',
-            oitId
-        );
+        await createNotification(userId, 'OIT Procesada', 'Análisis completado exitosamente.', 'SUCCESS', oitId);
 
     } catch (error) {
-        console.error('Error in processOITFilesAsync:', error);
-
-        await prisma.oIT.update({
-            where: { id: oitId },
-            data: { status: 'PENDING' }
-        });
-
-        await createNotification(
-            userId,
-            'Error al Procesar OIT',
-            'Ocurrió un error durante el procesamiento. Por favor, intenta de nuevo.',
-            'ERROR',
-            oitId
-        );
+        console.error('Error in runOITAnalysis:', error);
+        await prisma.oIT.update({ where: { id: oitId }, data: { status: 'PENDING' } });
+        await createNotification(userId, 'Error al Procesar', 'Falló el análisis de la OIT.', 'ERROR', oitId);
     }
 }
+
+async function processOITFilesAsync(
+    oitId: string,
+    files: { oitFile?: Express.Multer.File[], quotationFile?: Express.Multer.File[] },
+    userId: string
+) {
+    const oitFile = files?.oitFile?.[0];
+    const quotationFile = files?.quotationFile?.[0];
+
+    let updateData: any = { status: 'ANALYZING' };
+    if (oitFile) updateData.oitFileUrl = `/uploads/${oitFile.filename}`;
+    if (quotationFile) updateData.quotationFileUrl = `/uploads/${quotationFile.filename}`;
+
+    await prisma.oIT.update({
+        where: { id: oitId },
+        data: updateData
+    });
+
+    // Run analysis using physical paths
+    await runOITAnalysis(
+        oitId,
+        oitFile ? oitFile.path : null,
+        quotationFile ? quotationFile.path : null,
+        userId
+    );
+}
+
+// Re-analyze Endpoint
+export const reanalyzeOIT = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user?.userId;
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) return res.status(404).json({ error: 'OIT not found' });
+
+        // Resolve absolute paths
+        const uploadsRoot = path.join(__dirname, '../../');
+        let oitPath = null;
+        let quotationPath = null;
+
+        if (oit.oitFileUrl) {
+            // Handle both relative URL (/uploads/file) and stored filenames
+            const cleanPath = oit.oitFileUrl.replace(/^\//, '').replace(/\\/g, '/'); // Remove leading slash
+            oitPath = path.join(uploadsRoot, cleanPath);
+            // Fallback if not found (sometimes stored simply as uploads/file)
+            if (!fs.existsSync(oitPath)) {
+                oitPath = path.join(uploadsRoot, 'uploads', path.basename(oit.oitFileUrl));
+            }
+        }
+
+        if (oit.quotationFileUrl) {
+            const cleanPath = oit.quotationFileUrl.replace(/^\//, '').replace(/\\/g, '/');
+            quotationPath = path.join(uploadsRoot, cleanPath);
+            if (!fs.existsSync(quotationPath)) {
+                quotationPath = path.join(uploadsRoot, 'uploads', path.basename(oit.quotationFileUrl));
+            }
+        }
+
+        // Trigger Async Analysis
+        runOITAnalysis(id, oitPath, quotationPath, userId).catch(err => console.error("Re-analysis error:", err));
+
+        res.json({ message: 'Re-análisis iniciado correctamente.' });
+
+    } catch (error) {
+        console.error('Error re-analyzing:', error);
+        res.status(500).json({ error: 'Error al iniciar re-análisis' });
+    }
+};
 
 // Update OIT (supports new fields)
 export const updateOIT = async (req: Request, res: Response) => {

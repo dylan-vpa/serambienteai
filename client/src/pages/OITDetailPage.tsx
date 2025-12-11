@@ -338,9 +338,36 @@ export default function OITDetailPage() {
                             {/* AI Analysis Card */}
                             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm h-fit">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        Análisis IA
-                                        {aiData && (aiData.valid ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />)}
+                                    <CardTitle className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            Análisis IA
+                                            {aiData && (aiData.valid ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />)}
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                                            disabled={isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING'}
+                                            onClick={async () => {
+                                                try {
+                                                    setIsProcessing(true);
+                                                    toast.info('Iniciando re-análisis...');
+                                                    await api.post(`/oits/${id}/reanalyze`);
+                                                    toast.success('Análisis iniciado en segundo plano');
+                                                    // Trigger manual fetch to update status to ANALYZING immediately
+                                                    const res = await api.get(`/oits/${id}`);
+                                                    setOit(res.data);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                    toast.error('Error al solicitar análisis');
+                                                } finally {
+                                                    setIsProcessing(false);
+                                                }
+                                            }}
+                                        >
+                                            <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${(isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING') ? 'animate-spin' : ''}`} />
+                                            Re-analizar
+                                        </Button>
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
