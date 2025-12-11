@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Search, Slash, Menu, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -22,6 +23,14 @@ export function Header({ onMenuClick }: HeaderProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
     const { results, isLoading } = useGlobalSearch(searchQuery);
+    const { unreadCount, permission, requestPermission } = useNotifications();
+
+    // Request notification permission on mount
+    useEffect(() => {
+        if (permission === 'default') {
+            requestPermission();
+        }
+    }, []);
 
     const getBreadcrumbs = () => {
         const path = location.pathname;
@@ -155,8 +164,18 @@ export function Header({ onMenuClick }: HeaderProps) {
                         </div>
                     )}
                 </div>
-                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-slate-500 hover:text-slate-900 relative"
+                    onClick={() => navigate('/notifications')}
+                >
                     <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
                 </Button>
             </div>
         </header>

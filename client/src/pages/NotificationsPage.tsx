@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
@@ -23,10 +23,29 @@ interface Notification {
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const prevCountRef = useRef(notifications.length);
 
     useEffect(() => {
         fetchNotifications();
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
     }, []);
+
+    // Show browser notification for new notifications
+    useEffect(() => {
+        if (notifications.length > prevCountRef.current && Notification.permission === 'granted') {
+            const newNotification = notifications[0];
+            new Notification(newNotification.title, {
+                body: newNotification.message,
+                icon: '/logo.png',
+                badge: '/logo.png'
+            });
+        }
+        prevCountRef.current = notifications.length;
+    }, [notifications]);
 
     const fetchNotifications = async () => {
         try {
