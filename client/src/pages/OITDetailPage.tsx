@@ -725,13 +725,23 @@ export default function OITDetailPage() {
 
                                                     const scheduled = new Date(oit.scheduledDate);
                                                     const now = new Date();
-                                                    const diffMs = Math.abs(now.getTime() - scheduled.getTime());
-                                                    const minutes = diffMs / (1000 * 60);
+                                                    // Logic: Same Day + Allow from 15 min BEFORE scheduled time. No upper limit on lateness.
+                                                    const isSameDay =
+                                                        scheduled.getDate() === now.getDate() &&
+                                                        scheduled.getMonth() === now.getMonth() &&
+                                                        scheduled.getFullYear() === now.getFullYear();
 
-                                                    // 15 min tolerance
-                                                    if (minutes > 15) {
-                                                        const diffText = minutes.toFixed(1);
-                                                        setVerificationMsg(`Fuera de rango (${diffText} min). Agendado: ${scheduled.toLocaleString()} vs Ahora: ${now.toLocaleString()}`);
+                                                    if (!isSameDay) {
+                                                        setVerificationMsg(`Día incorrecto. Agendado para: ${scheduled.toLocaleDateString()}`);
+                                                        return;
+                                                    }
+
+                                                    // Allow if now >= scheduled - 15min
+                                                    const startWindow = new Date(scheduled.getTime() - 15 * 60000);
+
+                                                    if (now < startWindow) {
+                                                        const waitMin = Math.ceil((startWindow.getTime() - now.getTime()) / 60000);
+                                                        setVerificationMsg(`Muy temprano. Podrás iniciar en ${waitMin} minutos (15 min antes de la hora).`);
                                                         return;
                                                     }
 
