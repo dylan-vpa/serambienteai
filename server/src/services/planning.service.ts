@@ -4,6 +4,25 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 class PlanningService {
+    /**
+     * Cleans AI response by removing markdown code blocks
+     */
+    private cleanAIResponse(response: string): string {
+        // Remove markdown code blocks like ```json ... ```
+        let cleaned = response
+            .replace(/```json\s*/g, '')
+            .replace(/```\s*/g, '')
+            .trim();
+
+        // Extract JSON if still wrapped in text
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            cleaned = jsonMatch[0];
+        }
+
+        return cleaned;
+    }
+
     async generateProposal(oitId: string) {
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
 
@@ -23,6 +42,7 @@ class PlanningService {
                 templateId: null,
                 templateName: 'Planeación Genérica',
                 proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+                proposedTime: '09:00',
                 steps: [
                     { id: '1', title: 'Preparación de equipos', description: 'Verificar y preparar equipos necesarios' },
                     { id: '2', title: 'Recolección de muestras', description: 'Ejecutar protocolo de muestreo' },
@@ -36,6 +56,11 @@ class PlanningService {
             await prisma.oIT.update({
                 where: { id: oitId },
                 data: {
+                    aiData: JSON.stringify({
+                        valid: true,
+                        data: proposal,
+                        message: 'Propuesta genérica creada'
+                    }),
                     planningProposal: JSON.stringify(proposal)
                 }
             });
@@ -72,16 +97,13 @@ ${templatesList}
         try {
             const aiResponse = await aiService.chat(prompt);
             console.log('AI Response for template selection:', aiResponse);
-            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
 
-            if (jsonMatch) {
-                const templateSuggestion = JSON.parse(jsonMatch[0]);
-                selectedTemplate = await prisma.samplingTemplate.findUnique({
-                    where: { id: templateSuggestion.templateId }
-                });
-            } else {
-                console.log('No JSON found in AI response');
-            }
+            const cleanedResponse = this.cleanAIResponse(aiResponse);
+            const templateSuggestion = JSON.parse(cleanedResponse);
+
+            selectedTemplate = await prisma.samplingTemplate.findUnique({
+                where: { id: templateSuggestion.templateId }
+            });
         } catch (error) {
             console.error('Failed to parse AI response:', error);
             console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -95,7 +117,8 @@ ${templatesList}
         const proposal = {
             templateId: selectedTemplate.id,
             templateName: selectedTemplate.name,
-            proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            proposedTime: '09:00',
             steps: JSON.parse(selectedTemplate.steps),
             assignedResources: resources.slice(0, 3),
             estimatedDuration: '4 horas'
@@ -105,6 +128,11 @@ ${templatesList}
             where: { id: oitId },
             data: {
                 selectedTemplateId: selectedTemplate.id,
+                aiData: JSON.stringify({
+                    valid: true,
+                    data: proposal,
+                    message: 'Propuesta de planificación generada'
+                }),
                 planningProposal: JSON.stringify(proposal)
             }
         });
