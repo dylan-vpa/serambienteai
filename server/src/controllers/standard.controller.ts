@@ -15,6 +15,24 @@ export const getStandards = async (req: Request, res: Response) => {
     }
 };
 
+export const getStandard = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const standard = await prisma.standard.findUnique({
+            where: { id }
+        });
+
+        if (!standard) {
+            return res.status(404).json({ error: 'Norma no encontrada' });
+        }
+
+        res.json(standard);
+    } catch (error) {
+        console.error('Error fetching standard:', error);
+        res.status(500).json({ error: 'Error al obtener norma' });
+    }
+};
+
 export const createStandard = async (req: Request, res: Response) => {
     try {
         const { title, description, type } = req.body;
