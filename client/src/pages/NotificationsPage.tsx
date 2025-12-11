@@ -169,6 +169,32 @@ export default function NotificationsPage() {
                             Marcar leídas
                         </Button>
                     )}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (!('Notification' in window)) {
+                                toast.error('Navegador no soporta notificaciones');
+                                return;
+                            }
+                            if (Notification.permission === 'granted') {
+                                try {
+                                    new Notification('Prueba de Sistema', {
+                                        body: 'Si ves esto, las notificaciones funcionan.',
+                                        icon: '/logo.png'
+                                    });
+                                    toast.success('Notificación enviada');
+                                } catch (e) {
+                                    console.error(e);
+                                    toast.error('Error al enviar: ' + (e as any).message);
+                                }
+                            } else {
+                                toast.warning('Permisos no concedidos: ' + Notification.permission);
+                            }
+                        }}
+                    >
+                        Probar Notificación
+                    </Button>
                 </div>
             </div>
 
