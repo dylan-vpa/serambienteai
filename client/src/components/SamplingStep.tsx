@@ -164,7 +164,7 @@ export function SamplingStep({
                         <div className="flex gap-2">
                             <Input
                                 type={inputStep.inputType || 'text'}
-                                placeholder={inputStep.placeholder}
+                                placeholder={inputStep.placeholder || inputStep.description || 'Ingrese respuesta...'}
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
                                 className="max-w-md"

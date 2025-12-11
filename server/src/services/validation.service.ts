@@ -24,16 +24,17 @@ ${stepDescription}
 REQUISITOS:
 ${stepRequirements}
 
-DATOS PROPORCIONADOS POR EL USUARIO:
+DATOS PROPORCIONADOS POR EL USUARIO (JSON):
 ${JSON.stringify(userData, null, 2)}
 
 TAREA:
 Evalúa si los datos proporcionados cumplen con los requisitos del paso de muestreo.
+ATENCIÓN: El valor principal ingresado por el usuario se encuentra en el campo "value" del JSON de datos.
+
 Verifica:
-1. Completitud: ¿Están todos los datos necesarios?
+1. Completitud: ¿El campo "value" tiene contenido válido según lo solicitado?
 2. Formato: ¿Los datos tienen el formato correcto?
 3. Coherencia: ¿Los datos son lógicos y consistentes?
-4. Calidad: ¿Los datos son suficientemente detallados?
 
 RESPONDE EN JSON CON ESTE FORMATO:
 {

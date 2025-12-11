@@ -738,7 +738,7 @@ export default function OITDetailPage() {
                                         </CardContent>
                                     </Card>
 
-                                    <div className="space-y-4">
+                                    <div className="max-w-3xl mx-auto space-y-4">
                                         {templateSteps.length > 0 ? (
                                             templateSteps.map((step: any, index: number) => {
                                                 const isLocked = index > 0 && !stepValidations[index - 1]?.validated;
