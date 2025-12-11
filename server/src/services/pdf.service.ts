@@ -94,8 +94,13 @@ class PDFService {
                     </div>
                     <h3>${step.description || `Paso ${index + 1}`}</h3>
                     <div class="step-data">
-                        <h4>Datos Recopilados:</h4>
-                        <pre>${JSON.stringify(validation.data || {}, null, 2)}</pre>
+                        <h4>Respuesta:</h4>
+                        <p class="data-value">${typeof validation.data?.value === 'boolean'
+                    ? (validation.data.value ? 'Sí' : 'No')
+                    : (validation.data?.value || 'Sin dato principal')
+                }</p>
+                        ${validation.data?.comment ? `<p class="data-comment"><strong>Comentario:</strong> ${validation.data.comment}</p>` : ''}
+                        ${validation.data?.files?.length ? `<p class="data-files"><strong>Archivos:</strong> ${validation.data.files.join(', ')}</p>` : ''}
                     </div>
                     <div class="step-feedback">
                         <h4>Retroalimentación de IA:</h4>
