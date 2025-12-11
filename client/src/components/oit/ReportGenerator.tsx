@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FileBarChart, Upload, Loader2, FileText, CheckCircle2, Download } from 'lucide-react';
@@ -7,15 +7,34 @@ import api from '@/lib/api';
 
 interface ReportGeneratorProps {
     oitId: string;
+    finalReportUrl?: string | null;
 }
 
-export function ReportGenerator({ oitId }: ReportGeneratorProps) {
+export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: ReportGeneratorProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [analysisFile, setAnalysisFile] = useState<File | null>(null);
-    const [reportGenerated, setReportGenerated] = useState(false);
+    const [reportGenerated, setReportGenerated] = useState(!!initialReportUrl);
     const [labResultsUrl, setLabResultsUrl] = useState<string | null>(null);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
+
+
+
+    // Initialize/Update finalReportUrl from prop
+    useEffect(() => {
+        if (initialReportUrl) {
+            // If already complete URL or blob
+            if (initialReportUrl.startsWith('http') || initialReportUrl.startsWith('blob:')) {
+                setFinalReportUrl(initialReportUrl);
+            } else {
+                // Construct URL from filename (assuming stored in uploads/reports)
+                // Remove /api if present in baseURL to get root
+                const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
+                setFinalReportUrl(`${baseUrl}/uploads/reports/${initialReportUrl}`);
+            }
+            setReportGenerated(true);
+        }
+    }, [initialReportUrl]);
 
     const handleAnalysisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
