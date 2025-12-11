@@ -20,6 +20,7 @@ export default function OITDetailPage() {
     const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [stepValidations, setStepValidations] = useState<any>({});
     const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
+    const [templateSteps, setTemplateSteps] = useState<any[]>([]);
 
     // Polling for status updates
     useEffect(() => {
@@ -38,6 +39,20 @@ export default function OITDetailPage() {
                 }
                 if (response.data.finalAnalysis) {
                     setFinalAnalysis(response.data.finalAnalysis);
+                }
+
+                // Load template steps if available
+                if (response.data.selectedTemplateId) {
+                    try {
+                        const templateRes = await api.get(`/sampling-templates/${response.data.selectedTemplateId}`);
+                        if (templateRes.data.steps) {
+                            const parsedSteps = JSON.parse(templateRes.data.steps);
+                            parsedSteps.sort((a: any, b: any) => a.order - b.order);
+                            setTemplateSteps(parsedSteps);
+                        }
+                    } catch (err) {
+                        console.error('Error fetching template:', err);
+                    }
                 }
 
                 if (response.data.status !== 'ANALYZING' && response.data.status !== 'UPLOADING') {
@@ -724,32 +739,38 @@ export default function OITDetailPage() {
                                     </Card>
 
                                     <div className="space-y-4">
-                                        {aiData?.data?.steps?.map((step: any, index: number) => {
-                                            const isLocked = index > 0 && !stepValidations[index - 1]?.validated;
-                                            return (
-                                                <SamplingStep
-                                                    key={index}
-                                                    oitId={id!}
-                                                    step={step}
-                                                    stepIndex={index}
-                                                    isLocked={isLocked}
-                                                    validation={stepValidations[index]}
-                                                    onValidationComplete={async () => {
-                                                        const response = await api.get(`/oits/${id}`);
-                                                        setOit(response.data);
-                                                        if (response.data.stepValidations) {
-                                                            setStepValidations(JSON.parse(response.data.stepValidations));
-                                                        }
-                                                    }}
-                                                />
-                                            );
-                                        })}
+                                        {templateSteps.length > 0 ? (
+                                            templateSteps.map((step: any, index: number) => {
+                                                const isLocked = index > 0 && !stepValidations[index - 1]?.validated;
+                                                return (
+                                                    <SamplingStep
+                                                        key={index}
+                                                        oitId={id!}
+                                                        step={step}
+                                                        stepIndex={index}
+                                                        isLocked={isLocked}
+                                                        validation={stepValidations[index]}
+                                                        onValidationComplete={async () => {
+                                                            const response = await api.get(`/oits/${id}`);
+                                                            setOit(response.data);
+                                                            if (response.data.stepValidations) {
+                                                                setStepValidations(JSON.parse(response.data.stepValidations));
+                                                            }
+                                                        }}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="text-center py-12 text-slate-500">
+                                                <p>Cargando pasos de la plantilla...</p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Final Actions */}
                                     <div className="flex flex-col items-center gap-4 py-6">
-                                        {!finalAnalysis && aiData?.data?.steps?.length > 0 &&
-                                            Object.keys(stepValidations).length >= aiData?.data?.steps?.length &&
+                                        {!finalAnalysis && templateSteps.length > 0 &&
+                                            Object.keys(stepValidations).length >= templateSteps.length &&
                                             Object.values(stepValidations).every((v: any) => v.validated) && (
                                                 <Button
                                                     size="lg"
