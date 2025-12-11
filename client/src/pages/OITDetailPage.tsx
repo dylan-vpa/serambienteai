@@ -72,6 +72,31 @@ export default function OITDetailPage() {
             }
         }
     };
+
+    const handleDownload = async (fileUrl: string, filename: string) => {
+        try {
+            const extractedFilename = fileUrl.split('/').pop()?.split('\\').pop() || filename;
+            const response = await api.get(`/files/download/${extractedFilename}`, {
+                responseType: 'blob'
+            });
+
+            // Create blob link to download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', extractedFilename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('Descarga iniciada');
+        } catch (error) {
+            console.error('Error downloading file:', error);
+            toast.error('Error al descargar archivo');
+        }
+    };
+
     const handleCheckCompliance = async () => {
         try {
             setIsProcessing(true);
@@ -117,7 +142,9 @@ export default function OITDetailPage() {
                                     {oit.status}
                                 </Badge>
                             </div>
-                            <p className="text-slate-500 text-sm max-w-2xl truncate">{oit.description || 'Sin descripción'}</p>
+                            <p className="text-slate-500 text-sm max-w-2xl truncate">
+                                {oit.status === 'ANALYZING' ? 'Análisis en curso...' : (oit.description || 'Sin descripción')}
+                            </p>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-500">
                             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full">
@@ -204,15 +231,9 @@ export default function OITDetailPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem asChild>
-                                                            <a
-                                                                href={`/api/files/download/${oit.oitFileUrl.split('/').pop()?.split('\\').pop() || ''}`}
-                                                                download
-                                                                className="flex items-center cursor-pointer"
-                                                            >
-                                                                <Download className="mr-2 h-4 w-4" />
-                                                                Descargar
-                                                            </a>
+                                                        <DropdownMenuItem onClick={() => handleDownload(oit.oitFileUrl, 'documento-oit.pdf')}>
+                                                            <Download className="mr-2 h-4 w-4" />
+                                                            Descargar
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => document.getElementById('oitFileInput')?.click()}>
                                                             <RefreshCcw className="mr-2 h-4 w-4" />
@@ -237,15 +258,9 @@ export default function OITDetailPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem asChild>
-                                                            <a
-                                                                href={`/api/files/download/${oit.quotationFileUrl.split('/').pop()?.split('\\').pop() || ''}`}
-                                                                download
-                                                                className="flex items-center cursor-pointer"
-                                                            >
-                                                                <Download className="mr-2 h-4 w-4" />
-                                                                Descargar
-                                                            </a>
+                                                        <DropdownMenuItem onClick={() => handleDownload(oit.quotationFileUrl, 'cotizacion.pdf')}>
+                                                            <Download className="mr-2 h-4 w-4" />
+                                                            Descargar
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => document.getElementById('quotationFileInput')?.click()}>
                                                             <RefreshCcw className="mr-2 h-4 w-4" />
