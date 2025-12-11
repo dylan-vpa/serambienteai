@@ -752,8 +752,40 @@ export default function OITDetailPage() {
 
                                                     navigator.geolocation.getCurrentPosition(
                                                         (pos) => {
+                                                            const currentLat = pos.coords.latitude;
+                                                            const currentLng = pos.coords.longitude;
+
+                                                            // Check 200m radius if location is coordinates
+                                                            let distanceInfo = '';
+                                                            const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
+
+                                                            if (locParts.length === 2) {
+                                                                const targetLat = parseFloat(locParts[0]);
+                                                                const targetLng = parseFloat(locParts[1]);
+
+                                                                if (!isNaN(targetLat) && !isNaN(targetLng)) {
+                                                                    // Haversine Distance
+                                                                    const R = 6371; // km
+                                                                    const dLat = (targetLat - currentLat) * Math.PI / 180;
+                                                                    const dLon = (targetLng - currentLng) * Math.PI / 180;
+                                                                    const a =
+                                                                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                                                        Math.cos(currentLat * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) *
+                                                                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                                                                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                                                                    const distKm = R * c;
+
+                                                                    if (distKm > 0.2) { // 200m = 0.2km
+                                                                        const distM = (distKm * 1000).toFixed(0);
+                                                                        setVerificationMsg(`FUERA DE RANGO. Estás a ${distM}m del sitio. Radio máximo: 200m.`);
+                                                                        return;
+                                                                    }
+                                                                    distanceInfo = `Distancia: ${(distKm * 1000).toFixed(0)}m`;
+                                                                }
+                                                            }
+
                                                             setIsLocationVerified(true);
-                                                            setVerificationMsg('Verificación Exitosa');
+                                                            setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '(' + distanceInfo + ')' : ''}`);
                                                             toast.success('Ubicación y Hora Validadas');
                                                         },
                                                         (err) => {
