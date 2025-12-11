@@ -786,7 +786,7 @@ export default function OITDetailPage() {
 
                                         {finalAnalysis && (
                                             <div className="w-full flex justify-center py-6 animate-in fade-in">
-                                                <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white">
+                                                <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-slate-900 hover:bg-slate-800 text-white">
                                                     <FileDown className="mr-2 h-5 w-5" />
                                                     Descargar Informe PDF
                                                 </Button>
