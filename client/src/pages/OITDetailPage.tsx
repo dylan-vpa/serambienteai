@@ -205,7 +205,7 @@ export default function OITDetailPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem asChild>
-                                                            <a href={oit.oitFileUrl} download className="flex items-center cursor-pointer">
+                                                            <a href={`/api/files/download/${oit.oitFileUrl.split('/').pop()}`} download className="flex items-center cursor-pointer">
                                                                 <Download className="mr-2 h-4 w-4" />
                                                                 Descargar
                                                             </a>
@@ -234,7 +234,7 @@ export default function OITDetailPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem asChild>
-                                                            <a href={oit.quotationFileUrl} download className="flex items-center cursor-pointer">
+                                                            <a href={`/api/files/download/${oit.quotationFileUrl.split('/').pop()}`} download className="flex items-center cursor-pointer">
                                                                 <Download className="mr-2 h-4 w-4" />
                                                                 Descargar
                                                             </a>

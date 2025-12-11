@@ -6,9 +6,11 @@ import aiRoutes from './ai.routes';
 import notificationRoutes from './notification.routes';
 import standardRoutes from './standard.routes';
 import samplingTemplateRoutes from './sampling-template.routes';
+import filesRoutes from './files.routes';
 
 const router = Router();
 
+router.use('/files', filesRoutes);
 router.use('/auth', authRoutes);
 router.use('/oits', oitRoutes);
 router.use('/resources', resourceRoutes);
