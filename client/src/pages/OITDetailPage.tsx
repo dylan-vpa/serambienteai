@@ -4,7 +4,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -401,6 +401,16 @@ export default function OITDetailPage() {
                                                         )}
                                                     </div>
 
+                                                    {oit.location && (
+                                                        <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 mt-2">
+                                                            <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                            <div>
+                                                                <p className="text-xs font-medium text-indigo-700 uppercase tracking-wider">Ubicación</p>
+                                                                <p className="text-sm text-slate-900 mt-0.5">{oit.location}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     <div className="flex items-center gap-3 pt-2">
                                                         <Button
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
@@ -410,11 +420,21 @@ export default function OITDetailPage() {
                                                                 const fullDate = new Date(`${dateStr}T${timeStr}`);
 
                                                                 try {
-                                                                    await api.patch(`/oits/${id}`, { scheduledDate: fullDate.toISOString(), status: 'SCHEDULED' });
-                                                                    toast.success('Propuesta aceptada y agendada');
+                                                                    // Call accept-planning endpoint to update resources
+                                                                    await api.post(`/oits/${id}/accept-planning`, {
+                                                                        templateId: aiData.data.templateId
+                                                                    });
+
+                                                                    // Then update scheduled date
+                                                                    await api.patch(`/oits/${id}`, {
+                                                                        scheduledDate: fullDate.toISOString()
+                                                                    });
+
+                                                                    toast.success('Propuesta aceptada. Recursos asignados.');
                                                                     const response = await api.get(`/oits/${id}`);
                                                                     setOit(response.data);
                                                                 } catch (error) {
+                                                                    console.error('Error accepting planning:', error);
                                                                     toast.error('Error al aceptar propuesta');
                                                                 }
                                                             }}

@@ -22,6 +22,7 @@ model OIT {
   id                    String         @id @default(uuid())
   oitNumber             String         @unique
   description           String?
+  location              String?        // Sampling site address
   status                String         @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
   oitFileUrl            String?
   quotationFileUrl      String?
