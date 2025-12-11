@@ -803,8 +803,8 @@ export default function OITDetailPage() {
                                 );
                             }
 
-                            // Check if planning has been accepted
-                            if (!oit.planningAccepted) {
+                            // Check if planning has been accepted (or at least Scheduled)
+                            if (!oit.planningAccepted && !oit.scheduledDate) {
                                 return (
                                     <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
