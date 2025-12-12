@@ -143,6 +143,7 @@ export const getSamplingData = async (req: Request, res: Response) => {
 };
 
 // Upload Lab Results
+// Upload Lab Results
 export const uploadLabResults = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -152,44 +153,85 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
 
-        const { pdfService } = require('../services/pdf.service');
-        let extractedText = '';
-
-        try {
-            if (file.mimetype === 'application/pdf') {
-                extractedText = await pdfService.extractText(file.path);
-            } else {
-                // For other types, try to read as text or skip (simple fallback)
-                extractedText = fs.readFileSync(file.path, 'utf-8');
-            }
-        } catch (readErr) {
-            console.error("Error extracted text from lab file:", readErr);
-        }
-
-
-
-        // Analyze with AI
-        const analysis = await aiService.analyzeLabResults(extractedText || "Texto no extraído");
-
+        // 1. Return immediate response and set status to ANALYZING
         const oit = await prisma.oIT.update({
             where: { id },
             data: {
                 labResultsUrl: file.path,
-                labResultsAnalysis: JSON.stringify(analysis)
+                labResultsAnalysis: null, // Clear previous analysis
+                status: 'ANALYZING'
             } as any
         });
 
         res.json({
             success: true,
             labResultsUrl: file.path,
-            labResultsAnalysis: analysis, // Return immediate analysis
-            oit
+            status: 'ANALYZING',
+            message: 'Resultados subidos. Análisis en curso...'
         });
+
+        // 2. Trigger asynchronous processing
+        processLabResultsAsync(id, file.path).catch(err => {
+            console.error('Error in background lab processing:', err);
+        });
+
     } catch (error) {
         console.error('Error uploading lab results:', error);
         res.status(500).json({ error: 'Error al subir resultados de laboratorio' });
     }
 };
+
+// Background Processor for Lab Results
+async function processLabResultsAsync(oitId: string, filePath: string) {
+    try {
+        console.log(`Starting background lab analysis for OIT ${oitId}`);
+        const { pdfService } = require('../services/pdf.service');
+        let extractedText = '';
+
+        try {
+            if (filePath.endsWith('.pdf')) {
+                extractedText = await pdfService.extractText(filePath);
+            } else {
+                extractedText = fs.readFileSync(filePath, 'utf-8');
+            }
+        } catch (readErr) {
+            console.error("Error extracting text from lab file:", readErr);
+            extractedText = "Error al leer documento de laboratorio.";
+        }
+
+        // Get OIT Context for better analysis
+        const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
+        const oitContext = oit?.description || '';
+
+        // Analyze with AI
+        const analysis = await aiService.analyzeLabResults(extractedText || "Texto no extraído", oitContext);
+
+        // Update OIT with results
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                labResultsAnalysis: JSON.stringify(analysis),
+                status: analysis.status === 'ERROR' ? 'REVIEW_NEEDED' : 'COMPLETED' // Or keep previous status? For now COMPLETED implies analysis done.
+            } as any
+        });
+
+        console.log(`Lab analysis completed for OIT ${oitId}`);
+
+    } catch (error: any) {
+        console.error('Background lab analysis failed:', error);
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                labResultsAnalysis: JSON.stringify({
+                    summary: "Error interno al procesar resultados.",
+                    findings: [],
+                    status: "ERROR"
+                }),
+                status: 'REVIEW_NEEDED'
+            } as any
+        });
+    }
+}
 
 // Generate Final Report
 
