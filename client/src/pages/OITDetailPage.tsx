@@ -965,7 +965,11 @@ export default function OITDetailPage() {
                     </TabsContent>
 
                     <TabsContent value="report" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <ReportGenerator oitId={id!} finalReportUrl={oit.finalReportUrl} />
+                        <ReportGenerator
+                            oitId={id!}
+                            finalReportUrl={oit.finalReportUrl}
+                            initialAnalysis={oit.labResultsAnalysis ? JSON.parse(oit.labResultsAnalysis) : null}
+                        />
                     </TabsContent>
                 </Tabs>
             </div>

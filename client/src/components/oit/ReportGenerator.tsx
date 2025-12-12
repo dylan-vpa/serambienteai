@@ -9,16 +9,17 @@ import api from '@/lib/api';
 interface ReportGeneratorProps {
     oitId: string;
     finalReportUrl?: string | null;
+    initialAnalysis?: any;
 }
 
-export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: ReportGeneratorProps) {
+export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initialAnalysis }: ReportGeneratorProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [analysisFile, setAnalysisFile] = useState<File | null>(null);
     const [reportGenerated, setReportGenerated] = useState(!!initialReportUrl);
     const [labResultsUrl, setLabResultsUrl] = useState<string | null>(null);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
-    const [analysisData, setAnalysisData] = useState<any | null>(null);
+    const [analysisData, setAnalysisData] = useState<any | null>(initialAnalysis || null);
 
     // Initialize/Update finalReportUrl from prop
     useEffect(() => {
@@ -34,6 +35,13 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: Rep
             setReportGenerated(true);
         }
     }, [initialReportUrl]);
+
+    // Update analysis data if prop changes (e.g. from polling)
+    useEffect(() => {
+        if (initialAnalysis) {
+            setAnalysisData(initialAnalysis);
+        }
+    }, [initialAnalysis]);
 
     const handleAnalysisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
