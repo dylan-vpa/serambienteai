@@ -203,15 +203,15 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
         const oitContext = oit?.description || '';
 
-        // Analyze with AI
+        // Analyze with AI - Now returns text
         const analysis = await aiService.analyzeLabResults(extractedText || "Texto no extraído", oitContext);
 
-        // Update OIT with results
+        // Update OIT with results - Save as plain text
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                labResultsAnalysis: JSON.stringify(analysis),
-                status: analysis.status === 'ERROR' ? 'REVIEW_NEEDED' : 'COMPLETED' // Or keep previous status? For now COMPLETED implies analysis done.
+                labResultsAnalysis: analysis, // Save as text, not JSON
+                status: analysis.includes('Error') ? 'REVIEW_NEEDED' : 'COMPLETED'
             } as any
         });
 
@@ -222,11 +222,7 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                labResultsAnalysis: JSON.stringify({
-                    summary: "Error interno al procesar resultados.",
-                    findings: [],
-                    status: "ERROR"
-                }),
+                labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente.",
                 status: 'REVIEW_NEEDED'
             } as any
         });

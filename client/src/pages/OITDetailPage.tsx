@@ -968,7 +968,7 @@ export default function OITDetailPage() {
                         <ReportGenerator
                             oitId={id!}
                             finalReportUrl={oit.finalReportUrl}
-                            initialAnalysis={oit.labResultsAnalysis ? JSON.parse(oit.labResultsAnalysis) : null}
+                            initialAnalysis={oit.labResultsAnalysis || null}
                         />
                     </TabsContent>
                 </Tabs>

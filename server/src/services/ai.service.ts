@@ -326,298 +326,107 @@ JSON:`;
         if (!description) description = text.replace(/\s+/g, ' ').slice(0, 240);
 
         let status = 'PENDING';
-        if (lower.includes('en progreso') || lower.includes('in progress')) status = 'IN_PROGRESS';
-        else if (lower.includes('complet') || lower.includes('finaliz')) status = 'COMPLETED';
+        if (lower.includes('completado') || lower.includes('terminado')) status = 'COMPLETED';
+        else if (lower.includes('en curso') || lower.includes('progreso')) status = 'IN_PROGRESS';
 
-        const missing: string[] = [];
-        if (!oitNumber) missing.push('Número de OIT no encontrado');
-        if (!description || description.length < 20) missing.push('Descripción insuficiente');
-
-        const valid = missing.length === 0;
-        const warnings = [] as string[];
-        const errors = valid ? [] : missing;
+        const valid = !!oitNumber;
+        const errors = valid ? [] : ['No se encontró número de OIT'];
+        const warnings = [];
+        if (!description || description.length < 10) warnings.push('Descripción incompleta');
 
         return {
             valid,
             data: { oitNumber, description, status },
-            message: valid ? 'Validación heurística exitosa (IA no disponible)' : 'Validación heurística: faltan datos',
+            message: valid ? 'Extracción completada con heurística' : 'No se pudo validar documento',
             errors,
-            warnings,
+            warnings
         };
     }
-
     /**
-     * Extract OIT Data by sending file context directly to Ollama
+     * Background OIT processing - Full Analysis
      */
-    async extractOITDataFromFiles(files: { name: string; buffer: Buffer }[]): Promise<any> {
-        const available = await this.isAvailable();
-
-        if (!available) {
-            console.error('Ollama not available');
-            return {
-                valid: false,
-                message: 'Servicio de IA no disponible',
-                errors: ['Ollama no está en ejecución. Por favor inicia el servicio de Ollama para validar documentos.']
-            };
-        }
-
-        // Limit how much base64 we include to avoid huge prompts
-        const MAX_BASE64_CHARS = 10000;
-        const fileSummaries = files.map(f => {
-            const b64 = f.buffer.toString('base64');
-            const preview = b64.slice(0, MAX_BASE64_CHARS);
-            return {
-                name: f.name,
-                sizeKB: Math.round(f.buffer.length / 1024),
-                base64Preview: preview,
-            };
-        });
-
+    async processOITInBackground(oitId: string, oitFilePath: string | null, quotationFilePath: string | null, userId: string): Promise<void> {
+        console.log(`🚀 [AI SERVICE] Iniciando procesamiento OIT ${oitId}`);
         try {
-            const prompt = `Recibirás metadatos y un preview en base64 de PDFs (OIT y Cotización).
-Intenta inferir el número de OIT, una breve descripción y el estado sugerido.
-Si el contenido no es legible, responde igual con JSON válido indicando faltantes.
-
-Responde SOLO con JSON válido con este formato:
-{
-  "valid": boolean,
-  "data": {
-    "oitNumber": "string",
-    "description": "string",
-    "status": "PENDING|IN_PROGRESS|COMPLETED"
-  },
-  "message": "string",
-  "errors": ["string"],
-  "warnings": ["string"]
-}
-
-Archivos:
-${JSON.stringify(fileSummaries, null, 2)}
-
-Nota:
-- Si el preview base64 parece binario o ilegible, indica en "errors" que falta extraer texto del PDF.
-- No incluyas comentarios fuera del JSON.
-
-JSON:`;
-
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
-                model: this.defaultModel,
-                prompt,
-                stream: false,
-                format: 'json',
-            });
-
-            const rawResponse = response.data.response;
-            try {
-                const parsed = JSON.parse(rawResponse);
-                const valid = !!parsed.valid;
-                const data = parsed.data || {};
-                const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
-                const warnings = Array.isArray(parsed.warnings) ? parsed.warnings : [];
-                const message = parsed.message || (valid ? 'Validación exitosa' : 'Validación fallida');
-
-                if (!valid && errors.length === 0) {
-                    errors.push('Faltan detalles de error. Verifica número de OIT y descripción.');
-                }
-
-                return { valid, data, message, errors, warnings };
-            } catch (e) {
-                return {
-                    valid: false,
-                    message: 'Error al procesar respuesta de IA',
-                    errors: ['Formato de respuesta inválido'],
-                    warnings: []
-                };
-            }
-        } catch (error) {
-            console.error('AI Extraction from files error:', error);
-            return {
-                valid: false,
-                message: 'Error de conexión con IA',
-                errors: ['No se pudo conectar con el servicio de IA']
-            }
-        }
-    }
-
-    async extractOITDataCombined(input: {
-        textOIT: string;
-        textQuotation: string;
-        files: { name: string; sizeKB: number; base64Preview: string }[];
-    }): Promise<any> {
-        console.log('🤖 [AI SERVICE] Iniciando extractOITDataCombined');
-        console.log('📊 [AI SERVICE] Input recibido:', {
-            textOITLength: input.textOIT?.length || 0,
-            textQuotationLength: input.textQuotation?.length || 0,
-            filesCount: input.files?.length || 0
-        });
-
-        console.log('🔍 [AI SERVICE] Verificando disponibilidad de Ollama...');
-        const available = await this.isAvailable();
-        console.log(`${available ? '✅' : '❌'} [AI SERVICE] Ollama ${available ? 'disponible' : 'NO disponible'}`);
-
-        if (!available) {
-            console.log('⚠️ [AI SERVICE] Usando análisis heurístico (fallback)');
-            return this.extractOITDataHeuristic(
-                `DOCUMENTO OIT:\n${input.textOIT || ''}\nDOCUMENTO COTIZACIÓN:\n${input.textQuotation || ''}`
-            );
-        }
-
-        // Read validation criteria from MD file
-        let validationCriteria = '';
-        try {
-            const criteriaPath = path.join(__dirname, '../../OIT_VALIDATION_CRITERIA.md');
-            if (fs.existsSync(criteriaPath)) {
-                validationCriteria = fs.readFileSync(criteriaPath, 'utf-8');
-            } else {
-                console.warn('⚠️ [AI SERVICE] No se encontró el archivo de criterios de validación en:', criteriaPath);
-            }
-        } catch (err) {
-            console.error('⚠️ [AI SERVICE] Error al leer criterios de validación:', err);
-        }
-
-        // Use FULL text as requested by user (no limit)
-        const oitContext = input.textOIT || '';
-        const quotationContext = input.textQuotation || '';
-
-        // ... existing prompt setup ...
-        const prompt = `Eres un asistente experto en validación de documentos técnicos.
-Tu tarea es analizar una Orden de Inspección de Trabajo (OIT) y su Cotización correspondiente, siguiendo ESTRICTAMENTE los criterios de validación proporcionados.
-
-CRITERIOS DE VALIDACIÓN (IMPORTANTE):
-${validationCriteria}
-
-DOCUMENTOS A ANALIZAR:
-1. OIT (Texto completo):
-${oitContext}
-
-2. COTIZACIÓN (Texto completo):
-${quotationContext}
-
-INSTRUCCIONES:
-1. Analiza ambos documentos buscando CADA UNO de los puntos mencionados en los "Criterios de Validación".
-2. Extrae los datos clave (Número OIT, Descripción, Estado).
-3. EXTRAE FECHAS Y HORAS propuestas para la visita/inspección si se mencionan.
-4. EXTRAE LOS RECURSOS NECESARIOS (Equipos y Personal) mencionados en la OIT o Cotización.
-5. Verifica la coherencia entre documentos.
-
-FORMATO DE RESPUESTA (JSON):
-{
-  "valid": boolean,
-  "data": {
-    "oitNumber": "string",
-    "description": "string",
-    "status": "PENDING" | "IN_PROGRESS" | "COMPLETED",
-    "proposedDate": "YYYY-MM-DD (si se menciona)",
-    "proposedTime": "HH:mm (si se menciona)",
-    "resources": [
-      { "name": "string", "type": "EQUIPMENT" | "PERSONNEL", "quantity": number }
-    ]
-  },
-  "message": "Resumen del resultado",
-  "errors": ["Lista de criterios NO cumplidos"],
-  "warnings": ["Lista de observaciones menores"]
-}
-
-Responde ÚNICAMENTE con el JSON válido.`;
-
-        console.log('📤 [AI SERVICE] Enviando request a Ollama con contexto completo...');
-        console.log('🔗 [AI SERVICE] URL:', `${this.baseURL}/api/generate`);
-        console.log('🎯 [AI SERVICE] Modelo:', this.defaultModel);
-
-        try {
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
-                model: this.defaultModel,
-                prompt,
-                stream: false,
-                format: 'json',
-                options: {
-                    temperature: 0.1,
-                    num_ctx: 32768,
-                    num_predict: 1024
-                }
-            });
-
-            console.log('✅ [AI SERVICE] Respuesta recibida de Ollama');
-            const rawResponse = response.data.response;
-            console.log('📝 [AI SERVICE] Raw response:', rawResponse.substring(0, 200) + '...');
-
-            try {
-                const parsed = JSON.parse(rawResponse);
-                console.log('✅ [AI SERVICE] JSON parseado correctamente');
-                const valid = !!parsed.valid;
-                const data = parsed.data || {};
-                const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
-                const warnings = Array.isArray(parsed.warnings) ? parsed.warnings : [];
-                const message = parsed.message || (valid ? 'Validación exitosa' : 'Validación fallida');
-                if (!valid && errors.length === 0) {
-                    errors.push('Faltan detalles de error. Verifica número de OIT y descripción.');
-                }
-                console.log('📊 [AI SERVICE] Resultado final:', { valid, data, message, errorsCount: errors.length, warningsCount: warnings.length });
-                return { valid, data, message, errors, warnings };
-            } catch (e) {
-                console.log('❌ [AI SERVICE] Error al parsear JSON de Ollama:', e);
-                console.log('⚠️ [AI SERVICE] Usando análisis heurístico (fallback por error de parseo)');
-                return this.extractOITDataHeuristic(
-                    `DOCUMENTO OIT: \n${input.textOIT || ''} \nDOCUMENTO COTIZACIÓN: \n${input.textQuotation || ''}`
-                );
-            }
-        } catch (error: any) {
-            console.log('❌ [AI SERVICE] Error en request a Ollama:', error.message);
-            console.log('⚠️ [AI SERVICE] Usando análisis heurístico (fallback por error de conexión)');
-            return this.extractOITDataHeuristic(
-                `DOCUMENTO OIT: \n${input.textOIT || ''} \nDOCUMENTO COTIZACIÓN: \n${input.textQuotation || ''}`
-            );
-        }
-    }
-
-    // New method for background processing
-    async processOITBackground(oitId: string, files: { oitFile: Express.Multer.File, quotationFile: Express.Multer.File }) {
-        console.log(`🔄 [AI SERVICE] Iniciando procesamiento en segundo plano para OIT ${oitId}`);
-        try {
-            // 1. Extract Text (Reusing logic - ideally refactor to helper)
-            const getFileBuffer = async (file: Express.Multer.File): Promise<Buffer> => {
-                if (file.buffer) return file.buffer;
-                if (file.path) return await fs.promises.readFile(file.path);
-                throw new Error('Archivo inválido');
+            const extractText = async (filePath: string): Promise<string> => {
+                const pdfService = (await import('../services/pdf.service')).pdfService;
+                return await pdfService.extractText(filePath);
             };
 
-            const oitBuf = await getFileBuffer(files.oitFile);
-            const quotationBuf = await getFileBuffer(files.quotationFile);
-
-            const extractText = async (file: Express.Multer.File, buffer: Buffer) => {
-                if (file.mimetype === 'text/plain') return buffer.toString('utf-8');
-                if (file.mimetype === 'application/pdf') {
-                    const pdfParse = require('pdf-parse');
-                    const res = await pdfParse(buffer);
-                    return res.text;
-                }
-                return '';
-            };
-
-            const oitText = await extractText(files.oitFile, oitBuf);
-            const quotationText = await extractText(files.quotationFile, quotationBuf);
-
-            // 2. Call AI
-            const result = await this.extractOITDataCombined({
-                textOIT: oitText,
-                textQuotation: quotationText,
-                files: []
-            });
-
-            // 3. Update DB
+            const { complianceService } = await import('../services/compliance.service');
+            const { default: planningService } = await import('../services/planning.service');
             const PrismaClient = require('@prisma/client').PrismaClient;
             const prisma = new PrismaClient();
 
+            // Set state to ANALYZING
             await prisma.oIT.update({
                 where: { id: oitId },
-                data: {
-                    oitNumber: result.data?.oitNumber || `PENDING-${oitId.slice(0, 8)}`,
-                    description: result.data?.description || 'Sin descripción',
-                    status: result.valid ? 'REVIEW_REQUIRED' : 'REVIEW_REQUIRED',
-                    aiData: JSON.stringify(result),
-                    resources: JSON.stringify(result.data?.resources || []),
-                }
+                data: { status: 'ANALYZING' }
             });
+
+            const aiDataContent: any = {};
+            let extractedDescription: string | null = null;
+            let extractedLocation: string | null = null;
+
+            // Analyze OIT File
+            if (oitFilePath && fs.existsSync(oitFilePath)) {
+                const oitText = await extractText(oitFilePath);
+                const extracted = await this.extractOITData(oitText);
+                if (extracted.valid && extracted.data.description) {
+                    extractedDescription = extracted.data.description;
+                }
+            }
+
+            // Run Compliance Check
+            try {
+                const complianceResult = await complianceService.checkCompliance(oitId);
+                if (complianceResult) {
+                    aiDataContent.compliance = complianceResult;
+                }
+            } catch (complianceError) {
+                console.error('Compliance check error:', complianceError);
+            }
+
+            // Generate Planning
+            try {
+                const proposal = await planningService.generatePlanning(oitId);
+                if (proposal) {
+                    aiDataContent.data = proposal;
+                }
+            } catch (planningError) {
+                console.error('Planning error:', planningError);
+            }
+
+            // Update final data
+            const updateData: any = {
+                aiData: JSON.stringify(aiDataContent),
+                status: 'PENDING',
+            };
+
+            if (extractedDescription) {
+                updateData.description = extractedDescription;
+            }
+            if (extractedLocation) {
+                updateData.location = extractedLocation;
+            }
+
+            await prisma.oIT.update({
+                where: { id: oitId },
+                data: updateData
+            });
+
+            // Create notification
+            if (aiDataContent.data?.proposedDate) {
+                await prisma.notification.create({
+                    data: {
+                        userId,
+                        oitId,
+                        title: 'Análisis IA Completado',
+                        message: `La IA ha propuesto una fecha para la OIT: ${new Date(aiDataContent.data.proposedDate).toLocaleDateString()}`,
+                        type: 'INFO'
+                    }
+                });
+            }
 
             console.log(`✅ [AI SERVICE] Procesamiento finalizado para OIT ${oitId}`);
 
@@ -634,85 +443,53 @@ Responde ÚNICAMENTE con el JSON válido.`;
             });
         }
     }
-    // New method for Lab Results Analysis
-    async analyzeLabResults(documentText: string, oitContext?: string): Promise<any> {
+    // New method for Lab Results Analysis - Returns NARRATIVE TEXT
+    async analyzeLabResults(documentText: string, oitContext?: string): Promise<string> {
         const available = await this.isAvailable();
         if (!available) {
-            return {
-                summary: "Análisis no disponible (IA desconectada)",
-                findings: [],
-                status: "UNKNOWN"
-            };
+            return "Análisis no disponible. El servicio de IA está desconectado.";
         }
 
         try {
-            const prompt = `Analiza el siguiente reporte de laboratorio y el contexto de la OIT.
-            
-            Contexto OIT: "${oitContext || 'Sin contexto específico'}"
-            Reporte Laboratorio: "${documentText.substring(0, 2000).replace(/"/g, "'")}"
+            const prompt = `Eres un auditor técnico de calidad. Analiza el siguiente reporte de laboratorio.
 
-            IMPORTANTE: NO expliques tu razonamiento. Responde ÚNICAMENTE con el JSON solicitado.
-            
-            Responde SOLO con un JSON válido con este formato:
-            {
-                "summary": "Resumen ejecutivo en español (máx 200 caracteres)",
-                "findings": ["Hallazgo 1", "Hallazgo 2"],
-                "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
-            }
+Contexto OIT: "${oitContext || 'Sin contexto específico'}"
 
-            JSON:`;
+Reporte de Laboratorio:
+"${documentText.substring(0, 3000).replace(/"/g, "'")}"
 
-            console.log('[LAB ANALYSIS] Calling AI with prompt length:', prompt.length);
-            console.log('[LAB ANALYSIS] First 200 chars of prompt:', prompt.substring(0, 200));
-            console.log('[LAB ANALYSIS] Model:', this.defaultModel);
-            console.log('[LAB ANALYSIS] Base URL:', this.baseURL);
+Genera un análisis detallado en español que incluya:
+1. Resumen ejecutivo de los resultados
+2. Hallazgos principales y valores críticos
+3. Comparación con límites normativos (si están presentes)
+4. Recomendaciones o alertas
+
+Escribe el análisis en prosa, como un informe técnico profesional.`;
+
+            console.log('[LAB ANALYSIS] Calling AI for narrative analysis, prompt length:', prompt.length);
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
-                format: 'json',
             });
 
-            console.log('[LAB ANALYSIS] Response status:', response.status);
-            console.log('[LAB ANALYSIS] Response data keys:', Object.keys(response.data));
-            console.log('[LAB ANALYSIS] Raw AI response:', response.data.response);
-            console.log('[LAB ANALYSIS] Response length:', response.data.response?.length || 0);
+            // For reasoning models, use thinking field which contains the actual analysis
+            let analysis = response.data.response || response.data.thinking || '';
 
-            // For reasoning models (like gpt-oss/DeepSeek R1), check if thinking field has content
-            if (response.data.thinking) {
-                console.log('[LAB ANALYSIS] Thinking field present, length:', response.data.thinking.length);
-                console.log('[LAB ANALYSIS] First 500 chars of thinking:', response.data.thinking.substring(0, 500));
+            if (!analysis || analysis.trim().length === 0) {
+                console.warn('[LAB ANALYSIS] Empty response from AI');
+                return "Error: No se pudo generar el análisis. Respuesta vacía del modelo.";
             }
 
-            // Use response field, or thinking field if response is empty (reasoning models)
-            let responseText = response.data.response || response.data.thinking || '';
+            console.log('[LAB ANALYSIS] Generated analysis, length:', analysis.length);
+            console.log('[LAB ANALYSIS] First 300 chars:', analysis.substring(0, 300));
 
-            // Clean up code blocks if present
-            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            // Extract JSON substring if needed
-            const jsonStart = responseText.indexOf('{');
-            const jsonEnd = responseText.lastIndexOf('}');
-
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                responseText = responseText.substring(jsonStart, jsonEnd + 1);
-            } else {
-                console.warn('AI Response did not contain JSON braces:', responseText);
-                throw new Error('Invalid AI response format: No JSON found');
-            }
-
-            console.log('Parsing AI Response:', responseText.substring(0, 100) + '...');
-            const parsed = JSON.parse(responseText);
-            return parsed;
+            return analysis.trim();
 
         } catch (error) {
             console.error('AI Lab Analysis error:', error);
-            return {
-                summary: "Error al analizar resultados",
-                findings: [],
-                status: "ERROR"
-            };
+            return "Error al analizar los resultados de laboratorio. Por favor, revise manualmente el documento.";
         }
     }
 }

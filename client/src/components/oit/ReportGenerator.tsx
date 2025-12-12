@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -163,31 +162,11 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                     </CardHeader>
                     <CardContent className="pt-4 space-y-4">
                         {analysisData ? (
-                            <>
-                                <div>
-                                    <h4 className="text-sm font-semibold text-indigo-900 mb-1">Resumen Ejecutivo</h4>
-                                    <p className="text-sm text-indigo-800 leading-relaxed">{analysisData.summary || "Sin resumen disponible."}</p>
+                            <div className="prose prose-sm max-w-none">
+                                <div className="text-sm text-indigo-900 leading-relaxed whitespace-pre-wrap">
+                                    {typeof analysisData === 'string' ? analysisData : JSON.stringify(analysisData, null, 2)}
                                 </div>
-                                {analysisData.findings && analysisData.findings.length > 0 && (
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-indigo-900 mb-2">Hallazgos Clave</h4>
-                                        <ul className="space-y-1">
-                                            {analysisData.findings.map((finding: string, i: number) => (
-                                                <li key={i} className="flex items-start gap-2 text-sm text-indigo-800">
-                                                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
-                                                    {finding}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Estado Sugerido:</span>
-                                    <Badge variant={analysisData.status === 'COMPLIANT' ? 'default' : analysisData.status === 'NON_COMPLIANT' ? 'destructive' : 'secondary'}>
-                                        {analysisData.status === 'COMPLIANT' ? 'CUMPLE' : analysisData.status === 'NON_COMPLIANT' ? 'NO CUMPLE' : 'REVISIÓN'}
-                                    </Badge>
-                                </div>
-                            </>
+                            </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-6 text-indigo-400">
                                 <Loader2 className="h-6 w-6 animate-spin mb-2" />
