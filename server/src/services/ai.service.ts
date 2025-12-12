@@ -646,25 +646,20 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
 
         try {
-            const prompt = `SYSTEM: You are a strict JSON data extraction engine. You DO NOT speak. You ONLY output JSON.
+            const prompt = `Analiza el siguiente reporte de laboratorio y el contexto de la OIT.
             
-            CONTEXT:
-            OIT Purpose: "${oitContext || 'General Analysis'}"
-            Lab Report: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
+            Contexto OIT: "${oitContext || 'Sin contexto específico'}"
+            Reporte Laboratorio: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
 
-            INSTRUCTION:
-            Extract the executive summary, findings, and compliance status from the Lab Report.
-            
-            RESPONSE FORMAT:
-            You must return a valid JSON object starting with { and ending with }.
-            Example:
+            Tarea: Extraer hallazgos, resumen ejecutivo y estado de cumplimiento.
+            Responde SOLO con un JSON válido con este formato:
             {
-                "summary": "Reporte cumple con los parametros...",
-                "findings": ["pH dentro de norma", "Hierro alto"],
-                "status": "COMPLIANT"
+                "summary": "Resumen ejecutivo en español (máx 200 caracteres)",
+                "findings": ["Hallazgo 1", "Hallazgo 2"],
+                "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
             }
 
-            OUTPUT JSON NOW:`;
+            JSON:`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
