@@ -661,12 +661,17 @@ Responde ÚNICAMENTE con el JSON válido.`;
 
             JSON:`;
 
+            console.log('[LAB ANALYSIS] Calling AI with prompt length:', prompt.length);
+            console.log('[LAB ANALYSIS] First 200 chars of prompt:', prompt.substring(0, 200));
+
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
                 format: 'json',
             });
+
+            console.log('[LAB ANALYSIS] Raw AI response:', response.data.response);
 
             let responseText = response.data.response;
 
