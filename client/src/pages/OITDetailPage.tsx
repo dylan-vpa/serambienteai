@@ -731,7 +731,8 @@ export default function OITDetailPage() {
                     <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {(() => {
                             // 0. Verification of Conditions (Time & Location)
-                            if (!isLocationVerified) {
+                            const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
+                            if (!isLocationVerified && !isStarted) {
                                 return (
                                     <Card className="border-indigo-200 bg-indigo-50/50 mb-6">
                                         <CardHeader>

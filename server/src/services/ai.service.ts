@@ -607,7 +607,7 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
     }
     // New method for Lab Results Analysis
-    async analyzeLabResults(documentText: string): Promise<any> {
+    async analyzeLabResults(documentText: string, oitContext?: string): Promise<any> {
         const available = await this.isAvailable();
         if (!available) {
             return {
@@ -618,16 +618,26 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
 
         try {
-            const prompt = `Analiza el siguiente texto extraído de un reporte de laboratorio.
-            Genera un JSON con el siguiente formato:
+            const prompt = `Actúa como un auditor de calidad técnica.
+            Tienes el contexto de una Orden de Inspección (OIT) y el reporte de laboratorio recibido.
+            
+            Contexto OIT (Lo que se pidió):
+            "${oitContext || 'Sin contexto específico'}"
+
+            Texto del Reporte de Laboratorio (Resultados):
+            "${documentText.substring(0, 5000)}"
+
+            Tarea:
+            1. Resume los hallazgos del reporte.
+            2. Lista anomalías o resultados fuera de norma.
+            3. VERIFICA si el reporte corresponde a lo pedido en la OIT (si hay contexto).
+
+            Genera un JSON con este formato:
             {
-                "summary": "Resumen ejecutivo de los resultados (máx 200 caracteres)",
-                "findings": ["Lista de hallazgos clave o anomalías detectadas"],
+                "summary": "Resumen ejecutivo y concordancia con OIT (máx 200 caracteres)",
+                "findings": ["Hallazgo 1", "Hallazgo 2 (concordancia o discrepancia)"],
                 "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
             }
-
-            Texto del reporte:
-            ${documentText.substring(0, 5000)}
 
             JSON:`;
 
