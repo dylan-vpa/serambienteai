@@ -53,13 +53,22 @@ class PlanningService {
                 estimatedDuration: '4 horas'
             };
 
+            let currentAiData: any = { valid: true, data: {} };
+            try { 
+                if (oit.aiData) {
+                    const parsed = JSON.parse(oit.aiData);
+                    if (parsed.data) currentAiData = parsed;
+                    else currentAiData = { valid: true, data: parsed };
+                } 
+            } catch (e) {}
+
             await prisma.oIT.update({
                 where: { id: oitId },
                 data: {
                     aiData: JSON.stringify({
-                        valid: true,
-                        data: proposal,
-                        message: 'Propuesta genérica creada'
+                        ...currentAiData,
+                        message: 'Propuesta genérica creada',
+                        data: { ...currentAiData.data, ...proposal }
                     }),
                     planningProposal: JSON.stringify(proposal)
                 }
@@ -124,14 +133,23 @@ ${templatesList}
             estimatedDuration: '4 horas'
         };
 
+        let currentAiData: any = { valid: true, data: {} };
+        try { 
+            if (oit.aiData) {
+                const parsed = JSON.parse(oit.aiData);
+                if (parsed.data) currentAiData = parsed;
+                else currentAiData = { valid: true, data: parsed };
+            } 
+        } catch (e) {}
+
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
                 selectedTemplateId: selectedTemplate.id,
                 aiData: JSON.stringify({
-                    valid: true,
-                    data: proposal,
-                    message: 'Propuesta de planificación generada'
+                    ...currentAiData,
+                    message: 'Propuesta de planificación generada',
+                    data: { ...currentAiData.data, ...proposal }
                 }),
                 planningProposal: JSON.stringify(proposal)
             }

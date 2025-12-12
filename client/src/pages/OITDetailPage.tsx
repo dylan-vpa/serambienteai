@@ -32,8 +32,16 @@ export default function OITDetailPage() {
 
         const fetchOIT = async () => {
             try {
-                const response = await api.get(`/oits/${id}`);
-                setOit(response.data);
+                // Add cache buster
+                const response = await api.get(`/oits/${id}?_t=${Date.now()}`);
+
+                // Only update if data changed (deep comparison/string check would be better but this is ok)
+                setOit((prev: any) => {
+                    if (JSON.stringify(prev) !== JSON.stringify(response.data)) {
+                        return response.data;
+                    }
+                    return prev;
+                });
 
                 // Load validations and analysis
                 if (response.data.stepValidations) {
@@ -58,22 +66,25 @@ export default function OITDetailPage() {
                 }
 
                 if (response.data.status !== 'ANALYZING' && response.data.status !== 'UPLOADING') {
-                    clearInterval(intervalId);
+                    if (intervalId) clearInterval(intervalId);
                 }
             } catch (error) {
                 console.error('Error fetching OIT:', error);
             }
         };
 
-        fetchOIT();
+        // If status is analyzing, start polling
+        if (oit?.status === 'ANALYZING' || oit?.status === 'UPLOADING' || !oit) {
+            fetchOIT(); // Initial fetch
+            intervalId = setInterval(fetchOIT, 3000);
+        } else {
+            // Just fetch once to ensure fresh data if we just mounted or status changed
+            fetchOIT();
+        }
 
-        intervalId = setInterval(() => {
-            if (oit && (oit.status === 'ANALYZING' || oit.status === 'UPLOADING')) {
-                fetchOIT();
-            }
-        }, 3000);
-
-        return () => clearInterval(intervalId);
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
     }, [id, oit?.status]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'oit' | 'quotation') => {
@@ -354,9 +365,10 @@ export default function OITDetailPage() {
                                                     toast.info('Iniciando re-análisis...');
                                                     await api.post(`/oits/${id}/reanalyze`);
                                                     toast.success('Análisis iniciado en segundo plano');
+
                                                     // Trigger manual fetch to update status to ANALYZING immediately
-                                                    const res = await api.get(`/oits/${id}`);
-                                                    setOit(res.data);
+                                                    // And clear current aiData to show visual feedback
+                                                    setOit((prev: any) => ({ ...prev, status: 'ANALYZING', aiData: null }));
                                                 } catch (err) {
                                                     console.error(err);
                                                     toast.error('Error al solicitar análisis');

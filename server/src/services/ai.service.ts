@@ -648,7 +648,20 @@ Responde ÚNICAMENTE con el JSON válido.`;
                 format: 'json',
             });
 
-            const parsed = JSON.parse(response.data.response);
+            let responseText = response.data.response;
+
+            // Clean up code blocks if present
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            // Extract JSON substring if needed
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
+
+            const parsed = JSON.parse(responseText);
             return parsed;
 
         } catch (error) {

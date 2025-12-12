@@ -292,7 +292,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             data: { status: 'ANALYZING' }
         });
 
-        const aiData: any = {};
+        const aiDataContent: any = {};
         let extractedDescription: string | null = null;
         let extractedLocation: string | null = null;
 
@@ -304,7 +304,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             const oitText = pdfData.text;
 
             const oitAnalysis = await aiService.analyzeDocument(oitText);
-            aiData.oit = oitAnalysis;
+            aiDataContent.oit = oitAnalysis;
 
             // Extract description
             if ((oitAnalysis as any).description) {
@@ -332,11 +332,11 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             const pdfData = await pdfParse(dataBuffer);
             const quotationText = pdfData.text;
             const quotationAnalysis = await aiService.analyzeDocument(quotationText);
-            aiData.quotation = quotationAnalysis;
+            aiDataContent.quotation = quotationAnalysis;
 
             // Extract resources
             if ((quotationAnalysis as any).resources) {
-                aiData.resources = (quotationAnalysis as any).resources;
+                aiDataContent.resources = (quotationAnalysis as any).resources;
             }
         }
 
@@ -346,8 +346,12 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             data: {
                 description: extractedDescription || undefined, // Only update if found
                 location: extractedLocation || undefined,
-                aiData: JSON.stringify(aiData),
-                resources: aiData.resources ? JSON.stringify(aiData.resources) : undefined
+                aiData: JSON.stringify({
+                    valid: true,
+                    message: 'Análisis de documentos completado',
+                    data: aiDataContent
+                }),
+                resources: aiDataContent.resources ? JSON.stringify(aiDataContent.resources) : undefined
             }
         });
 
