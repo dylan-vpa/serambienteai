@@ -379,7 +379,7 @@ JSON:`;
 
             // Run Compliance Check
             try {
-                const complianceResult = await complianceService.checkCompliance(oitId);
+                const complianceResult = await complianceService.checkCompliance(oitId, userId);
                 if (complianceResult) {
                     aiDataContent.compliance = complianceResult;
                 }
@@ -389,7 +389,7 @@ JSON:`;
 
             // Generate Planning
             try {
-                const proposal = await planningService.generatePlanning(oitId);
+                const proposal = await planningService.generateProposal(oitId);
                 if (proposal) {
                     aiDataContent.data = proposal;
                 }
