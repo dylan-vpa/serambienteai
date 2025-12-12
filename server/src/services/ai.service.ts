@@ -113,9 +113,19 @@ JSON:`;
             });
 
             const rawResponse = response.data.response;
+            let responseText = rawResponse;
+
+            // Simple sanitization
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
 
             try {
-                const parsed = JSON.parse(rawResponse);
+                const parsed = JSON.parse(responseText);
                 return {
                     status: parsed.status || 'alerta',
                     alerts: parsed.alerts || [],
@@ -160,7 +170,16 @@ JSON:`;
                 format: 'json',
             });
 
-            const parsed = JSON.parse(response.data.response);
+            let responseText = response.data.response;
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonStart = responseText.indexOf('[');
+            const jsonEnd = responseText.lastIndexOf(']');
+
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
+
+            const parsed = JSON.parse(responseText);
             return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
             return this.heuristicResourceRecommendation(documentText);
@@ -261,8 +280,17 @@ JSON:`;
             });
 
             const rawResponse = response.data.response;
+            let responseText = rawResponse;
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
+
             try {
-                const parsed = JSON.parse(rawResponse);
+                const parsed = JSON.parse(responseText);
                 const valid = !!parsed.valid;
                 const data = parsed.data || {};
                 const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
