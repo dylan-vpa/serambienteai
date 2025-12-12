@@ -649,9 +649,10 @@ Responde ÚNICAMENTE con el JSON válido.`;
             const prompt = `Analiza el siguiente reporte de laboratorio y el contexto de la OIT.
             
             Contexto OIT: "${oitContext || 'Sin contexto específico'}"
-            Reporte Laboratorio: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
+            Reporte Laboratorio: "${documentText.substring(0, 2000).replace(/"/g, "'")}"
 
-            Tarea: Extraer hallazgos, resumen ejecutivo y estado de cumplimiento.
+            IMPORTANTE: NO expliques tu razonamiento. Responde ÚNICAMENTE con el JSON solicitado.
+            
             Responde SOLO con un JSON válido con este formato:
             {
                 "summary": "Resumen ejecutivo en español (máx 200 caracteres)",
