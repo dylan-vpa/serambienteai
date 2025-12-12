@@ -646,28 +646,19 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
 
         try {
-            const prompt = `Actúa como un auditor de calidad técnica.
-            Tienes el contexto de una Orden de Inspección (OIT) y el reporte de laboratorio recibido.
+            const prompt = `You are a data extraction engine. Analyze the following Lab Report and OIT Context.
             
-            Contexto OIT (Lo que se pidió):
-            "${oitContext || 'Sin contexto específico'}"
+            OIT Context: "${oitContext || 'None'}"
+            Lab Report Text: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
 
-            Texto del Reporte de Laboratorio (Resultados):
-            "${documentText.substring(0, 5000)}"
-
-            Tarea:
-            1. Resume los hallazgos del reporte.
-            2. Lista anomalías o resultados fuera de norma.
-            3. VERIFICA si el reporte corresponde a lo pedido en la OIT (si hay contexto).
-
-            Genera un JSON con este formato:
+            Task: Extract findings and status.
+            
+            Return ONLY a valid JSON object with this structure:
             {
-                "summary": "Resumen ejecutivo y concordancia con OIT (máx 200 caracteres)",
-                "findings": ["Hallazgo 1", "Hallazgo 2 (concordancia o discrepancia)"],
+                "summary": "Brief executive summary in Spanish (max 200 chars)",
+                "findings": ["Finding 1 in Spanish", "Finding 2 in Spanish"],
                 "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
-            }
-
-            JSON:`;
+            }`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
