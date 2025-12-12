@@ -618,7 +618,7 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
 
         try {
-            const prompt = \`Analiza el siguiente texto extraído de un reporte de laboratorio.
+            const prompt = `Analiza el siguiente texto extraído de un reporte de laboratorio.
             Genera un JSON con el siguiente formato:
             {
                 "summary": "Resumen ejecutivo de los resultados (máx 200 caracteres)",
@@ -627,11 +627,11 @@ Responde ÚNICAMENTE con el JSON válido.`;
             }
 
             Texto del reporte:
-            \${documentText.substring(0, 5000)}
+            ${documentText.substring(0, 5000)}
 
-            JSON:\`;
+            JSON:`;
 
-            const response = await axios.post(\`\${this.baseURL}/api/generate\`, {
+            const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
