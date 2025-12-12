@@ -679,7 +679,14 @@ Responde ÚNICAMENTE con el JSON válido.`;
             console.log('[LAB ANALYSIS] Raw AI response:', response.data.response);
             console.log('[LAB ANALYSIS] Response length:', response.data.response?.length || 0);
 
-            let responseText = response.data.response;
+            // For reasoning models (like gpt-oss/DeepSeek R1), check if thinking field has content
+            if (response.data.thinking) {
+                console.log('[LAB ANALYSIS] Thinking field present, length:', response.data.thinking.length);
+                console.log('[LAB ANALYSIS] First 500 chars of thinking:', response.data.thinking.substring(0, 500));
+            }
+
+            // Use response field, or thinking field if response is empty (reasoning models)
+            let responseText = response.data.response || response.data.thinking || '';
 
             // Clean up code blocks if present
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
