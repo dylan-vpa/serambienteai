@@ -29,6 +29,7 @@ model OIT {
   samplingReportUrl     String?        // Generated sampling report
   labResultsUrl         String?        // Uploaded lab analysis
   finalReportUrl        String?        // Final AI-generated report
+  labResultsAnalysis    String?        // JSON string with AI analysis of lab results
   aiData                String?        // JSON string
   resources             String?        // JSON string
   scheduledDate         DateTime?

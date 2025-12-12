@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FileBarChart, Upload, Loader2, FileText, CheckCircle2, Download } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -17,8 +18,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: Rep
     const [reportGenerated, setReportGenerated] = useState(!!initialReportUrl);
     const [labResultsUrl, setLabResultsUrl] = useState<string | null>(null);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
-
-
+    const [analysisData, setAnalysisData] = useState<any | null>(null);
 
     // Initialize/Update finalReportUrl from prop
     useEffect(() => {
@@ -28,7 +28,6 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: Rep
                 setFinalReportUrl(initialReportUrl);
             } else {
                 // Construct URL from filename (assuming stored in uploads/reports)
-                // Remove /api if present in baseURL to get root
                 const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
                 setFinalReportUrl(`${baseUrl}/uploads/reports/${initialReportUrl}`);
             }
@@ -47,12 +46,18 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: Rep
             const formData = new FormData();
             formData.append('file', file);
 
-            await api.post(`/oits/${oitId}/lab-results`, formData, {
+            const response = await api.post(`/oits/${oitId}/lab-results`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             setLabResultsUrl(URL.createObjectURL(file));
-            toast.success('Resultados de laboratorio cargados');
+
+            // Set analysis data from response if available
+            if (response.data && response.data.labResultsAnalysis) {
+                setAnalysisData(response.data.labResultsAnalysis);
+            }
+
+            toast.success('Resultados de laboratorio cargados y analizados');
         } catch (error) {
             console.error('Error uploading lab results:', error);
             toast.error('Error al cargar resultados');
@@ -133,6 +138,57 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl }: Rep
                     </div>
                 </CardContent>
             </Card>
+
+            {/* AI Analysis Result Card */}
+            {(analysisData || (labResultsUrl && !reportGenerated)) && (
+                <Card className="border-indigo-100 shadow-sm bg-indigo-50/50">
+                    <CardHeader className="pb-3 border-b border-indigo-100">
+                        <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <Sparkles className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-base font-medium text-indigo-900">Análisis Preliminar (IA)</CardTitle>
+                                <CardDescription className="text-xs text-indigo-700">Revisión automática de resultados del laboratorio.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-4 space-y-4">
+                        {analysisData ? (
+                            <>
+                                <div>
+                                    <h4 className="text-sm font-semibold text-indigo-900 mb-1">Resumen Ejecutivo</h4>
+                                    <p className="text-sm text-indigo-800 leading-relaxed">{analysisData.summary || "Sin resumen disponible."}</p>
+                                </div>
+                                {analysisData.findings && analysisData.findings.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-indigo-900 mb-2">Hallazgos Clave</h4>
+                                        <ul className="space-y-1">
+                                            {analysisData.findings.map((finding: string, i: number) => (
+                                                <li key={i} className="flex items-start gap-2 text-sm text-indigo-800">
+                                                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                                                    {finding}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Estado Sugerido:</span>
+                                    <Badge variant={analysisData.status === 'COMPLIANT' ? 'default' : analysisData.status === 'NON_COMPLIANT' ? 'destructive' : 'secondary'}>
+                                        {analysisData.status === 'COMPLIANT' ? 'CUMPLE' : analysisData.status === 'NON_COMPLIANT' ? 'NO CUMPLE' : 'REVISIÓN'}
+                                    </Badge>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-6 text-indigo-400">
+                                <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                                <p className="text-sm">Analizando documento...</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Report Generation Card */}
             <Card className="border-slate-200 shadow-sm bg-white">

@@ -24,13 +24,16 @@ const storage = multer_1.default.diskStorage({
 });
 // File filter
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /pdf|doc|docx|txt/;
-    const extname = allowedTypes.test(path_1.default.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Allow PDF, Word docs, and Text files
+    const allowedExtensions = /pdf|doc|docx|txt/;
+    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain/;
+    const extname = allowedExtensions.test(path_1.default.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.test(file.mimetype);
     if (extname && mimetype) {
         cb(null, true);
     }
     else {
+        console.log('❌ [MULTER] Rejected file:', file.originalname, file.mimetype);
         cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
     }
 };

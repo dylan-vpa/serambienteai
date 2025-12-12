@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const standard_controller_1 = require("../controllers/standard.controller");
+const multer_1 = require("../config/multer");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authMiddleware);
+router.get('/', standard_controller_1.getStandards);
+router.get('/:id', standard_controller_1.getStandard);
+router.post('/', multer_1.upload.single('file'), standard_controller_1.createStandard);
+router.put('/:id', multer_1.upload.single('file'), standard_controller_1.updateStandard);
+router.delete('/:id', standard_controller_1.deleteStandard);
+exports.default = router;

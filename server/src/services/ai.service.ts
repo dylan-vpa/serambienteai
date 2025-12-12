@@ -606,6 +606,50 @@ Responde ÚNICAMENTE con el JSON válido.`;
             });
         }
     }
+    // New method for Lab Results Analysis
+    async analyzeLabResults(documentText: string): Promise<any> {
+        const available = await this.isAvailable();
+        if (!available) {
+            return {
+                summary: "Análisis no disponible (IA desconectada)",
+                findings: [],
+                status: "UNKNOWN"
+            };
+        }
+
+        try {
+            const prompt = \`Analiza el siguiente texto extraído de un reporte de laboratorio.
+            Genera un JSON con el siguiente formato:
+            {
+                "summary": "Resumen ejecutivo de los resultados (máx 200 caracteres)",
+                "findings": ["Lista de hallazgos clave o anomalías detectadas"],
+                "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
+            }
+
+            Texto del reporte:
+            \${documentText.substring(0, 5000)}
+
+            JSON:\`;
+
+            const response = await axios.post(\`\${this.baseURL}/api/generate\`, {
+                model: this.defaultModel,
+                prompt,
+                stream: false,
+                format: 'json',
+            });
+
+            const parsed = JSON.parse(response.data.response);
+            return parsed;
+
+        } catch (error) {
+            console.error('AI Lab Analysis error:', error);
+            return {
+                summary: "Error al analizar resultados",
+                findings: [],
+                status: "ERROR"
+            };
+        }
+    }
 }
 
 export const aiService = new AIService();

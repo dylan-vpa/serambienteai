@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { aiService } from '../services/ai.service';
+import { AIService } from '../services/ai.service';
+const aiService = new AIService();
 import { createNotification } from './notification.controller';
 import fs from 'fs';
 import path from 'path';
@@ -151,14 +152,39 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
 
+        const { pdfService } = require('../services/pdf.service');
+        let extractedText = '';
+
+        try {
+            if (file.mimetype === 'application/pdf') {
+                extractedText = await pdfService.extractText(file.path);
+            } else {
+                // For other types, try to read as text or skip (simple fallback)
+                extractedText = fs.readFileSync(file.path, 'utf-8');
+            }
+        } catch (readErr) {
+            console.error("Error extracted text from lab file:", readErr);
+        }
+
+
+
+        // Analyze with AI
+        const analysis = await aiService.analyzeLabResults(extractedText || "Texto no extraído");
+
         const oit = await prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: file.path
-            }
+                labResultsUrl: file.path,
+                labResultsAnalysis: JSON.stringify(analysis)
+            } as any
         });
 
-        res.json({ success: true, labResultsUrl: file.path, oit });
+        res.json({
+            success: true,
+            labResultsUrl: file.path,
+            labResultsAnalysis: analysis, // Return immediate analysis
+            oit
+        });
     } catch (error) {
         console.error('Error uploading lab results:', error);
         res.status(500).json({ error: 'Error al subir resultados de laboratorio' });
@@ -255,9 +281,9 @@ export const createOITAsync = async (req: Request, res: Response) => {
 // Separated Analysis Logic
 async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotationFilePath: string | null, userId: string) {
     try {
-        const { aiService } = await import('../services/ai.service');
         const { complianceService } = await import('../services/compliance.service');
         const { default: planningService } = await import('../services/planning.service');
+
 
         await prisma.oIT.update({
             where: { id: oitId },
