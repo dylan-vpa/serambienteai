@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Lock, AlertCircle, Loader2, Camera, Upload, FileText } from 'lucide-react';
+import { CheckCircle2, Lock, AlertCircle, Loader2, Camera, Upload } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import type { TemplateStep } from '@/types/sampling';
@@ -143,15 +143,7 @@ export function SamplingStep({
     // Render Input Fields based on Type
     const renderInput = () => {
         switch (step.type) {
-            case 'TEXT':
-                // Cast step to any to access specific properties if TS complains, 
-                // or assume TemplateStep union is handled. 
-                // Here treating as Generic for safety
-                return (
-                    <div className="prose prose-sm text-slate-600 mb-4">
-                        <p>{(step as any).content || step.description}</p>
-                    </div>
-                );
+
 
             case 'INPUT':
                 const inputStep = step as any;
@@ -234,7 +226,7 @@ export function SamplingStep({
             default:
                 return (
                     <div className="space-y-2">
-                        <Label>Respuesta</Label>
+                        <Label>{step.description || 'Respuesta'}</Label>
                         <Textarea
                             value={value}
                             onChange={(e) => setValue(e.target.value)}

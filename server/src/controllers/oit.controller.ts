@@ -202,7 +202,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
         });
         res.status(200).json(oits);
     } catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        console.error('Error in getAllOITs:', error);
+        res.status(500).json({ message: 'Something went wrong', error: String(error) });
     }
 };
 
@@ -216,7 +217,8 @@ export const getOITById = async (req: Request, res: Response) => {
         }
         res.status(200).json(oit);
     } catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        console.error('Error in getOITById:', error);
+        res.status(500).json({ message: 'Something went wrong', error: String(error) });
     }
 };
 
