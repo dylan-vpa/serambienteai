@@ -664,6 +664,8 @@ Responde ÚNICAMENTE con el JSON válido.`;
 
             console.log('[LAB ANALYSIS] Calling AI with prompt length:', prompt.length);
             console.log('[LAB ANALYSIS] First 200 chars of prompt:', prompt.substring(0, 200));
+            console.log('[LAB ANALYSIS] Model:', this.defaultModel);
+            console.log('[LAB ANALYSIS] Base URL:', this.baseURL);
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
@@ -672,7 +674,10 @@ Responde ÚNICAMENTE con el JSON válido.`;
                 format: 'json',
             });
 
+            console.log('[LAB ANALYSIS] Response status:', response.status);
+            console.log('[LAB ANALYSIS] Response data keys:', Object.keys(response.data));
             console.log('[LAB ANALYSIS] Raw AI response:', response.data.response);
+            console.log('[LAB ANALYSIS] Response length:', response.data.response?.length || 0);
 
             let responseText = response.data.response;
 
