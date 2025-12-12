@@ -646,19 +646,25 @@ Responde ÚNICAMENTE con el JSON válido.`;
         }
 
         try {
-            const prompt = `You are a data extraction engine. Analyze the following Lab Report and OIT Context.
+            const prompt = `SYSTEM: You are a strict JSON data extraction engine. You DO NOT speak. You ONLY output JSON.
             
-            OIT Context: "${oitContext || 'None'}"
-            Lab Report Text: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
+            CONTEXT:
+            OIT Purpose: "${oitContext || 'General Analysis'}"
+            Lab Report: "${documentText.substring(0, 4000).replace(/"/g, "'")}"
 
-            Task: Extract findings and status.
+            INSTRUCTION:
+            Extract the executive summary, findings, and compliance status from the Lab Report.
             
-            Return ONLY a valid JSON object with this structure:
+            RESPONSE FORMAT:
+            You must return a valid JSON object starting with { and ending with }.
+            Example:
             {
-                "summary": "Brief executive summary in Spanish (max 200 chars)",
-                "findings": ["Finding 1 in Spanish", "Finding 2 in Spanish"],
-                "status": "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_NEEDED"
-            }`;
+                "summary": "Reporte cumple con los parametros...",
+                "findings": ["pH dentro de norma", "Hierro alto"],
+                "status": "COMPLIANT"
+            }
+
+            OUTPUT JSON NOW:`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
