@@ -659,8 +659,12 @@ Responde ÚNICAMENTE con el JSON válido.`;
 
             if (jsonStart !== -1 && jsonEnd !== -1) {
                 responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            } else {
+                console.warn('AI Response did not contain JSON braces:', responseText);
+                throw new Error('Invalid AI response format: No JSON found');
             }
 
+            console.log('Parsing AI Response:', responseText.substring(0, 100) + '...');
             const parsed = JSON.parse(responseText);
             return parsed;
 
