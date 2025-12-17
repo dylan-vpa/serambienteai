@@ -231,11 +231,16 @@ export const validateOITDocuments = async (req: Request, res: Response) => {
         ];
 
         console.log('🤖 [VALIDATE] Enviando a servicio de IA...');
-        const result = await aiService.extractOITDataCombined({
-            textOIT: oitText,
-            textQuotation: quotationText,
-            files: fileSummaries,
-        });
+        // Combine both texts for analysis
+        const combinedText = `
+OIT Document:
+${oitText}
+
+Cotización Document:
+${quotationText}
+        `.trim();
+
+        const result = await aiService.extractOITData(combinedText);
         console.log('✅ [VALIDATE] Respuesta de IA recibida:', result);
         return res.status(200).json(result);
     } catch (error: any) {
