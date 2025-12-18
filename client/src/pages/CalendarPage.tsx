@@ -2,15 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { format, parse, startOfWeek, getDay, addHours, startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, dateFnsLocalizer, Views, type View, type DateLocalizer } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 // Customize the localizer to use Spanish
@@ -240,7 +238,7 @@ export default function CalendarPage() {
     };
 
     return (
-        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
+        <div className="h-full flex flex-col gap-4">
             <style>{`
                 .rbc-calendar { font-family: inherit; }
                 .rbc-header { padding: 12px 4px; font-weight: 600; font-size: 0.875rem; color: #64748b; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; }
@@ -258,84 +256,91 @@ export default function CalendarPage() {
                 .rbc-current-time-indicator { background-color: #ef4444; height: 2px; }
             `}</style>
 
-            <div className="flex flex-col gap-4">
-                <Card className="border-slate-200 shadow-sm bg-white">
-                    <CardHeader className="border-b border-slate-100 pb-4">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-                            <div className="relative w-72">
-                                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                    placeholder="Buscar por OIT..."
-                                    className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Button
-                                    variant={statusFilter === 'ALL' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setStatusFilter('ALL')}
-                                    className={statusFilter === 'ALL' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
-                                >
-                                    Todos
-                                </Button>
-                                <Button
-                                    variant={statusFilter === 'SCHEDULED' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setStatusFilter('SCHEDULED')}
-                                    className={statusFilter === 'SCHEDULED' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
-                                >
-                                    Agendados
-                                </Button>
-                                <Button
-                                    variant={statusFilter === 'IN_PROGRESS' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setStatusFilter('IN_PROGRESS')}
-                                    className={statusFilter === 'IN_PROGRESS' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
-                                >
-                                    En Progreso
-                                </Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                        <div className="h-[600px]">
-                            <Calendar
-                                localizer={localizer}
-                                events={events}
-                                startAccessor="start"
-                                endAccessor="end"
-                                style={{ height: '94%' }}
-                                views={['month', 'week', 'day', 'agenda']}
-                                view={view}
-                                onView={setView}
-                                date={date}
-                                onNavigate={setDate}
-                                messages={{
-                                    next: "Siguiente",
-                                    previous: "Anterior",
-                                    today: "Hoy",
-                                    month: "Mes",
-                                    week: "Semana",
-                                    day: "Día",
-                                    agenda: "Agenda",
-                                    date: "Fecha",
-                                    time: "Hora",
-                                    event: "Evento",
-                                    noEventsInRange: "No hay eventos en este rango",
-                                }}
-                                culture='es'
-                                eventPropGetter={getEventStyle}
-                                onSelectEvent={onSelectEvent}
-                                components={{
-                                    toolbar: CustomToolbar
-                                }}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda de Muestreos</h2>
+                    <p className="text-slate-500">
+                        Gestiona y visualiza los muestreos programados.
+                    </p>
+                </div>
+            </div>
+
+            <Card className="border-slate-200 shadow-sm bg-white flex-1 flex flex-col min-h-0">
+                <CardHeader className="border-b border-slate-100 pb-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+                        <div className="relative w-72">
+                            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                placeholder="Buscar por OIT..."
+                                className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Button
+                                variant={statusFilter === 'ALL' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setStatusFilter('ALL')}
+                                className={statusFilter === 'ALL' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
+                            >
+                                Todos
+                            </Button>
+                            <Button
+                                variant={statusFilter === 'SCHEDULED' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setStatusFilter('SCHEDULED')}
+                                className={statusFilter === 'SCHEDULED' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
+                            >
+                                Agendados
+                            </Button>
+                            <Button
+                                variant={statusFilter === 'IN_PROGRESS' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setStatusFilter('IN_PROGRESS')}
+                                className={statusFilter === 'IN_PROGRESS' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
+                            >
+                                En Progreso
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 min-h-0">
+                        <Calendar
+                            localizer={localizer}
+                            events={events}
+                            startAccessor="start"
+                            endAccessor="end"
+                            style={{ height: '100%' }}
+                            views={['month', 'week', 'day', 'agenda']}
+                            view={view}
+                            onView={setView}
+                            date={date}
+                            onNavigate={setDate}
+                            messages={{
+                                next: "Siguiente",
+                                previous: "Anterior",
+                                today: "Hoy",
+                                month: "Mes",
+                                week: "Semana",
+                                day: "Día",
+                                agenda: "Agenda",
+                                date: "Fecha",
+                                time: "Hora",
+                                event: "Evento",
+                                noEventsInRange: "No hay eventos en este rango",
+                            }}
+                            culture='es'
+                            eventPropGetter={getEventStyle}
+                            onSelectEvent={onSelectEvent}
+                            components={{
+                                toolbar: CustomToolbar
+                            }}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
