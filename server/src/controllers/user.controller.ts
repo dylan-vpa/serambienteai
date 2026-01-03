@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -145,5 +146,48 @@ export const getProfile = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching profile:', error);
         res.status(500).json({ error: 'Error al obtener perfil' });
+    }
+};
+// Create new user (SUPER_ADMIN only)
+export const createUser = async (req: Request, res: Response) => {
+    try {
+        const { email, password, name, role } = req.body;
+
+        // Validate role
+        if (!Object.values(ROLES).includes(role)) {
+            return res.status(400).json({
+                error: 'Rol inválido',
+                validRoles: Object.values(ROLES)
+            });
+        }
+
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ error: 'El usuario ya existe' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                name: name || email.split('@')[0],
+                role
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+
+        res.status(201).json(user);
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ error: 'Error al crear usuario' });
     }
 };

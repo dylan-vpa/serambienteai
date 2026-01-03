@@ -1,10 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, Shield, Loader2, UserCog } from 'lucide-react';
+import { Users, Shield, Loader2, UserCog, Plus, UserPlus } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import { canManageUsers } from '@/types/auth';
@@ -36,6 +47,17 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Form state
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        role: 'USER' as UserRole
+    });
+
     const currentUser = useAuthStore((state: any) => state.user);
 
     useEffect(() => {
@@ -77,6 +99,34 @@ export default function UsersPage() {
         }
     };
 
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!formData.email || !formData.password || !formData.name) {
+            toast.error('Todos los campos son obligatorios');
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const response = await api.post('/users', formData);
+            setUsers([response.data, ...users]);
+            setIsCreateOpen(false);
+            setFormData({
+                name: '',
+                email: '',
+                password: '',
+                role: 'USER'
+            });
+            toast.success('Usuario creado exitosamente');
+        } catch (error: any) {
+            console.error('Error creating user:', error);
+            toast.error(error.response?.data?.error || 'Error al crear usuario');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
     // Check permissions
     if (currentUser && !canManageUsers(currentUser.role)) {
         return (
@@ -113,9 +163,99 @@ export default function UsersPage() {
                         <p className="text-sm text-slate-500">Administra los roles y permisos de los usuarios</p>
                     </div>
                 </div>
-                <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
-                    {users.length} usuarios
-                </Badge>
+
+                <div className="flex items-center gap-4">
+                    <Badge className="bg-purple-100 text-purple-800 border border-purple-200">
+                        {users.length} usuarios
+                    </Badge>
+
+                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                Crear Usuario
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                                <DialogDescription>
+                                    Crea una cuenta para un nuevo miembro del equipo.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nombre Completo</Label>
+                                    <Input
+                                        id="name"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Juan Pérez"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Correo Electrónico</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        placeholder="juan@ejemplo.com"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Contraseña</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="••••••••"
+                                        required
+                                        minLength={6}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">Rol Inicial</Label>
+                                    <Select
+                                        value={formData.role}
+                                        onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona un rol" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="SUPER_ADMIN">Super Administrador</SelectItem>
+                                            <SelectItem value="ADMIN">Administrador</SelectItem>
+                                            <SelectItem value="ENGINEER">Ingeniero de Campo</SelectItem>
+                                            <SelectItem value="USER">Usuario</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <DialogFooter className="pt-4">
+                                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={isCreating}>
+                                        {isCreating ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Creando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Crear Usuario
+                                            </>
+                                        )}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             <Card className="border-slate-200 shadow-sm">
