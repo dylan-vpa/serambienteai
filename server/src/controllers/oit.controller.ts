@@ -17,11 +17,12 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         // Get OIT with aiData to extract assigned resources
         const existingOit = await prisma.oIT.findUnique({ where: { id } });
 
+
         const oit = await prisma.oIT.update({
             where: { id },
             data: {
                 planningAccepted: true,
-                selectedTemplateId: templateId,
+                selectedTemplateIds: templateId ? JSON.stringify([templateId]) : null,
                 status: 'SCHEDULED'
             }
         });
@@ -644,7 +645,15 @@ export const updateOIT = async (req: Request, res: Response) => {
         if (quotationFileUrl !== undefined) data.quotationFileUrl = quotationFileUrl;
         if (aiData !== undefined) data.aiData = aiData;
         if (resources !== undefined) data.resources = resources;
+        if (resources !== undefined) data.resources = resources;
         if (req.body.scheduledDate !== undefined) data.scheduledDate = req.body.scheduledDate;
+
+        // Handle selectedTemplateIds (expecting array from client)
+        if (req.body.selectedTemplateIds !== undefined) {
+            data.selectedTemplateIds = Array.isArray(req.body.selectedTemplateIds)
+                ? JSON.stringify(req.body.selectedTemplateIds)
+                : req.body.selectedTemplateIds; // If already string or null
+        }
 
         // Get the existing OIT to check for status change and current assignments
         const existing = await prisma.oIT.findUnique({

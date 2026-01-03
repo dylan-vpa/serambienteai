@@ -36,7 +36,7 @@ model OIT {
   scheduledDate         DateTime?
   samplingData          String?        // JSON with offline sampling data
   pendingSync           Boolean        @default(false)
-  selectedTemplateId    String?
+  selectedTemplateIds   String?        // JSON array of selected template IDs
   planningProposal      String?        // JSON with AI planning proposal
   planningAccepted      Boolean        @default(false)
   samplingProgress      String?        // JSON: { currentStep: number, completedSteps: number[] }

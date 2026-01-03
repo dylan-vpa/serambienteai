@@ -72,17 +72,44 @@ export default function OITDetailPage() {
                     setFinalAnalysis(response.data.finalAnalysis);
                 }
 
-                // Load template steps if available
-                if (response.data.selectedTemplateId) {
+                // Load template steps if available (handle multiple or single legacy)
+                if (response.data.selectedTemplateIds || response.data.selectedTemplateId) {
                     try {
-                        const templateRes = await api.get(`/sampling-templates/${response.data.selectedTemplateId}`);
-                        if (templateRes.data.steps) {
-                            const parsedSteps = JSON.parse(templateRes.data.steps);
-                            parsedSteps.sort((a: any, b: any) => a.order - b.order);
-                            setTemplateSteps(parsedSteps);
+                        let allSteps: any[] = [];
+
+                        // Parse IDs
+                        let ids: string[] = [];
+                        if (response.data.selectedTemplateIds) {
+                            try {
+                                ids = JSON.parse(response.data.selectedTemplateIds);
+                            } catch (e) { console.error('Error parsing template IDs', e); }
+                        } else if (response.data.selectedTemplateId) {
+                            ids = [response.data.selectedTemplateId];
                         }
+
+                        // Fetch all templates sequentially (or parallel promise.all)
+                        const templatePromises = ids.map(tid => api.get(`/sampling-templates/${tid}`));
+                        const templateResponses = await Promise.all(templatePromises);
+
+                        templateResponses.forEach(templateRes => {
+                            if (templateRes.data.steps) {
+                                try {
+                                    const parsedSteps = JSON.parse(templateRes.data.steps);
+                                    allSteps = [...allSteps, ...parsedSteps];
+                                } catch (e) {
+                                    console.error('Error parsing steps for template', templateRes.data.id, e);
+                                }
+                            }
+                        });
+
+
+                        // Re-sort steps if needed or keep sequence? 
+                        // For now, we assume they are appended. Or we could sort by a global order if defined.
+                        // Let's just re-index them to ensure unique IDs locally if needed, or rely on logic inside Wizard.
+                        // Assuming simple append for now.
+                        setTemplateSteps(allSteps);
                     } catch (err) {
-                        console.error('Error fetching template:', err);
+                        console.error('Error fetching templates:', err);
                     }
                 }
 
@@ -1122,7 +1149,7 @@ export default function OITDetailPage() {
                             }
 
                             // Check if template is selected
-                            if (!oit.selectedTemplateId) {
+                            if (!oit.selectedTemplateId && !oit.selectedTemplateIds) {
                                 return (
                                     <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
