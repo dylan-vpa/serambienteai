@@ -107,17 +107,43 @@ export default function OITDetailPage() {
     useEffect(() => {
         const loadEngineers = async () => {
             try {
-                const res = await api.get('/users');
-                // Filter where role is ENGINEER or SUPER_ADMIN maybe? For now list all or filter by backend logic if implemented
-                // Let's filter by ENGINEER role in frontend to be safe
-                const engineers = res.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
-                setAvailableEngineers(engineers);
+                // Use dedicated engineers endpoint which includes assignments
+                const res = await api.get('/users/engineers');
+                setAvailableEngineers(res.data);
             } catch (error) {
                 console.error('Error fetching engineers', error);
+                // Fallback to /users if /engineers fails (backwards compatibility)
+                try {
+                    const fallbackRes = await api.get('/users');
+                    const engineers = fallbackRes.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
+                    setAvailableEngineers(engineers);
+                } catch (e) {
+                    console.error('Fallback failed', e);
+                }
             }
         };
         loadEngineers();
     }, []);
+
+    // Helper to check if engineer is available on a specific date
+    const isEngineerAvailable = (engineer: any, dateString: string) => {
+        if (!dateString) return true;
+        if (!engineer.assignedOITs || engineer.assignedOITs.length === 0) return true;
+
+        const targetDate = new Date(dateString).toDateString();
+
+        // Check if any assignment conflicts (same day)
+        // Note: This is a simple day-check. Could be refined for time slots.
+        const hasConflict = engineer.assignedOITs.some((assignment: any) => {
+            if (!assignment.oit?.scheduledDate) return false;
+            const assignmentDate = new Date(assignment.oit.scheduledDate).toDateString();
+            // Only consider conflict if explicitly scheduled or in progress
+            const isActive = ['SCHEDULED', 'IN_PROGRESS'].includes(assignment.oit.status);
+            return isActive && assignmentDate === targetDate;
+        });
+
+        return !hasConflict;
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'oit' | 'quotation') => {
         const file = e.target.files?.[0];
@@ -653,10 +679,13 @@ export default function OITDetailPage() {
                                                                 <DropdownMenuLabel>Ingenieros Disponibles</DropdownMenuLabel>
                                                                 {availableEngineers.map((eng) => {
                                                                     const isSelected = selectedEngineerIds.includes(eng.id);
+                                                                    const isAvailable = isEngineerAvailable(eng, oit.scheduledDate || aiData?.data?.proposedDate);
+
                                                                     return (
                                                                         <DropdownMenuCheckboxItem
                                                                             key={eng.id}
                                                                             checked={isSelected}
+                                                                            disabled={!isAvailable && !isSelected} // Optional: disable if busy, or just warn
                                                                             onCheckedChange={(checked) => {
                                                                                 if (checked) {
                                                                                     setSelectedEngineerIds([...selectedEngineerIds, eng.id]);
@@ -665,8 +694,15 @@ export default function OITDetailPage() {
                                                                                 }
                                                                             }}
                                                                         >
-                                                                            <div className="flex flex-col">
-                                                                                <span>{eng.name}</span>
+                                                                            <div className="flex flex-col w-full">
+                                                                                <div className="flex justify-between items-center w-full gap-2">
+                                                                                    <span>{eng.name}</span>
+                                                                                    {!isAvailable && (
+                                                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                                                                                            Ocupado
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                                 <span className="text-xs text-slate-500">{eng.email}</span>
                                                                             </div>
                                                                         </DropdownMenuCheckboxItem>

@@ -111,7 +111,17 @@ export const getEngineers = async (req: Request, res: Response) => {
                 id: true,
                 email: true,
                 name: true,
-                role: true
+                role: true,
+                assignedOITs: {
+                    select: {
+                        oit: {
+                            select: {
+                                scheduledDate: true,
+                                status: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: { name: 'asc' }
         });
