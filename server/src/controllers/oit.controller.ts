@@ -317,17 +317,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
         const userId = user?.userId;
 
         // If user is ENGINEER, only show OITs assigned to them
+        // Global visibility for all roles
         let whereClause: any = {};
-
-        if (userRole === 'ENGINEER' && userId) {
-            whereClause = {
-                assignedEngineers: {
-                    some: {
-                        userId: userId
-                    }
-                }
-            };
-        }
 
         const oits = await prisma.oIT.findMany({
             where: whereClause,
@@ -379,13 +370,8 @@ export const getOITById = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'OIT not found' });
         }
 
-        // If user is ENGINEER, check if they are assigned
-        if (user?.role === 'ENGINEER') {
-            const isAssigned = oit.assignedEngineers.some((a: any) => a.userId === user.userId);
-            if (!isAssigned) {
-                return res.status(403).json({ message: 'No tienes acceso a esta OIT' });
-            }
-        }
+        // Check if user is assigned for UI indicators, but don't block access
+        // if (user?.role === 'ENGINEER') { ... } // Restriction removed
 
         res.status(200).json({
             ...oit,
