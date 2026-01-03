@@ -492,6 +492,40 @@ Escribe el análisis en prosa, como un informe técnico profesional.`;
             return "Error al analizar los resultados de laboratorio. Por favor, revise manualmente el documento.";
         }
     }
+    async analyzeSamplingResults(samplingData: any, oitContext?: string): Promise<string> {
+        const available = await this.isAvailable();
+        if (!available) {
+            return "Análisis no disponible (Offline).";
+        }
+
+        try {
+            const dataStr = JSON.stringify(samplingData, null, 2).substring(0, 3000);
+            const prompt = `Eres un supervisor técnico de campo. Analiza los siguientes datos de un muestreo ambiental ejecutado.
+
+Contexto OIT: "${oitContext || 'N/A'}"
+Datos del Muestreo:
+${dataStr}
+
+Genera un informe corto de supervisión (en texto plano/markdown) que incluya:
+1. Resumen de lo ejecutado (cantidad de muestras, condiciones).
+2. Verificación de completitud (¿Faltan datos obvios?).
+3. Anomalías detectadas en los valores o comentarios.
+4. Conclusión: ¿El muestreo parece válido?
+
+Responde en español de forma profesional.`;
+
+            const response = await axios.post(`${this.baseURL}/api/generate`, {
+                model: this.defaultModel,
+                prompt,
+                stream: false,
+            });
+
+            return response.data.response || "No se pudo generar análisis.";
+        } catch (error) {
+            console.error('AI Sampling Analysis error:', error);
+            return "Error al analizar datos de muestreo.";
+        }
+    }
 }
 
 export const aiService = new AIService();

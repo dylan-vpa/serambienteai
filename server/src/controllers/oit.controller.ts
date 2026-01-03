@@ -126,6 +126,54 @@ export const saveSamplingData = async (req: Request, res: Response) => {
     }
 };
 
+// Submit Final Sampling
+export const submitSampling = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const samplingData = req.body; // Full JSON of all steps
+
+        // 1. Update OIT with raw data
+        const oit = await prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingData: JSON.stringify(samplingData),
+                status: 'ANALYZING', // Temporary status while AI runs
+                pendingSync: false
+            }
+        });
+
+        res.json({ success: true, message: 'Muestreo recibido. Analizando...', oit });
+
+        // 2. Trigger async AI analysis
+        (async () => {
+            try {
+                const analysis = await aiService.analyzeSamplingResults(samplingData, oit.description || '');
+
+                await prisma.oIT.update({
+                    where: { id },
+                    data: {
+                        finalAnalysis: analysis,
+                        status: 'COMPLETED' // Flow finished, ready for admin review
+                    }
+                });
+
+                // Notify user/admin
+                // await createNotification(...)
+            } catch (err) {
+                console.error('Error in background sampling analysis:', err);
+                await prisma.oIT.update({
+                    where: { id },
+                    data: { status: 'REVIEW_IMPORTANT' }
+                });
+            }
+        })();
+
+    } catch (error) {
+        console.error('Error submitting sampling:', error);
+        res.status(500).json({ error: 'Error al enviar muestreo' });
+    }
+};
+
 // Get Sampling Data
 export const getSamplingData = async (req: Request, res: Response) => {
     try {

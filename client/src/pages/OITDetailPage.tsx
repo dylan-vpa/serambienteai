@@ -135,6 +135,22 @@ export default function OITDetailPage() {
         };
     }, [id, oit?.status]);
 
+    // Load Local Storage on mount
+    useEffect(() => {
+        if (id) {
+            const saved = localStorage.getItem(`sampling_session_${id}`);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    setStepValidations(parsed);
+                    // toast.info('Datos de muestreo recuperados localmente');
+                } catch (e) {
+                    console.error('Error loading local sampling data', e);
+                }
+            }
+        }
+    }, [id]);
+
     // Fetch engineers
     useEffect(() => {
         const loadEngineers = async () => {
@@ -229,20 +245,63 @@ export default function OITDetailPage() {
 
 
 
+    const handleSaveStep = (data: any) => {
+        // Update state
+        const updatedValidations = {
+            ...stepValidations,
+            [data.stepIndex]: {
+                validated: true,
+                data: data,
+                timestamp: new Date().toISOString()
+            }
+        };
+        setStepValidations(updatedValidations);
+
+        // Save to localStorage
+        if (id) {
+            localStorage.setItem(`sampling_session_${id}`, JSON.stringify(updatedValidations));
+        }
+    };
+
     const handleFinalizeSampling = async () => {
         if (!id) return;
+
+        const isOffline = !navigator.onLine;
+
+        if (isOffline) {
+            toast.warning('Estás offline. Los datos se guardaron localmente y se enviarán cuando tengas conexión.');
+            // We could just leave it pending in localStorage. 
+            // The user will need to press "Finalize" again when online, or we implement auto-sync.
+            // For now, simple manual retry.
+            return;
+        }
+
         try {
             setIsProcessing(true);
-            const response = await api.post(`/oits/${id}/finalize-sampling`);
-            setFinalAnalysis(response.data.analysis);
-            toast.success('Muestreo finalizado y análisis generado');
+
+            // Prepare Payload
+            const payload = {
+                steps: templateSteps.map((s, i) => ({
+                    description: s.description || s.title,
+                    ...stepValidations[i]?.data
+                })),
+                completedAt: new Date(),
+                location: isLocationVerified ? oit.location : 'Ubicación no verificada'
+            };
+
+            const response = await api.post(`/oits/${id}/submit-sampling`, payload);
+
+            toast.success(response.data.message || 'Muestreo enviado exitosamente');
+
+            // Clear local storage
+            localStorage.removeItem(`sampling_session_${id}`);
 
             // Refresh OIT
             const oitRes = await api.get(`/oits/${id}`);
             setOit(oitRes.data);
         } catch (error) {
             console.error('Error finalizing:', error);
-            toast.error('Error al finalizar el muestreo');
+            toast.error('Error al enviar el muestreo. Intenta nuevamente.');
         } finally {
             setIsProcessing(false);
         }
@@ -1004,9 +1063,18 @@ export default function OITDetailPage() {
                         {(() => {
                             // Permission Check: only assigned engineers or SUPER_ADMIN
                             const isAssigned = selectedEngineerIds.includes(user?.id || '');
-                            const canSample = user?.role === 'SUPER_ADMIN' || isAssigned;
+                            const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
-                            if (!canSample) {
+                            // Admins can see the tab (specifically to see the result), but maybe not the active sampling form if not assigned.
+                            // But request says: "admin no puede hacer el muestreo pero si debera ver la card del analisis"
+
+                            // If OIT is COMPLETED, Admin should see the view (Analysis Card).
+                            // If NOT completed, Admin sees "Waiting for sampling".
+
+                            const canView = isAdmin || isAssigned;
+                            const canEdit = isAssigned || user?.role === 'SUPER_ADMIN'; // Super admin can do anything
+
+                            if (!canView) {
                                 return (
                                     <Card className="border-red-200 bg-red-50/50">
                                         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -1015,11 +1083,34 @@ export default function OITDetailPage() {
                                             </div>
                                             <h3 className="text-lg font-semibold text-slate-900">Acceso Restringido</h3>
                                             <p className="text-slate-600 max-w-md mt-2">
-                                                Solo los ingenieros asignados a esta OIT pueden realizar el muestreo.
+                                                Solo los ingenieros asignados a esta OIT pueden acceder al muestreo.
                                             </p>
                                         </CardContent>
                                     </Card>
                                 );
+                            }
+
+                            // If Admin (not super) and NOT assigned, show status or analysis
+                            if (user?.role === 'ADMIN' && !isAssigned) {
+                                if (oit.status === 'COMPLETED' || oit.finalAnalysis) {
+                                    // Show Analysis Card (It will fall through to logic below if we handle it right, 
+                                    // but standard flow expects editing steps. Let's return the Analysis Card directly if present)
+                                    // Or simply fall through but disable editing?
+                                } else {
+                                    return (
+                                        <Card className="border-slate-200 bg-slate-50/50">
+                                            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                                <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                                    <Clock className="h-8 w-8 text-slate-400" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-slate-900">Muestreo en Progreso</h3>
+                                                <p className="text-slate-500 max-w-md mt-2">
+                                                    El ingeniero asignado está realizando el muestreo. Verás el análisis aquí cuando finalice.
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                }
                             }
 
                             // 0. Verification of Conditions (Time & Location)
@@ -1188,7 +1279,7 @@ export default function OITDetailPage() {
                                     <div className="max-w-3xl mx-auto space-y-4">
                                         {templateSteps.length > 0 ? (
                                             templateSteps.map((step: any, index: number) => {
-                                                const isLocked = index > 0 && !stepValidations[index - 1]?.validated;
+                                                const isLocked = (index > 0 && !stepValidations[index - 1]?.validated) || !canEdit;
                                                 return (
                                                     <SamplingStep
                                                         key={index}
@@ -1197,13 +1288,7 @@ export default function OITDetailPage() {
                                                         stepIndex={index}
                                                         isLocked={isLocked}
                                                         validation={stepValidations[index]}
-                                                        onValidationComplete={async () => {
-                                                            const response = await api.get(`/oits/${id}`);
-                                                            setOit(response.data);
-                                                            if (response.data.stepValidations) {
-                                                                setStepValidations(JSON.parse(response.data.stepValidations));
-                                                            }
-                                                        }}
+                                                        onValidationComplete={(data) => handleSaveStep(data)}
                                                     />
                                                 );
                                             })

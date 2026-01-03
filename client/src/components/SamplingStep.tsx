@@ -24,7 +24,7 @@ interface SamplingStepProps {
     stepIndex: number;
     isLocked: boolean;
     validation?: ValidationResult;
-    onValidationComplete: () => void;
+    onValidationComplete: (data: any) => void;
 }
 
 export function SamplingStep({
@@ -72,27 +72,19 @@ export function SamplingStep({
                 files: files.map(f => f.name), // In real app, upload first and send URLs
                 comment,
                 stepId: step.id,
-                stepType: step.type
+                stepType: step.type,
+                stepIndex // Pass index for keying
             };
 
-            const response = await api.post(`/oits/${oitId}/validate-step`, {
-                stepIndex,
-                stepDescription: step.description || step.title,
-                stepRequirements: JSON.stringify(step),
-                data: payload // Send as 'data' property
-            });
+            // Call parent onSave instead of API
+            // console.log('Saving locally:', payload);
+            await onValidationComplete(payload); // We reuse the name or change prop type
 
-            if (response.data.validated) {
-                toast.success('Paso validado correctamente');
-                onValidationComplete();
-            } else {
-                setLocalError(response.data.feedback || 'La validación falló. Revisa los datos.');
-                toast.warning('La IA encontró problemas con los datos');
-            }
+            toast.success('Paso guardado (Pendiente de sincronización)');
+
         } catch (error) {
-            console.error('Validation error:', error);
-            setLocalError('Error de conexión al validar');
-            toast.error('Error al validar el paso');
+            console.error('Save error:', error);
+            setLocalError('Error al guardar datos');
         } finally {
             setIsValidating(false);
         }

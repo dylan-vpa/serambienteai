@@ -18,7 +18,9 @@ import {
     generateSamplingReport,
     reanalyzeOIT,
     assignEngineers,
-    getAssignedEngineers
+    assignEngineers,
+    getAssignedEngineers,
+    submitSampling
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
@@ -64,6 +66,7 @@ router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
 // Sampling validation workflow
 router.post('/:id/validate-step', authMiddleware, validateStepData);
 router.post('/:id/finalize-sampling', authMiddleware, finalizeSampling);
+router.post('/:id/submit-sampling', authMiddleware, submitSampling);
 router.get('/:id/sampling-report', authMiddleware, generateSamplingReport);
 
 router.delete('/:id', deleteOIT);
