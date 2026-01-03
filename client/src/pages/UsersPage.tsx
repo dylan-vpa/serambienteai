@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { Users, Shield, Loader2, UserCog } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
-import { UserRole, canManageUsers } from '@/types/auth';
+import { canManageUsers } from '@/types/auth';
+import type { UserRole } from '@/types/auth';
 
 interface UserData {
     id: string;
