@@ -5,6 +5,7 @@ const aiService = new AIService();
 import { createNotification } from './notification.controller';
 import fs from 'fs';
 import path from 'path';
+import { marked } from 'marked';
 
 const prisma = new PrismaClient();
 
@@ -1073,33 +1074,46 @@ export const generateFinalReport = async (req: Request, res: Response) => {
             <head>
                 <style>
                     body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                    h1, h2, h3 { color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }
-                    h1 { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; font-size: 24px; }
-                    h2 { background: #f8f9fa; padding: 10px; border-left: 5px solid #2c3e50; font-size: 18px; }
+                    h1, h2, h3, h4, h5, h6 { color: #14532d; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
+                    h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 28px; }
+                    h2 { background: #f0fdf4; padding: 10px 15px; border-left: 5px solid #22c55e; font-size: 20px; border-radius: 4px; }
+                    h3 { font-size: 18px; color: #15803d; }
                     p { margin-bottom: 15px; text-align: justify; }
-                    ul { margin-bottom: 15px; }
-                    li { margin-bottom: 5px; }
-                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+                    ul, ol { margin-bottom: 15px; padding-left: 20px; }
+                    li { margin-bottom: 6px; }
+                    strong { color: #14532d; }
+                    
+                    /* Table Styles matching Frontend */
+                    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; }
+                    thead { background-color: #dcfce7; color: #14532d; }
+                    th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #bbf7d0; }
+                    td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                    tr:nth-child(even) { background-color: #f0fdf4; }
+                    tr:hover { background-color: #ecfdf5; }
+
+                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; }
                     .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                    blockquote { border-left: 4px solid #22c55e; padding-left: 16px; font-style: italic; color: #475569; margin: 20px 0; background-color: #f8fafc; padding: 12px 16px; border-radius: 0 4px 4px 0; }
+                    code { background-color: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; color: #0f172a; }
+                    pre { background-color: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; }
+                    hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
+                    a { color: #16a34a; text-decoration: none; }
                 </style>
             </head>
             <body>
                 <div class="meta">
-                    <strong>ALS V2 - Sistema de Gestión Ambiental</strong><br>
-                    OIT: ${oit.oitNumber}<br>
-                    Fecha de Emisión: ${date}
+                    <div>
+                        <strong style="font-size: 1.2em; color: #14532d;">ALS V2 - Informe de Supervisión IA</strong><br>
+                        <span style="color: #64748b;">Sistema de Gestión Ambiental</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>OIT:</strong> ${oit.oitNumber}<br>
+                        <strong>Fecha:</strong> ${date}
+                    </div>
                 </div>
                 
                 <div class="content">
-                    ${reportMarkdown
-                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
-                .replace(/\*(.*?)\*/gim, '<i>$1</i>')
-                .replace(/^- (.*$)/gim, '<li>$1</li>')
-                .replace(/\n\n/g, '<br>')
-            } 
+                    ${marked.parse(reportMarkdown)}
                 </div>
 
                 <div class="footer">
