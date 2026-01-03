@@ -631,11 +631,11 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
     }
 };
 
-// Update OIT (supports new fields)
+// Update OIT (supports new fields and engineer assignment)
 export const updateOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources } = req.body;
+        const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
         const data: any = {};
         if (oitNumber !== undefined) data.oitNumber = oitNumber;
         if (description !== undefined) data.description = description;
@@ -646,37 +646,83 @@ export const updateOIT = async (req: Request, res: Response) => {
         if (resources !== undefined) data.resources = resources;
         if (req.body.scheduledDate !== undefined) data.scheduledDate = req.body.scheduledDate;
 
-        // Get the existing OIT to check for status change
-        const existing = await prisma.oIT.findUnique({ where: { id } });
-
-        const updated = await prisma.oIT.update({
+        // Get the existing OIT to check for status change and current assignments
+        const existing = await prisma.oIT.findUnique({
             where: { id },
-            data,
+            include: { assignedEngineers: true }
         });
 
-        // Create notification on status change
-        if (status && existing && existing.status !== status) {
+        if (!existing) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        // Validate mandatory engineer assignment when scheduling
+        if (status === 'SCHEDULED') {
+            const hasNewEngineers = engineerIds && Array.isArray(engineerIds) && engineerIds.length > 0;
+            const hasExistingEngineers = existing.assignedEngineers.length > 0;
+
+            // If neither new engineers are provided nor existing ones are present (and we aren't clearing them with empty array)
+            const willHaveEngineers = hasNewEngineers || (hasExistingEngineers && engineerIds === undefined);
+
+            if (!willHaveEngineers) {
+                return res.status(400).json({
+                    error: 'Debe asignar al menos un ingeniero de campo para programar la visita.'
+                });
+            }
+        }
+
+        // Transaction to update OIT and assignments
+        const result = await prisma.$transaction(async (prisma: any) => {
+            // 1. Update OIT fields
+            const updated = await prisma.oIT.update({
+                where: { id },
+                data,
+            });
+
+            // 2. Update assignments if provided
+            if (engineerIds && Array.isArray(engineerIds)) {
+                // Remove existing
+                await prisma.oITAssignment.deleteMany({
+                    where: { oitId: id }
+                });
+
+                // Add new
+                if (engineerIds.length > 0) {
+                    await prisma.oITAssignment.createMany({
+                        data: engineerIds.map((userId: string) => ({
+                            oitId: id,
+                            userId
+                        }))
+                    });
+                }
+            }
+
+            return updated;
+        });
+
+        // Create notification on status change (reuse existing logic)
+        if (status && existing.status !== status) {
             const userId = (req as any).user?.userId;
             if (userId) {
                 const statusMessages: Record<string, { title: string; message: string; type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' }> = {
                     'REVIEW_REQUIRED': {
                         title: 'Revisión Requerida',
-                        message: `OIT ${updated.oitNumber} requiere revisión. Se encontraron observaciones en el análisis.`,
+                        message: `OIT ${result.oitNumber} requiere revisión. Se encontraron observaciones en el análisis.`,
                         type: 'WARNING'
                     },
                     'SCHEDULED': {
                         title: 'Muestreo Agendado',
-                        message: `OIT ${updated.oitNumber} ha sido agendado para muestreo.`,
+                        message: `OIT ${result.oitNumber} ha sido agendado para muestreo.`,
                         type: 'SUCCESS'
                     },
                     'IN_PROGRESS': {
                         title: 'Muestreo en Progreso',
-                        message: `OIT ${updated.oitNumber} está en proceso de muestreo.`,
+                        message: `OIT ${result.oitNumber} está en proceso de muestreo.`,
                         type: 'INFO'
                     },
                     'COMPLETED': {
                         title: 'OIT Completado',
-                        message: `OIT ${updated.oitNumber} ha sido completado exitosamente.`,
+                        message: `OIT ${result.oitNumber} ha sido completado exitosamente.`,
                         type: 'SUCCESS'
                     }
                 };
@@ -694,9 +740,28 @@ export const updateOIT = async (req: Request, res: Response) => {
             }
         }
 
-        res.status(200).json(updated);
+        // Return updated object with engineers
+        const finalOit = await prisma.oIT.findUnique({
+            where: { id },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        res.status(200).json({
+            ...finalOit,
+            engineers: finalOit?.assignedEngineers.map((a: any) => a.user)
+        });
+
     } catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        console.error('Error updating OIT:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
 

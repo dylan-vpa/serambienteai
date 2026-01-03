@@ -11,7 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
+import {
+    DropdownMenuLabel,
+    DropdownMenuCheckboxItem
+} from "@/components/ui/dropdown-menu";
 
 export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -23,6 +28,10 @@ export default function OITDetailPage() {
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
+
+    // Engineer Scheduling State
+    const [availableEngineers, setAvailableEngineers] = useState<any[]>([]);
+    const [selectedEngineerIds, setSelectedEngineerIds] = useState<string[]>([]);
 
     // Polling for status updates
     useEffect(() => {
@@ -37,8 +46,15 @@ export default function OITDetailPage() {
 
                 // Only update if data changed (deep comparison/string check would be better but this is ok)
                 setOit((prev: any) => {
-                    if (JSON.stringify(prev) !== JSON.stringify(response.data)) {
-                        return response.data;
+                    const newData = response.data;
+
+                    // Sync loaded engineers
+                    if (newData.engineers && newData.engineers.length > 0) {
+                        setSelectedEngineerIds(newData.engineers.map((e: any) => e.id));
+                    }
+
+                    if (JSON.stringify(prev) !== JSON.stringify(newData)) {
+                        return newData;
                     }
                     return prev;
                 });
@@ -86,6 +102,22 @@ export default function OITDetailPage() {
             if (intervalId) clearInterval(intervalId);
         };
     }, [id, oit?.status]);
+
+    // Fetch engineers
+    useEffect(() => {
+        const loadEngineers = async () => {
+            try {
+                const res = await api.get('/users');
+                // Filter where role is ENGINEER or SUPER_ADMIN maybe? For now list all or filter by backend logic if implemented
+                // Let's filter by ENGINEER role in frontend to be safe
+                const engineers = res.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
+                setAvailableEngineers(engineers);
+            } catch (error) {
+                console.error('Error fetching engineers', error);
+            }
+        };
+        loadEngineers();
+    }, []);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'oit' | 'quotation') => {
         const file = e.target.files?.[0];
@@ -508,36 +540,19 @@ export default function OITDetailPage() {
                                                         </div>
                                                     )}
 
+                                                    {/* AI Proposal Actions */}
                                                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                                                         <Button
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
                                                             onClick={async () => {
-                                                                const dateStr = aiData.data.proposedDate;
-                                                                const timeStr = aiData.data.proposedTime || '09:00';
-                                                                const fullDate = new Date(`${dateStr}T${timeStr}`);
-
-                                                                try {
-                                                                    // Call accept-planning endpoint to update resources
-                                                                    await api.post(`/oits/${id}/accept-planning`, {
-                                                                        templateId: aiData.data.templateId
-                                                                    });
-
-                                                                    // Then update scheduled date
-                                                                    await api.patch(`/oits/${id}`, {
-                                                                        scheduledDate: fullDate.toISOString()
-                                                                    });
-
-                                                                    toast.success('Propuesta aceptada. Recursos asignados.');
-                                                                    const response = await api.get(`/oits/${id}`);
-                                                                    setOit(response.data);
-                                                                } catch (error) {
-                                                                    console.error('Error accepting planning:', error);
-                                                                    toast.error('Error al aceptar propuesta');
-                                                                }
+                                                                // Validar si hay ingenieros (aunque sea propuesta AI, puede requerir uno)
+                                                                // Por ahora la AI asigna recursos genéricos, requerimos asignación manual humana
+                                                                setIsManualScheduling(true);
+                                                                toast.info("Por favor, confirma la fecha y asigna un ingeniero responsable.");
                                                             }}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                            Aceptar Propuesta
+                                                            Revisar y Aceptar
                                                         </Button>
                                                         <Button
                                                             variant="outline"
@@ -552,10 +567,13 @@ export default function OITDetailPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-6 animate-in fade-in">
-                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-slate-900 mb-4">Programar Fecha y Hora</h4>
-                                                    <div className="grid md:grid-cols-2 gap-4">
+                                                    <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-indigo-600" />
+                                                        Programar Fecha y Hora
+                                                    </h4>
+                                                    <div className="grid md:grid-cols-2 gap-6">
                                                         {/* Date Input */}
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Fecha</label>
@@ -565,19 +583,13 @@ export default function OITDetailPage() {
                                                                     type="date"
                                                                     className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
                                                                     value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().split('T')[0] : ''}
-                                                                    onChange={async (e) => {
+                                                                    onChange={(e) => {
                                                                         const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
                                                                         const newDate = new Date(e.target.value);
+                                                                        // Keep time if exists
                                                                         newDate.setHours(currentDate.getHours(), currentDate.getMinutes());
-
-                                                                        try {
-                                                                            await api.patch(`/oits/${id}`, { scheduledDate: newDate.toISOString(), status: 'SCHEDULED' });
-                                                                            toast.success('Fecha actualizada');
-                                                                            const response = await api.get(`/oits/${id}`);
-                                                                            setOit(response.data);
-                                                                        } catch (error) {
-                                                                            toast.error('Error al actualizar fecha');
-                                                                        }
+                                                                        // Just update local state for preview, commit on button click
+                                                                        setOit({ ...oit, scheduledDate: newDate.toISOString() });
                                                                     }}
                                                                 />
                                                             </div>
@@ -592,19 +604,11 @@ export default function OITDetailPage() {
                                                                     type="time"
                                                                     className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
                                                                     value={oit.scheduledDate ? new Date(oit.scheduledDate).toTimeString().slice(0, 5) : '09:00'}
-                                                                    onChange={async (e) => {
+                                                                    onChange={(e) => {
                                                                         const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
                                                                         const [hours, minutes] = e.target.value.split(':');
                                                                         currentDate.setHours(parseInt(hours), parseInt(minutes));
-
-                                                                        try {
-                                                                            await api.patch(`/oits/${id}`, { scheduledDate: currentDate.toISOString(), status: 'SCHEDULED' });
-                                                                            toast.success('Hora actualizada');
-                                                                            const response = await api.get(`/oits/${id}`);
-                                                                            setOit(response.data);
-                                                                        } catch (error) {
-                                                                            toast.error('Error al actualizar hora');
-                                                                        }
+                                                                        setOit({ ...oit, scheduledDate: currentDate.toISOString() });
                                                                     }}
                                                                 />
                                                             </div>
@@ -622,24 +626,124 @@ export default function OITDetailPage() {
                                                                 value={oit.location || ''}
                                                                 placeholder="Dirección o Coordenadas (Ej: Calle 123 # 45-67)"
                                                                 onChange={(e) => setOit({ ...oit, location: e.target.value })}
-                                                                onBlur={async (e) => {
-                                                                    try {
-                                                                        await api.patch(`/oits/${id}`, { location: e.target.value });
-                                                                        toast.success('Ubicación actualizada');
-                                                                    } catch (error) {
-                                                                        toast.error('Error al actualizar ubicación');
-                                                                    }
-                                                                }}
                                                             />
                                                         </div>
                                                     </div>
-                                                    <p className="text-xs text-slate-500 mt-3">
-                                                        Selecciona la fecha y hora para la visita de muestreo.
-                                                    </p>
+                                                </div>
+
+                                                <div className="w-full h-px bg-slate-100" />
+
+                                                {/* Engineer Selection */}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                                            <Users className="h-4 w-4 text-indigo-600" />
+                                                            Ingenieros Asignados
+                                                            <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">* Requerido</span>
+                                                        </h4>
+
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" size="sm" className="h-8 border-dashed">
+                                                                    <Plus className="mr-2 h-3.5 w-3.5" />
+                                                                    Asignar Ingeniero
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-56">
+                                                                <DropdownMenuLabel>Ingenieros Disponibles</DropdownMenuLabel>
+                                                                {availableEngineers.map((eng) => {
+                                                                    const isSelected = selectedEngineerIds.includes(eng.id);
+                                                                    return (
+                                                                        <DropdownMenuCheckboxItem
+                                                                            key={eng.id}
+                                                                            checked={isSelected}
+                                                                            onCheckedChange={(checked) => {
+                                                                                if (checked) {
+                                                                                    setSelectedEngineerIds([...selectedEngineerIds, eng.id]);
+                                                                                } else {
+                                                                                    setSelectedEngineerIds(selectedEngineerIds.filter(id => id !== eng.id));
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <div className="flex flex-col">
+                                                                                <span>{eng.name}</span>
+                                                                                <span className="text-xs text-slate-500">{eng.email}</span>
+                                                                            </div>
+                                                                        </DropdownMenuCheckboxItem>
+                                                                    );
+                                                                })}
+                                                                {availableEngineers.length === 0 && (
+                                                                    <div className="p-2 text-xs text-slate-500 text-center">No hay ingenieros disponibles</div>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+
+                                                    {selectedEngineerIds.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedEngineerIds.map(id => {
+                                                                const eng = availableEngineers.find(e => e.id === id);
+                                                                return eng ? (
+                                                                    <Badge key={id} variant="secondary" className="pl-2 pr-1 py-1 h-7 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100 gap-1">
+                                                                        <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-[10px] mr-1">
+                                                                            {eng.name.charAt(0)}
+                                                                        </div>
+                                                                        {eng.name}
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-4 w-4 ml-1 hover:bg-indigo-200 rounded-full"
+                                                                            onClick={() => setSelectedEngineerIds(selectedEngineerIds.filter(eid => eid !== id))}
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </Badge>
+                                                                ) : null;
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm text-slate-500 italic p-3 bg-slate-50 rounded border border-dashed border-slate-200 text-center">
+                                                            No hay ingenieros asignados. Debes seleccionar al menos uno.
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="pt-4 flex justify-end">
+                                                    <Button
+                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[200px]"
+                                                        disabled={!selectedEngineerIds.length || !oit.scheduledDate}
+                                                        onClick={async () => {
+                                                            try {
+                                                                setIsProcessing(true);
+                                                                await api.patch(`/oits/${id}`, {
+                                                                    scheduledDate: oit.scheduledDate,
+                                                                    location: oit.location,
+                                                                    status: 'SCHEDULED',
+                                                                    engineerIds: selectedEngineerIds
+                                                                });
+                                                                toast.success('Visita programada exitosamente');
+
+                                                                // Refresh
+                                                                const res = await api.get(`/oits/${id}`);
+                                                                setOit(res.data);
+                                                            } catch (error: any) {
+                                                                toast.error(error.response?.data?.error || 'Error al programar visita');
+                                                            } finally {
+                                                                setIsProcessing(false);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {isProcessing ? (
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Calendar className="mr-2 h-4 w-4" />
+                                                        )}
+                                                        Confirmar Programación
+                                                    </Button>
                                                 </div>
 
                                                 {aiData?.data?.proposedDate && (
-                                                    <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                                                    <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mt-4">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <Sparkles className="h-4 w-4 text-indigo-600" />
                                                             <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
