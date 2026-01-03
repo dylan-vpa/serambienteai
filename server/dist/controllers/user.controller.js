@@ -8,9 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProfile = exports.getEngineers = exports.updateUserRole = exports.getUserById = exports.getAllUsers = exports.ROLES = void 0;
+exports.createUser = exports.getProfile = exports.getEngineers = exports.updateUserRole = exports.getUserById = exports.getAllUsers = exports.ROLES = void 0;
 const client_1 = require("@prisma/client");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 // Valid roles in the system
 exports.ROLES = {
@@ -114,7 +118,17 @@ const getEngineers = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 id: true,
                 email: true,
                 name: true,
-                role: true
+                role: true,
+                assignedOITs: {
+                    select: {
+                        oit: {
+                            select: {
+                                scheduledDate: true,
+                                status: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: { name: 'asc' }
         });
@@ -152,3 +166,43 @@ const getProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.getProfile = getProfile;
+// Create new user (SUPER_ADMIN only)
+const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, password, name, role } = req.body;
+        // Validate role
+        if (!Object.values(exports.ROLES).includes(role)) {
+            return res.status(400).json({
+                error: 'Rol inválido',
+                validRoles: Object.values(exports.ROLES)
+            });
+        }
+        const existingUser = yield prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ error: 'El usuario ya existe' });
+        }
+        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+        const user = yield prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                name: name || email.split('@')[0],
+                role
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+        res.status(201).json(user);
+    }
+    catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ error: 'Error al crear usuario' });
+    }
+});
+exports.createUser = createUser;

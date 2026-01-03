@@ -12,6 +12,8 @@ router.get('/profile', user_controller_1.getProfile);
 router.get('/engineers', auth_middleware_1.requireAdmin, user_controller_1.getEngineers);
 // Get all users - requires SUPER_ADMIN
 router.get('/', auth_middleware_1.requireSuperAdmin, user_controller_1.getAllUsers);
+// Create new user - requires SUPER_ADMIN
+router.post('/', auth_middleware_1.requireSuperAdmin, user_controller_1.createUser);
 // Get user by ID - requires SUPER_ADMIN
 router.get('/:id', auth_middleware_1.requireSuperAdmin, user_controller_1.getUserById);
 // Update user role - requires SUPER_ADMIN
