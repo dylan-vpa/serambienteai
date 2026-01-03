@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles } from 'lucide-react';
+import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileJson, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { useAuthStore } from '@/features/auth/authStore';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -19,6 +20,9 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
     const [labResultsUrl, setLabResultsUrl] = useState<string | null>(null);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
     const [analysisData, setAnalysisData] = useState<any | null>(initialAnalysis || null);
+
+    const { user } = useAuthStore();
+    const canDownload = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
     // Initialize/Update finalReportUrl from prop
     useEffect(() => {
@@ -107,7 +111,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                             <CardTitle className="text-base font-medium text-slate-900">1. Cargar Resultados</CardTitle>
                             <CardDescription className="text-xs mt-1 text-slate-500">Sube el archivo de resultados del laboratorio.</CardDescription>
                         </div>
-                        {labResultsUrl && (
+                        {labResultsUrl && canDownload && (
                             <a href={labResultsUrl} download className="text-xs text-slate-900 hover:underline flex items-center gap-1">
                                 <Download className="h-3 w-3" />
                                 Descargar
@@ -162,48 +166,81 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                     </CardHeader>
                     <CardContent className="pt-4 space-y-4">
                         {analysisData ? (
-                            <div className="prose prose-sm max-w-none">
+                            <div className="text-sm">
                                 {(() => {
-                                    // Helper function to format analysis data
-                                    const formatAnalysis = (data: any): string => {
-                                        if (typeof data === 'string') {
-                                            // Check if it's a JSON string
-                                            try {
-                                                const parsed = JSON.parse(data);
-                                                // If it's an error object
-                                                if (parsed.error) {
-                                                    return `⚠️ ${parsed.error}`;
-                                                }
-                                                // If it has analysis content
-                                                if (parsed.analysis) {
-                                                    return parsed.analysis;
-                                                }
-                                                // Otherwise format nicely
-                                                return JSON.stringify(parsed, null, 2);
-                                            } catch {
-                                                // Not JSON, return as-is (this is the expected case for narratives)
-                                                return data;
-                                            }
+                                    // Helper: Check if string is JSON
+                                    const parseJSON = (str: string) => {
+                                        try {
+                                            const parsed = JSON.parse(str);
+                                            return parsed;
+                                        } catch {
+                                            return null;
                                         }
-                                        // If object, check for common patterns
-                                        if (typeof data === 'object') {
-                                            if (data.error) {
-                                                return `⚠️ ${data.error}`;
-                                            }
-                                            if (data.analysis) {
-                                                return data.analysis;
-                                            }
-                                            return JSON.stringify(data, null, 2);
-                                        }
-                                        return String(data);
                                     };
 
-                                    const formattedText = formatAnalysis(analysisData);
-                                    const isError = formattedText.startsWith('⚠️') || formattedText.toLowerCase().includes('error');
+                                    let content = analysisData;
+                                    let isJson = false;
 
+                                    if (typeof analysisData === 'string') {
+                                        const parsed = parseJSON(analysisData);
+                                        if (parsed) {
+                                            content = parsed;
+                                            isJson = true;
+                                        }
+                                    } else if (typeof analysisData === 'object') {
+                                        isJson = true;
+                                    }
+
+                                    // Render structured JSON
+                                    if (isJson) {
+                                        // Specific handling for error objects
+                                        if (content.error || content.status === 'ERROR') {
+                                            return (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-amber-800">
+                                                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                                                    <div>
+                                                        <p className="font-semibold mb-1">Atención requerida</p>
+                                                        <p>{content.error || content.summary || JSON.stringify(content)}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        // Render key-value pairs nicely if flat object
+                                        const keys = Object.keys(content);
+                                        const isFlat = keys.every((k: string) => typeof content[k] !== 'object');
+
+                                        if (isFlat && keys.length > 0) {
+                                            return (
+                                                <div className="grid gap-2">
+                                                    {keys.map((key: string) => (
+                                                        <div key={key} className="flex justify-between items-center p-2 bg-indigo-50/50 rounded border border-indigo-100">
+                                                            <span className="font-medium text-indigo-900 capitalize">{key.replace(/_/g, ' ')}</span>
+                                                            <span className="text-slate-700">{String(content[key])}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        }
+
+                                        // Fallback code block for complex JSON
+                                        return (
+                                            <div className="relative group">
+                                                <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                                                    <FileJson className="h-4 w-4 text-slate-500" />
+                                                </div>
+                                                <pre className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto text-xs font-mono border border-slate-800 shadow-inner">
+                                                    {JSON.stringify(content, null, 2)}
+                                                </pre>
+                                            </div>
+                                        );
+                                    }
+
+                                    // Render Plain text
                                     return (
-                                        <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isError ? 'text-amber-700' : 'text-indigo-900'}`}>
-                                            {formattedText}
+                                        <div className="bg-white border border-indigo-100 p-4 rounded-lg text-slate-700 leading-relaxed whitespace-pre-wrap flex gap-3">
+                                            <FileText className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+                                            <div>{String(content)}</div>
                                         </div>
                                     );
                                 })()}
@@ -226,7 +263,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                             <CardTitle className="text-base font-medium text-slate-900">2. Generar Informe</CardTitle>
                             <CardDescription className="text-xs mt-1 text-slate-500">Procesamiento IA y generación de documento final.</CardDescription>
                         </div>
-                        {finalReportUrl && (
+                        {finalReportUrl && canDownload && (
                             <a href={finalReportUrl} download className="text-xs text-slate-900 hover:underline flex items-center gap-1">
                                 <Download className="h-3 w-3" />
                                 Descargar
@@ -242,11 +279,17 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                                 <p className="text-sm font-medium text-slate-900">Informe generado correctamente</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                                <Button asChild variant="outline" className="w-full border-slate-200 hover:bg-slate-50 text-slate-900">
-                                    <a href={finalReportUrl || '#'} download>
+                                {canDownload ? (
+                                    <Button asChild variant="outline" className="w-full border-slate-200 hover:bg-slate-50 text-slate-900">
+                                        <a href={finalReportUrl || '#'} download>
+                                            <Download className="mr-2 h-4 w-4" /> Descargar
+                                        </a>
+                                    </Button>
+                                ) : (
+                                    <Button disabled variant="outline" className="w-full border-slate-200 text-slate-400">
                                         <Download className="mr-2 h-4 w-4" /> Descargar
-                                    </a>
-                                </Button>
+                                    </Button>
+                                )}
                                 <Button variant="ghost" className="w-full text-slate-500 hover:text-slate-900" onClick={() => setReportGenerated(false)}>
                                     Generar Nuevo
                                 </Button>
