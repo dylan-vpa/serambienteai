@@ -18,7 +18,6 @@ import {
     generateSamplingReport,
     reanalyzeOIT,
     assignEngineers,
-    assignEngineers,
     getAssignedEngineers,
     submitSampling
 } from '../controllers/oit.controller';
