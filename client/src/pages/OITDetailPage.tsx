@@ -39,6 +39,7 @@ export default function OITDetailPage() {
 
     // Auth for permissions
     const { user } = useAuthStore();
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
     // Polling for status updates
     useEffect(() => {
@@ -396,11 +397,16 @@ export default function OITDetailPage() {
 
                 <Tabs defaultValue="info" className="w-full">
                     <div className="flex justify-center mb-8">
-                        <TabsList className={`grid w-full ${user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? 'max-w-2xl grid-cols-2 sm:grid-cols-4' : 'max-w-md grid-cols-2'} bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300`}>
+                        <TabsList className={`grid w-full ${isAdmin
+                            ? 'max-w-2xl grid-cols-2 sm:grid-cols-4'
+                            : (oit.status === 'COMPLETED' || oit.status === 'ANALYZING'
+                                ? 'max-w-xl grid-cols-3'
+                                : 'max-w-md grid-cols-2')
+                            } bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300`}>
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <FileText className="mr-2 h-4 w-4" /> Info
                             </TabsTrigger>
-                            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+                            {isAdmin && (
                                 <TabsTrigger value="scheduling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                     <Calendar className="mr-2 h-4 w-4" /> Agenda
                                 </TabsTrigger>
@@ -408,7 +414,7 @@ export default function OITDetailPage() {
                             <TabsTrigger value="sampling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <Beaker className="mr-2 h-4 w-4" /> Muestreo
                             </TabsTrigger>
-                            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+                            {(isAdmin || oit.status === 'COMPLETED' || oit.status === 'ANALYZING' || !!oit.labResultsAnalysis) && (
                                 <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                     <FileBarChart className="mr-2 h-4 w-4" /> Informe
                                 </TabsTrigger>

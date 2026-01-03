@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileJson, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -33,7 +36,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
             } else {
                 // Construct URL from filename (assuming stored in uploads/reports)
                 const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
-                setFinalReportUrl(`${baseUrl}/uploads/reports/${initialReportUrl}`);
+                setFinalReportUrl(`${baseUrl}/uploads/${initialReportUrl}`);
             }
             setReportGenerated(true);
         }
@@ -63,12 +66,12 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
 
             setLabResultsUrl(URL.createObjectURL(file));
 
-            // Set analysis data from response if available
+            // Analysis will be polled by parent or updated via state if immediate
             if (response.data && response.data.labResultsAnalysis) {
                 setAnalysisData(response.data.labResultsAnalysis);
             }
 
-            toast.success('Resultados de laboratorio cargados y analizados');
+            toast.success('Resultados de laboratorio cargados. Analizando...');
         } catch (error) {
             console.error('Error uploading lab results:', error);
             toast.error('Error al cargar resultados');
@@ -78,7 +81,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
     };
 
     const handleGenerateReport = async () => {
-        if (!analysisFile) {
+        if (!analysisFile && !finalReportUrl) {
             toast.error('Sube los resultados de laboratorio primero');
             return;
         }
@@ -92,7 +95,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
             const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
             setFinalReportUrl(url);
             setReportGenerated(true);
-            toast.success('Informe generado exitosamente');
+            toast.success('Informe final generado exitosamente');
         } catch (error) {
             console.error('Error generating report:', error);
             toast.error('Error al generar informe');
@@ -104,151 +107,109 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
     return (
         <div className="space-y-6">
             {/* Lab Results Upload Card */}
-            <Card className="border-slate-200 shadow-sm bg-white">
-                <CardHeader className="pb-3 border-b border-slate-100">
+            <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+                <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-base font-medium text-slate-900">1. Cargar Resultados</CardTitle>
-                            <CardDescription className="text-xs mt-1 text-slate-500">Sube el archivo de resultados del laboratorio.</CardDescription>
+                        <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                <Upload className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-base font-semibold text-slate-900">1. Cargar Resultados de Lab</CardTitle>
+                                <CardDescription className="text-xs text-slate-500">Sube el reporte oficial emitido por el laboratorio.</CardDescription>
+                            </div>
                         </div>
                         {labResultsUrl && canDownload && (
-                            <a href={labResultsUrl} download className="text-xs text-slate-900 hover:underline flex items-center gap-1">
-                                <Download className="h-3 w-3" />
-                                Descargar
-                            </a>
+                            <Button variant="ghost" size="sm" asChild className="h-8 text-xs">
+                                <a href={labResultsUrl} download>
+                                    <Download className="h-3.5 w-3.5 mr-1" />
+                                    Bajar Original
+                                </a>
+                            </Button>
                         )}
                     </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                    <div className={`relative w-full h-32 border border-dashed rounded-lg flex flex-col items-center justify-center transition-all ${analysisFile ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-300 hover:border-slate-400 bg-slate-50'}`}>
+                    <div className={`relative w-full h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${analysisFile || labResultsUrl ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-200 hover:border-slate-400 bg-slate-50/50 group'}`}>
                         <input
                             type="file"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             onChange={handleAnalysisUpload}
                             accept=".pdf,.xlsx,.csv"
                             disabled={isUploading}
                         />
                         {isUploading ? (
-                            <>
-                                <Loader2 className="h-6 w-6 text-slate-400 animate-spin mb-2" />
-                                <p className="text-sm font-medium text-slate-600">Subiendo...</p>
-                            </>
-                        ) : analysisFile ? (
-                            <>
-                                <CheckCircle2 className="h-6 w-6 text-emerald-600 mb-2" />
-                                <p className="text-sm font-medium text-slate-900">{analysisFile.name}</p>
-                                <p className="text-xs text-slate-500">{(analysisFile.size / 1024).toFixed(1)} KB</p>
-                            </>
+                            <div className="flex flex-col items-center">
+                                <Loader2 className="h-8 w-8 text-emerald-500 animate-spin mb-2" />
+                                <p className="text-sm font-medium text-slate-600">Procesando archivo...</p>
+                            </div>
+                        ) : (analysisFile || labResultsUrl) ? (
+                            <div className="flex flex-col items-center">
+                                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
+                                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                                </div>
+                                <p className="text-sm font-semibold text-slate-900">{analysisFile?.name || 'Archivo Cargado'}</p>
+                                <p className="text-xs text-slate-500 mt-1">Haga clic o arrastre para reemplazar</p>
+                            </div>
                         ) : (
-                            <>
-                                <Upload className="h-6 w-6 text-slate-400 mb-2" />
-                                <p className="text-sm font-medium text-slate-600">Subir archivo</p>
-                                <p className="text-xs text-slate-400">PDF, Excel o CSV</p>
-                            </>
+                            <div className="flex flex-col items-center group-hover:scale-105 transition-transform">
+                                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                                    <Upload className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <p className="text-sm font-semibold text-slate-600">Seleccionar reporte de lab</p>
+                                <p className="text-xs text-slate-400 mt-1">PDF, Excel o CSV hasta 10MB</p>
+                            </div>
                         )}
                     </div>
                 </CardContent>
             </Card>
 
-            {/* AI Analysis Result Card */}
-            {(analysisData || (labResultsUrl && !reportGenerated)) && (
-                <Card className="border-indigo-100 shadow-sm bg-indigo-50/50">
-                    <CardHeader className="pb-3 border-b border-indigo-100">
-                        <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                <Sparkles className="h-4 w-4" />
+            {/* AI Analysis Result Card - Premium Style */}
+            {(analysisData || isUploading) && (
+                <Card className="border-indigo-200 shadow-md bg-indigo-50/30 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+                    <CardHeader className="pb-3 border-b border-indigo-100 bg-indigo-100/30 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-indigo-200 shadow-lg">
+                                <Sparkles className="h-5 w-5" />
                             </div>
                             <div>
-                                <CardTitle className="text-base font-medium text-indigo-900">Análisis Preliminar (IA)</CardTitle>
-                                <CardDescription className="text-xs text-indigo-700">Revisión automática de resultados del laboratorio.</CardDescription>
+                                <CardTitle className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                                    Análisis Técnico IA
+                                    <Badge variant="outline" className="bg-indigo-100/50 border-indigo-300 text-indigo-700 text-[10px] uppercase tracking-wider px-2 h-5">Automático</Badge>
+                                </CardTitle>
+                                <CardDescription className="text-xs text-indigo-700 font-medium">Interpretación inteligente de resultados de laboratorio</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
+                    <CardContent className="pt-6 px-6">
                         {analysisData ? (
-                            <div className="text-sm">
-                                {(() => {
-                                    // Helper: Check if string is JSON
-                                    const parseJSON = (str: string) => {
-                                        try {
-                                            const parsed = JSON.parse(str);
-                                            return parsed;
-                                        } catch {
-                                            return null;
-                                        }
-                                    };
-
-                                    let content = analysisData;
-                                    let isJson = false;
-
-                                    if (typeof analysisData === 'string') {
-                                        const parsed = parseJSON(analysisData);
-                                        if (parsed) {
-                                            content = parsed;
-                                            isJson = true;
-                                        }
-                                    } else if (typeof analysisData === 'object') {
-                                        isJson = true;
-                                    }
-
-                                    // Render structured JSON
-                                    if (isJson) {
-                                        // Specific handling for error objects
-                                        if (content.error || content.status === 'ERROR') {
-                                            return (
-                                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-amber-800">
-                                                    <AlertTriangle className="h-5 w-5 shrink-0" />
-                                                    <div>
-                                                        <p className="font-semibold mb-1">Atención requerida</p>
-                                                        <p>{content.error || content.summary || JSON.stringify(content)}</p>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-
-                                        // Render key-value pairs nicely if flat object
-                                        const keys = Object.keys(content);
-                                        const isFlat = keys.every((k: string) => typeof content[k] !== 'object');
-
-                                        if (isFlat && keys.length > 0) {
-                                            return (
-                                                <div className="grid gap-2">
-                                                    {keys.map((key: string) => (
-                                                        <div key={key} className="flex justify-between items-center p-2 bg-indigo-50/50 rounded border border-indigo-100">
-                                                            <span className="font-medium text-indigo-900 capitalize">{key.replace(/_/g, ' ')}</span>
-                                                            <span className="text-slate-700">{String(content[key])}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        }
-
-                                        // Fallback code block for complex JSON
-                                        return (
-                                            <div className="relative group">
-                                                <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                                    <FileJson className="h-4 w-4 text-slate-500" />
-                                                </div>
-                                                <pre className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto text-xs font-mono border border-slate-800 shadow-inner">
-                                                    {JSON.stringify(content, null, 2)}
-                                                </pre>
-                                            </div>
-                                        );
-                                    }
-
-                                    // Render Plain text
-                                    return (
-                                        <div className="bg-white border border-indigo-100 p-4 rounded-lg text-slate-700 leading-relaxed whitespace-pre-wrap flex gap-3">
-                                            <FileText className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-                                            <div>{String(content)}</div>
-                                        </div>
-                                    );
-                                })()}
+                            <div className="prose prose-slate max-w-none">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        table: ({ node, ...props }) => <div className="overflow-x-auto my-6 rounded-xl border border-indigo-200 shadow-sm"><table className="w-full text-sm text-left" {...props} /></div>,
+                                        thead: ({ node, ...props }) => <thead className="bg-indigo-600 text-white font-semibold" {...props} />,
+                                        th: ({ node, ...props }) => <th className="px-6 py-3 border-b border-indigo-500" {...props} />,
+                                        td: ({ node, ...props }) => <td className="px-6 py-4 border-b border-indigo-100 bg-white/50" {...props} />,
+                                        tr: ({ node, ...props }) => <tr className="hover:bg-indigo-50/50 transition-colors" {...props} />,
+                                        h1: ({ node, ...props }) => <h1 className="text-2xl font-bold text-indigo-900 mt-8 mb-4 border-l-4 border-indigo-500 pl-4" {...props} />,
+                                        h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-indigo-800 mt-6 mb-3 flex items-center gap-2" {...props} />,
+                                        h3: ({ node, ...props }) => <h3 className="text-base font-semibold text-indigo-700 mt-4 mb-2" {...props} />,
+                                        p: ({ node, ...props }) => <p className="text-slate-700 leading-relaxed mb-4" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-2 mb-4 text-slate-700" {...props} />,
+                                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                        strong: ({ node, ...props }) => <strong className="text-indigo-900 font-bold" {...props} />,
+                                        hr: () => <hr className="my-8 border-t border-indigo-200" />
+                                    }}
+                                >
+                                    {typeof analysisData === 'string' ? analysisData : JSON.stringify(analysisData, null, 2)}
+                                </ReactMarkdown>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-6 text-indigo-400">
-                                <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                                <p className="text-sm">Analizando documento...</p>
+                            <div className="flex flex-col items-center justify-center py-12 text-indigo-400 bg-white/50 rounded-xl border border-indigo-100 border-dashed">
+                                <Loader2 className="h-10 w-10 animate-spin mb-4 text-indigo-500" />
+                                <p className="text-base font-semibold text-indigo-900">Analizando Documento</p>
+                                <p className="text-xs text-indigo-600 mt-1">Extrayendo métricas y comparando normativas...</p>
                             </div>
                         )}
                     </CardContent>
