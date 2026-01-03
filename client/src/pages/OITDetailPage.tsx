@@ -571,10 +571,18 @@ export default function OITDetailPage() {
                                                         <Button
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
                                                             onClick={async () => {
-                                                                // Validar si hay ingenieros (aunque sea propuesta AI, puede requerir uno)
-                                                                // Por ahora la AI asigna recursos genéricos, requerimos asignación manual humana
+                                                                // Pre-fill date from AI proposal
+                                                                const dateStr = aiData.data.proposedDate;
+                                                                const timeStr = aiData.data.proposedTime || '09:00';
+                                                                const proposedDate = new Date(`${dateStr}T${timeStr}`);
+
+                                                                setOit((prev: any) => ({
+                                                                    ...prev,
+                                                                    scheduledDate: proposedDate.toISOString()
+                                                                }));
+
                                                                 setIsManualScheduling(true);
-                                                                toast.info("Por favor, confirma la fecha y asigna un ingeniero responsable.");
+                                                                toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
                                                             }}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
