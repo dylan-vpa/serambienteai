@@ -1315,11 +1315,31 @@ export default function OITDetailPage() {
                                             )}
 
                                         {finalAnalysis && (
-                                            <div className="w-full flex justify-center py-6 animate-in fade-in">
-                                                <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-slate-900 hover:bg-slate-800 text-white">
-                                                    <FileDown className="mr-2 h-5 w-5" />
-                                                    Descargar Informe PDF
-                                                </Button>
+                                            <div className="w-full space-y-4 animate-in fade-in">
+                                                {/* Show Analysis Card for Everyone who can view this (Admins & Assigned Engineer) */}
+                                                <Card className="border-green-200 bg-green-50/50">
+                                                    <CardHeader>
+                                                        <CardTitle className="flex items-center gap-2 text-green-800 text-lg">
+                                                            <Sparkles className="h-5 w-5" />
+                                                            Análisis de Supervisión IA
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="prose prose-sm max-w-none text-green-900">
+                                                        <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                                                            {finalAnalysis}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Download Button ONLY for Admin */}
+                                                {isAdmin && (
+                                                    <div className="flex justify-center pt-2">
+                                                        <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-slate-900 hover:bg-slate-800 text-white">
+                                                            <FileDown className="mr-2 h-5 w-5" />
+                                                            Descargar Informe PDF
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
