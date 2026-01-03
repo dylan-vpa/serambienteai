@@ -17,6 +17,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu";
+import { useAuthStore } from '@/features/auth/authStore';
 
 export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -32,6 +33,10 @@ export default function OITDetailPage() {
     // Engineer Scheduling State
     const [availableEngineers, setAvailableEngineers] = useState<any[]>([]);
     const [selectedEngineerIds, setSelectedEngineerIds] = useState<string[]>([]);
+    const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+
+    // Auth for permissions
+    const { user } = useAuthStore();
 
     // Polling for status updates
     useEffect(() => {
@@ -621,6 +626,60 @@ export default function OITDetailPage() {
                                                 </div>
                                             </div>
                                         </div>
+                                    ) : (oit.status === 'SCHEDULED' && !isEditingSchedule) ? (
+                                        <div className="space-y-6 animate-in fade-in">
+                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4 text-indigo-600" />
+                                                            Visita Programada
+                                                        </h4>
+                                                        <p className="text-sm text-slate-500 mt-1">La visita técnica ya ha sido confirmada.</p>
+                                                    </div>
+                                                    <Button variant="outline" size="sm" onClick={() => setIsEditingSchedule(true)}>
+                                                        Editar Programación
+                                                    </Button>
+                                                </div>
+
+                                                <div className="grid md:grid-cols-2 gap-6 pt-2">
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-medium text-slate-500 uppercase">Fecha y Hora</p>
+                                                        <div className="flex items-center gap-2 text-slate-900 font-medium">
+                                                            <Calendar className="h-4 w-4 text-slate-400" />
+                                                            {new Date(oit.scheduledDate).toLocaleDateString()}
+                                                            <span className="text-slate-300">|</span>
+                                                            <Clock className="h-4 w-4 text-slate-400" />
+                                                            {new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-medium text-slate-500 uppercase">Ubicación</p>
+                                                        <div className="flex items-center gap-2 text-slate-900 font-medium">
+                                                            <MapPin className="h-4 w-4 text-slate-400" />
+                                                            {oit.location || 'No especificada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2">
+                                                    <p className="text-xs font-medium text-slate-500 uppercase mb-2">Ingenieros Asignados</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {selectedEngineerIds.map(id => {
+                                                            const eng = availableEngineers.find(e => e.id === id);
+                                                            return eng ? (
+                                                                <Badge key={id} variant="secondary" className="pl-1 pr-3 py-1 bg-indigo-50 text-indigo-700 border-indigo-100 gap-2">
+                                                                    <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-[10px]">
+                                                                        {eng.name.charAt(0)}
+                                                                    </div>
+                                                                    {eng.name}
+                                                                </Badge>
+                                                            ) : null;
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="space-y-6 animate-in fade-in">
                                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
@@ -912,6 +971,26 @@ export default function OITDetailPage() {
 
                     <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {(() => {
+                            // Permission Check: only assigned engineers or SUPER_ADMIN
+                            const isAssigned = selectedEngineerIds.includes(user?.id || '');
+                            const canSample = user?.role === 'SUPER_ADMIN' || isAssigned;
+
+                            if (!canSample) {
+                                return (
+                                    <Card className="border-red-200 bg-red-50/50">
+                                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                            <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                                <Users className="h-8 w-8 text-red-500" />
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-slate-900">Acceso Restringido</h3>
+                                            <p className="text-slate-600 max-w-md mt-2">
+                                                Solo los ingenieros asignados a esta OIT pueden realizar el muestreo.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            }
+
                             // 0. Verification of Conditions (Time & Location)
                             const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
                             if (!isLocationVerified && !isStarted) {
