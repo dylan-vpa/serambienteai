@@ -74,7 +74,7 @@ class PlanningService {
             if (templates.length === 0) {
                 // No templates available, create generic proposal
                 const proposal = {
-                    templateId: null,
+                    templateIds: [],
                     templateName: 'Planeación Genérica',
                     proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
                     proposedTime: '09:00',
@@ -122,36 +122,51 @@ ${templatesList}
 
 **Responde ÚNICAMENTE en formato JSON:**
 {
-  "templateId": "id de la plantilla seleccionada",
-  "reason": "razón de la selección",
+  "templateIds": ["id1", "id2"],
+  "reason": "razón de la selección combinada",
   "confidence": número entre 0 y 1
 }
+Si se requieren múltiples tipos de muestreo (ej: Suelos y Aguas), selecciona ambas plantillas.
         `;
-            let selectedTemplate;
+            let selectedTemplates = [];
             try {
                 const aiResponse = yield aiService.chat(prompt);
                 console.log('AI Response for template selection:', aiResponse);
                 const cleanedResponse = this.cleanAIResponse(aiResponse);
                 const templateSuggestion = JSON.parse(cleanedResponse);
-                selectedTemplate = yield prisma.samplingTemplate.findUnique({
-                    where: { id: templateSuggestion.templateId }
-                });
+                // Normalize response (array vs single)
+                const ids = templateSuggestion.templateIds || (templateSuggestion.templateId ? [templateSuggestion.templateId] : []);
+                if (ids.length > 0) {
+                    selectedTemplates = yield prisma.samplingTemplate.findMany({
+                        where: { id: { in: ids } }
+                    });
+                    // Re-sort to match AI order if possible, or keep DB order. AI order might be better for sequence.
+                }
             }
             catch (error) {
                 console.error('Failed to parse AI response:', error);
                 console.error('Error details:', error instanceof Error ? error.message : String(error));
             }
-            // Fallback to first template if AI fails
-            if (!selectedTemplate) {
-                selectedTemplate = templates[0];
+            // Fallback to first template if AI fails or returns nothing
+            if (selectedTemplates.length === 0) {
+                selectedTemplates = [templates[0]];
             }
+            // Combine steps from all templates
+            let combinedSteps = [];
+            selectedTemplates.forEach(t => {
+                try {
+                    const steps = JSON.parse(t.steps);
+                    combinedSteps = [...combinedSteps, ...steps];
+                }
+                catch (e) { }
+            });
             const proposal = {
-                templateId: selectedTemplate.id,
-                templateName: selectedTemplate.name,
+                templateIds: selectedTemplates.map(t => t.id),
+                templateName: selectedTemplates.map(t => t.name).join(' + '),
                 proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 proposedTime: '09:00',
-                steps: JSON.parse(selectedTemplate.steps),
-                assignedResources: resources.slice(0, 3),
+                steps: combinedSteps,
+                assignedResources: resources.slice(0, 3), // AI usually improves this via other calls
                 estimatedDuration: '4 horas'
             };
             let currentAiData = { valid: true, data: {} };
@@ -168,7 +183,7 @@ ${templatesList}
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
-                    selectedTemplateId: selectedTemplate.id,
+                    selectedTemplateIds: JSON.stringify(selectedTemplates.map(t => t.id)),
                     aiData: JSON.stringify(Object.assign(Object.assign({}, currentAiData), { message: 'Propuesta de planificación generada', data: Object.assign(Object.assign({}, currentAiData.data), proposal) })),
                     planningProposal: JSON.stringify(proposal)
                 }
@@ -193,7 +208,7 @@ ${templatesList}
                 where: { id: oitId },
                 data: {
                     planningProposal: null,
-                    selectedTemplateId: null
+                    selectedTemplateIds: null
                 }
             });
         });
