@@ -571,18 +571,40 @@ export default function OITDetailPage() {
                                                         <Button
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
                                                             onClick={async () => {
-                                                                // Pre-fill date from AI proposal
-                                                                const dateStr = aiData.data.proposedDate;
-                                                                const timeStr = aiData.data.proposedTime || '09:00';
-                                                                const proposedDate = new Date(`${dateStr}T${timeStr}`);
+                                                                try {
+                                                                    const dateStr = aiData.data.proposedDate;
+                                                                    const timeStr = aiData.data.proposedTime || '09:00';
 
-                                                                setOit((prev: any) => ({
-                                                                    ...prev,
-                                                                    scheduledDate: proposedDate.toISOString()
-                                                                }));
+                                                                    // Validar que dateStr existe
+                                                                    if (!dateStr) throw new Error("Fecha no disponible");
 
+                                                                    // Intentar parsing básico
+                                                                    let proposedDate = new Date(`${dateStr}T${timeStr}`);
+
+                                                                    // Si falla, intentar solo fecha
+                                                                    if (isNaN(proposedDate.getTime())) {
+                                                                        proposedDate = new Date(dateStr);
+                                                                    }
+
+                                                                    // Si sigue fallando
+                                                                    if (isNaN(proposedDate.getTime())) {
+                                                                        console.error("Fecha inválida recibida:", dateStr);
+                                                                        toast.error("Error al procesar la fecha propuesta. Por favor selecciónala manualmente.");
+                                                                        setIsManualScheduling(true);
+                                                                        return;
+                                                                    }
+
+                                                                    setOit((prev: any) => ({
+                                                                        ...prev,
+                                                                        scheduledDate: proposedDate.toISOString()
+                                                                    }));
+
+                                                                    toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
+                                                                } catch (e) {
+                                                                    console.error("Error setting date:", e);
+                                                                    toast.warning("No se pudo cargar la fecha automáticamente.");
+                                                                }
                                                                 setIsManualScheduling(true);
-                                                                toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
                                                             }}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
