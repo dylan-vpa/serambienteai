@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Lock, AlertCircle, Loader2, Camera, Upload } from 'lucide-react';
-import api from '@/lib/api';
 import { toast } from 'sonner';
 import type { TemplateStep } from '@/types/sampling';
 
@@ -19,7 +18,7 @@ interface ValidationResult {
 }
 
 interface SamplingStepProps {
-    oitId: string;
+    // oitId: string; // Removed unused
     step: TemplateStep;
     stepIndex: number;
     isLocked: boolean;
@@ -28,7 +27,6 @@ interface SamplingStepProps {
 }
 
 export function SamplingStep({
-    oitId,
     step,
     stepIndex,
     isLocked,

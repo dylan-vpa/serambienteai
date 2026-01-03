@@ -1283,7 +1283,6 @@ export default function OITDetailPage() {
                                                 return (
                                                     <SamplingStep
                                                         key={index}
-                                                        oitId={id!}
                                                         step={step}
                                                         stepIndex={index}
                                                         isLocked={isLocked}
