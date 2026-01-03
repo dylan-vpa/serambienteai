@@ -36,7 +36,7 @@ export function SamplingStep({
     onValidationComplete
 }: SamplingStepProps) {
     const [value, setValue] = useState<any>('');
-    const [files, setFiles] = useState<File[]>([]);
+    const [files] = useState<File[]>([]);
     const [comment, setComment] = useState('');
     const [isValidating, setIsValidating] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);

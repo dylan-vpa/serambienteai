@@ -307,37 +307,43 @@ export default function CalendarPage() {
                 </CardHeader>
                 <CardContent className="p-4 flex-1 flex flex-col min-h-0">
                     <div className="flex-1 min-h-0">
-                        <Calendar
-                            localizer={localizer}
-                            events={events}
-                            startAccessor="start"
-                            endAccessor="end"
-                            style={{ height: '100%' }}
-                            views={['month', 'week', 'day', 'agenda']}
-                            view={view}
-                            onView={setView}
-                            date={date}
-                            onNavigate={setDate}
-                            messages={{
-                                next: "Siguiente",
-                                previous: "Anterior",
-                                today: "Hoy",
-                                month: "Mes",
-                                week: "Semana",
-                                day: "Día",
-                                agenda: "Agenda",
-                                date: "Fecha",
-                                time: "Hora",
-                                event: "Evento",
-                                noEventsInRange: "No hay eventos en este rango",
-                            }}
-                            culture='es'
-                            eventPropGetter={getEventStyle}
-                            onSelectEvent={onSelectEvent}
-                            components={{
-                                toolbar: CustomToolbar
-                            }}
-                        />
+                        {isLoading ? (
+                            <div className="h-full flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+                            </div>
+                        ) : (
+                            <Calendar
+                                localizer={localizer}
+                                events={events}
+                                startAccessor="start"
+                                endAccessor="end"
+                                style={{ height: '100%' }}
+                                views={['month', 'week', 'day', 'agenda']}
+                                view={view}
+                                onView={setView}
+                                date={date}
+                                onNavigate={setDate}
+                                messages={{
+                                    next: "Siguiente",
+                                    previous: "Anterior",
+                                    today: "Hoy",
+                                    month: "Mes",
+                                    week: "Semana",
+                                    day: "Día",
+                                    agenda: "Agenda",
+                                    date: "Fecha",
+                                    time: "Hora",
+                                    event: "Evento",
+                                    noEventsInRange: "No hay eventos en este rango",
+                                }}
+                                culture='es'
+                                eventPropGetter={getEventStyle}
+                                onSelectEvent={onSelectEvent}
+                                components={{
+                                    toolbar: CustomToolbar
+                                }}
+                            />
+                        )}
                     </div>
                 </CardContent>
             </Card>

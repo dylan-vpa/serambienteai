@@ -5,25 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, MoreHorizontal, FileText, Scale, Download, Edit, Trash2 } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,6 +14,7 @@ import {
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Plus, MoreHorizontal, FileText, Scale, Download, Edit, Trash2 } from 'lucide-react';
 
 interface Standard {
     id: string;
@@ -49,14 +31,6 @@ export default function StandardsPage() {
     const [filteredStandards, setFilteredStandards] = useState<Standard[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        type: 'OIT',
-        fileUrl: ''
-    });
 
     useEffect(() => {
         fetchStandards();
@@ -74,7 +48,6 @@ export default function StandardsPage() {
         } catch (error) {
             console.error('Error fetching standards:', error);
             toast.error('No se pudieron cargar las normas. Verifica la conexión.');
-            // Set empty array to allow UI to render empty state
             setStandards([]);
             setFilteredStandards([]);
         } finally {
@@ -93,36 +66,6 @@ export default function StandardsPage() {
             std.description.toLowerCase().includes(lowerTerm)
         );
         setFilteredStandards(filtered);
-    };
-
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-    const handleCreate = async () => {
-        try {
-            setIsCreating(true);
-            const data = new FormData();
-            data.append('title', formData.title);
-            data.append('description', formData.description);
-            data.append('type', formData.type);
-            if (selectedFile) {
-                data.append('file', selectedFile);
-            }
-
-            const response = await api.post('/standards', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            setStandards([response.data, ...standards]);
-            setIsDialogOpen(false);
-            setFormData({ title: '', description: '', type: 'OIT', fileUrl: '' });
-            setSelectedFile(null);
-            toast.success('Norma creada exitosamente');
-        } catch (error) {
-            console.error('Error creating standard:', error);
-            toast.error('Error al crear norma');
-        } finally {
-            setIsCreating(false);
-        }
     };
 
     const handleDelete = async (id: string) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -36,7 +36,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
-    const currentUser = useAuthStore((state) => state.user);
+    const currentUser = useAuthStore((state: any) => state.user);
 
     useEffect(() => {
         fetchUsers();
@@ -67,7 +67,7 @@ export default function UsersPage() {
         setUpdatingId(userId);
         try {
             await api.put(`/users/${userId}/role`, { role: newRole });
-            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+            setUsers(users.map((u: UserData) => u.id === userId ? { ...u, role: newRole } : u));
             toast.success('Rol actualizado correctamente');
         } catch (error: any) {
             console.error('Error updating role:', error);
