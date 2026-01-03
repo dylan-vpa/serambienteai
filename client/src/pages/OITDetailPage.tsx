@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
 import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
@@ -1326,7 +1327,16 @@ export default function OITDetailPage() {
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="prose prose-sm max-w-none text-green-900 px-6 py-4">
-                                                        <ReactMarkdown>
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm]}
+                                                            components={{
+                                                                table: ({ node, ...props }) => <div className="overflow-x-auto my-4 rounded-lg border border-green-200"><table className="w-full text-sm text-left" {...props} /></div>,
+                                                                thead: ({ node, ...props }) => <thead className="bg-green-100 text-green-900 font-semibold" {...props} />,
+                                                                th: ({ node, ...props }) => <th className="px-4 py-2 border-b border-green-200" {...props} />,
+                                                                td: ({ node, ...props }) => <td className="px-4 py-2 border-b border-green-200/50" {...props} />,
+                                                                tr: ({ node, ...props }) => <tr className="even:bg-green-50/30" {...props} />
+                                                            }}
+                                                        >
                                                             {finalAnalysis}
                                                         </ReactMarkdown>
                                                     </CardContent>
