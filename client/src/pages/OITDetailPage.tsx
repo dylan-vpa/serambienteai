@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 import api from '@/lib/api';
 import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
@@ -1324,10 +1325,10 @@ export default function OITDetailPage() {
                                                             Análisis de Supervisión IA
                                                         </CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="prose prose-sm max-w-none text-green-900">
-                                                        <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                                                    <CardContent className="prose prose-sm max-w-none text-green-900 px-6 py-4">
+                                                        <ReactMarkdown>
                                                             {finalAnalysis}
-                                                        </div>
+                                                        </ReactMarkdown>
                                                     </CardContent>
                                                 </Card>
 
