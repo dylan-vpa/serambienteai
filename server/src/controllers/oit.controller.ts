@@ -1179,7 +1179,7 @@ export const generateFinalReport = async (req: Request, res: Response) => {
 
         res.setHeader('Content-Disposition', `attachment; filename=${generatedFileName}`);
         res.setHeader('Content-Type', isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
-        res.send(generatedFileBuffer);
+        res.send(generatedFileBuffer!);
 
     } catch (error) {
         console.error('Final Report Error:', error);
