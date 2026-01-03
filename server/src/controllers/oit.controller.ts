@@ -267,6 +267,17 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
 
         console.log(`Lab analysis completed for OIT ${oitId}`);
 
+        // Automatically generate final report if analysis was successful
+        if (!analysis.includes('Error')) {
+            console.log(`Triggering automatic report generation for OIT ${oitId}`);
+            try {
+                await internalGenerateFinalReport(oitId);
+                console.log(`Automatic report generation successful for OIT ${oitId}`);
+            } catch (reportErr) {
+                console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
+            }
+        }
+
     } catch (error: any) {
         console.error('Background lab analysis failed:', error);
         await prisma.oIT.update({
@@ -277,6 +288,131 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
             } as any
         });
     }
+}
+
+// Reusable report generation logic
+async function internalGenerateFinalReport(id: string) {
+    const { pdfService } = require('../services/pdf.service');
+    const { validationService } = require('../services/validation.service');
+    const marked = require('marked');
+
+    const oit = await prisma.oIT.findUnique({ where: { id } });
+    if (!oit) throw new Error('OIT no encontrada');
+
+    // 1. Extract Lab Text if available
+    let labText = '';
+    if (oit.labResultsUrl) {
+        const uploadsRoot = path.join(__dirname, '../../');
+        const potentialPath = path.join(uploadsRoot, oit.labResultsUrl);
+        if (fs.existsSync(potentialPath)) {
+            labText = await pdfService.extractText(potentialPath);
+        } else {
+            const potentialPath2 = path.join(uploadsRoot, 'uploads', oit.labResultsUrl);
+            if (fs.existsSync(potentialPath2)) {
+                labText = await pdfService.extractText(potentialPath2);
+            }
+        }
+    }
+
+    // 2. AI Generation
+    const reportMarkdown = await validationService.generateFinalReportContent(oit, labText);
+    const date = new Date().toLocaleDateString('es-CO');
+
+    // 3. Try to generate Word report if template exists
+    let generatedFileBuffer: Buffer | null = null;
+    let generatedFileName = '';
+    let isDocx = false;
+
+    try {
+        const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
+        if (templateIds.length > 0) {
+            const template = await prisma.samplingTemplate.findUnique({
+                where: { id: templateIds[0] }
+            });
+
+            if (template && template.reportTemplateFile) {
+                const { docxService } = require('../services/docx.service');
+                const docxData = {
+                    oitNumber: oit.oitNumber,
+                    description: oit.description || '',
+                    location: oit.location || '',
+                    date: date,
+                    analysis: reportMarkdown.replace(/[#*`]/g, ''),
+                    narrative: reportMarkdown,
+                    client: oit.description?.split(':')[0] || 'Cliente'
+                };
+
+                generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
+                generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
+                isDocx = true;
+            }
+        }
+    } catch (docxErr) {
+        console.error('Word generation error, falling back to PDF:', docxErr);
+    }
+
+    if (!isDocx) {
+        // Fallback: Convert to HTML & PDF 
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                    h1, h2, h3, h4, h5, h6 { color: #14532d; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
+                    h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 28px; }
+                    h2 { background: #f0fdf4; padding: 10px 15px; border-left: 5px solid #22c55e; font-size: 20px; border-radius: 4px; }
+                    h3 { font-size: 18px; color: #15803d; }
+                    p { margin-bottom: 15px; text-align: justify; }
+                    ul, ol { margin-bottom: 15px; padding-left: 20px; }
+                    li { margin-bottom: 6px; }
+                    strong { color: #14532d; }
+                    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; }
+                    thead { background-color: #dcfce7; color: #14532d; }
+                    th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #bbf7d0; }
+                    td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                    tr:nth-child(even) { background-color: #f0fdf4; }
+                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; }
+                    .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="meta">
+                    <div>
+                        <strong style="font-size: 1.2em; color: #14532d;">ALS V2 - Informe de Supervisión IA</strong><br>
+                        <span style="color: #64748b;">Sistema de Gestión Ambiental</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>OIT:</strong> ${oit.oitNumber}<br>
+                        <strong>Fecha:</strong> ${date}
+                    </div>
+                </div>
+                <div class="content">
+                    ${marked.parse(reportMarkdown)}
+                </div>
+                <div class="footer">
+                    Este documento ha sido generado automáticamente por el sistema ALS V2.
+                </div>
+            </body>
+            </html>
+        `;
+
+        generatedFileName = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
+        const pdfPath = await pdfService.generatePDFFromHTML(htmlContent, generatedFileName);
+        generatedFileBuffer = fs.readFileSync(pdfPath);
+    } else {
+        const outputPath = path.join(__dirname, '../../uploads', generatedFileName);
+        fs.writeFileSync(outputPath, generatedFileBuffer!);
+    }
+
+    if (!generatedFileBuffer) throw new Error('No se pudo generar el contenido del informe');
+
+    await prisma.oIT.update({
+        where: { id },
+        data: { finalReportUrl: generatedFileName }
+    });
+
+    return { generatedFileBuffer, generatedFileName, isDocx };
 }
 
 // Generate Final Report
@@ -1033,153 +1169,11 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
 export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const oit = await prisma.oIT.findUnique({ where: { id } });
-
-        if (!oit) {
-            return res.status(404).json({ error: 'OIT no encontrada' });
-        }
-
-        const { pdfService } = require('../services/pdf.service');
-        const { validationService } = require('../services/validation.service');
-
-        // 1. Extract Lab Results Text (from previously uploaded file via PATCH)
-        let labText = 'No hay resultados de laboratorio adjuntos.';
-        if (oit.labResultsUrl) {
-            const uploadsRoot = path.join(__dirname, '../../');
-            if (!oit.labResultsUrl.startsWith('http')) {
-                // If labResultsUrl is just filename or relative path
-                // Check if it exists in uploads/ OR uploads/lab_results/
-                // For now, assuming oit.labResultsUrl is what was stored (e.g. "uploads/filename")
-                const potentialPath = path.join(uploadsRoot, oit.labResultsUrl);
-                if (fs.existsSync(potentialPath)) {
-                    labText = await pdfService.extractText(potentialPath);
-                } else {
-                    // Try just uploads/ + filename if URL is just filename
-                    const potentialPath2 = path.join(uploadsRoot, 'uploads', oit.labResultsUrl);
-                    if (fs.existsSync(potentialPath2)) {
-                        labText = await pdfService.extractText(potentialPath2);
-                    }
-                }
-            }
-        }
-
-        // 2. AI Generation
-        const reportMarkdown = await validationService.generateFinalReportContent(oit, labText);
-
-        const date = new Date().toLocaleDateString('es-CO');
-        // 3. Try to generate Word report if template exists
-        let generatedFileBuffer: Buffer | null = null;
-        let generatedFileName = '';
-        let isDocx = false;
-
-        try {
-            const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
-            if (templateIds.length > 0) {
-                const template = await prisma.samplingTemplate.findUnique({
-                    where: { id: templateIds[0] }
-                });
-
-                if (template && template.reportTemplateFile) {
-                    const { docxService } = require('../services/docx.service');
-                    // Prepare data for Word template (simple mapping)
-                    const docxData = {
-                        oitNumber: oit.oitNumber,
-                        description: oit.description || '',
-                        location: oit.location || '',
-                        date: date,
-                        analysis: reportMarkdown.replace(/[#*`]/g, ''), // Strip MD for Word
-                        narrative: reportMarkdown, // Keep original for reference
-                        client: oit.description?.split(':')[0] || 'Cliente'
-                    };
-
-                    generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
-                    generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
-                    isDocx = true;
-                }
-            }
-        } catch (docxErr) {
-            console.error('Word generation error, falling back to PDF:', docxErr);
-        }
-
-        if (!isDocx) {
-            // Fallback: Convert to HTML & PDF 
-            const htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                        h1, h2, h3, h4, h5, h6 { color: #14532d; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
-                        h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 28px; }
-                        h2 { background: #f0fdf4; padding: 10px 15px; border-left: 5px solid #22c55e; font-size: 20px; border-radius: 4px; }
-                        h3 { font-size: 18px; color: #15803d; }
-                        p { margin-bottom: 15px; text-align: justify; }
-                        ul, ol { margin-bottom: 15px; padding-left: 20px; }
-                        li { margin-bottom: 6px; }
-                        strong { color: #14532d; }
-                        
-                        /* Table Styles matching Frontend */
-                        table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; }
-                        thead { background-color: #dcfce7; color: #14532d; }
-                        th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #bbf7d0; }
-                        td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-                        tr:nth-child(even) { background-color: #f0fdf4; }
-                        tr:hover { background-color: #ecfdf5; }
-
-                        .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; }
-                        .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
-                        blockquote { border-left: 4px solid #22c55e; padding-left: 16px; font-style: italic; color: #475569; margin: 20px 0; background-color: #f8fafc; padding: 12px 16px; border-radius: 0 4px 4px 0; }
-                        code { background-color: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; color: #0f172a; }
-                        pre { background-color: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; }
-                        hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
-                        a { color: #16a34a; text-decoration: none; }
-                    </style>
-                </head>
-                <body>
-                    <div class="meta">
-                        <div>
-                            <strong style="font-size: 1.2em; color: #14532d;">ALS V2 - Informe de Supervisión IA</strong><br>
-                            <span style="color: #64748b;">Sistema de Gestión Ambiental</span>
-                        </div>
-                        <div style="text-align: right;">
-                            <strong>OIT:</strong> ${oit.oitNumber}<br>
-                            <strong>Fecha:</strong> ${date}
-                        </div>
-                    </div>
-                    
-                    <div class="content">
-                        ${marked.parse(reportMarkdown)}
-                    </div>
-
-                    <div class="footer">
-                        Este documento ha sido generado automáticamente por el sistema ALS V2.
-                    </div>
-                </body>
-                </html>
-            `;
-
-            generatedFileName = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
-            const pdfPath = await pdfService.generatePDFFromHTML(htmlContent, generatedFileName);
-            generatedFileBuffer = fs.readFileSync(pdfPath);
-        } else {
-            // Write Word buffer to file so it can be downloaded/served
-            const outputPath = path.join(__dirname, '../../uploads', generatedFileName);
-            fs.writeFileSync(outputPath, generatedFileBuffer!);
-        }
-
-        // 4. Update OIT
-        if (!generatedFileBuffer) {
-            throw new Error('No se pudo generar el contenido del informe');
-        }
-
-        await prisma.oIT.update({
-            where: { id },
-            data: { finalReportUrl: generatedFileName }
-        });
+        const { generatedFileBuffer, generatedFileName, isDocx } = await internalGenerateFinalReport(id);
 
         res.setHeader('Content-Disposition', `attachment; filename=${generatedFileName}`);
         res.setHeader('Content-Type', isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
-        res.send(generatedFileBuffer!);
+        res.send(generatedFileBuffer);
 
     } catch (error) {
         console.error('Final Report Error:', error);
