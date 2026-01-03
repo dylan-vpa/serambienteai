@@ -12,10 +12,11 @@ model User {
   email         String         @unique
   password      String
   name          String
-  role          String         @default("USER") // ADMIN, USER
+  role          String         @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   notifications Notification[]
+  assignedOITs  OITAssignment[]
 }
 
 model OIT {
@@ -44,6 +45,18 @@ model OIT {
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]
+  assignedEngineers     OITAssignment[]
+}
+
+model OITAssignment {
+  id          String   @id @default(uuid())
+  oitId       String
+  oit         OIT      @relation(fields: [oitId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@unique([oitId, userId])
 }
 
 model Resource {
@@ -80,11 +93,12 @@ model Standard {
 }
 
 model SamplingTemplate {
-  id          String   @id @default(uuid())
-  name        String
-  description String
-  oitType     String   // Tipo de OIT al que aplica
-  steps       String   // JSON con los pasos del flujo
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String
+  description         String
+  oitType             String   // Tipo de OIT al que aplica
+  steps               String   // JSON con los pasos del flujo
+  reportTemplateFile  String?  // Nombre del archivo .docx de plantilla de informe
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

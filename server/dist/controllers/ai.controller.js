@@ -41,7 +41,7 @@ Eres un asistente experto del sistema ALS V2 para gestión de Órdenes de Inspec
 CONTEXTO DE LA BASE DE DATOS:
 
 📊 OITs EN SISTEMA (${oits.length} total):
-${oits.slice(0, 10).map(oit => `
+${oits.slice(0, 10).map((oit) => `
 - OIT #${oit.oitNumber}
   Estado: ${oit.status}
   Descripción: ${oit.description || 'N/A'}
@@ -52,7 +52,7 @@ ${oits.slice(0, 10).map(oit => `
 ${oits.length > 10 ? `... y ${oits.length - 10} OITs más` : ''}
 
 🧪 PLANTILLAS DE MUESTREO (${templates.length} total):
-${templates.map(t => `
+${templates.map((t) => `
 - ${t.name}
   Tipo OIT: ${t.oitType}
   Descripción: ${t.description}
@@ -60,25 +60,25 @@ ${templates.map(t => `
 `).join('\n')}
 
 📋 NORMAS Y ESTÁNDARES (${standards.length} total):
-${standards.map(s => `
+${standards.map((s) => `
 - ${s.title}
   Tipo: ${s.type}
   Descripción: ${s.description}
 `).join('\n')}
 
 🔧 RECURSOS DISPONIBLES (${resources.length} total):
-${resources.map(r => `
+${resources.map((r) => `
 - ${r.name} (${r.type})
   Cantidad: ${r.quantity}
   Estado: ${r.status}
 `).join('\n')}
 
 ESTADÍSTICAS:
-- OITs Pendientes: ${oits.filter(o => o.status === 'PENDING').length}
-- OITs En Análisis: ${oits.filter(o => o.status === 'ANALYZING').length}
-- OITs Agendados: ${oits.filter(o => o.status === 'SCHEDULED').length}
-- OITs En Progreso: ${oits.filter(o => o.status === 'IN_PROGRESS').length}
-- OITs Completados: ${oits.filter(o => o.status === 'COMPLETED').length}
+- OITs Pendientes: ${oits.filter((o) => o.status === 'PENDING').length}
+- OITs En Análisis: ${oits.filter((o) => o.status === 'ANALYZING').length}
+- OITs Agendados: ${oits.filter((o) => o.status === 'SCHEDULED').length}
+- OITs En Progreso: ${oits.filter((o) => o.status === 'IN_PROGRESS').length}
+- OITs Completados: ${oits.filter((o) => o.status === 'COMPLETED').length}
 
 Usa esta información para dar respuestas precisas y útiles sobre el estado del sistema.
 
@@ -229,11 +229,15 @@ const validateOITDocuments = (req, res) => __awaiter(void 0, void 0, void 0, fun
             },
         ];
         console.log('🤖 [VALIDATE] Enviando a servicio de IA...');
-        const result = yield ai_service_1.aiService.extractOITDataCombined({
-            textOIT: oitText,
-            textQuotation: quotationText,
-            files: fileSummaries,
-        });
+        // Combine both texts for analysis
+        const combinedText = `
+OIT Document:
+${oitText}
+
+Cotización Document:
+${quotationText}
+        `.trim();
+        const result = yield ai_service_1.aiService.extractOITData(combinedText);
         console.log('✅ [VALIDATE] Respuesta de IA recibida:', result);
         return res.status(200).json(result);
     }

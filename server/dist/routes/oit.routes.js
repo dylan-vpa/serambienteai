@@ -5,8 +5,8 @@ const oit_controller_1 = require("../controllers/oit.controller");
 const multer_1 = require("../config/multer");
 const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
-router.get('/', oit_controller_1.getAllOITs);
-router.get('/:id', oit_controller_1.getOITById);
+router.get('/', auth_middleware_1.authMiddleware, oit_controller_1.getAllOITs);
+router.get('/:id', auth_middleware_1.authMiddleware, oit_controller_1.getOITById);
 router.post('/', oit_controller_1.createOIT);
 // Async creation endpoint with file uploads (oitFile and quotationFile)
 router.post('/async', auth_middleware_1.authMiddleware, multer_1.upload.fields([
@@ -34,4 +34,7 @@ router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controll
 router.post('/:id/finalize-sampling', auth_middleware_1.authMiddleware, oit_controller_1.finalizeSampling);
 router.get('/:id/sampling-report', auth_middleware_1.authMiddleware, oit_controller_1.generateSamplingReport);
 router.delete('/:id', oit_controller_1.deleteOIT);
+// Engineer assignment endpoints
+router.post('/:id/assign-engineers', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.assignEngineers);
+router.get('/:id/engineers', auth_middleware_1.authMiddleware, oit_controller_1.getAssignedEngineers);
 exports.default = router;

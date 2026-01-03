@@ -40,7 +40,7 @@ export class ComplianceService {
         }
 
         // Build detailed prompt for AI with OIT data and Standards
-        const standardsList = standards.map(s =>
+        const standardsList = standards.map((s: any) =>
             `- **${s.title}**: ${s.description}`
         ).join('\n');
 

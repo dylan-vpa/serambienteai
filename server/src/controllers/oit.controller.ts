@@ -232,13 +232,123 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
 // Generate Final Report
 
 
-// Get all OIT records
+// Assign Engineers to OIT
+export const assignEngineers = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { engineerIds } = req.body; // Array of user IDs
+
+        if (!Array.isArray(engineerIds)) {
+            return res.status(400).json({ error: 'engineerIds debe ser un array' });
+        }
+
+        // Verify OIT exists
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        // Remove existing assignments
+        await prisma.oITAssignment.deleteMany({
+            where: { oitId: id }
+        });
+
+        // Create new assignments
+        if (engineerIds.length > 0) {
+            await prisma.oITAssignment.createMany({
+                data: engineerIds.map((userId: string) => ({
+                    oitId: id,
+                    userId
+                }))
+            });
+        }
+
+        // Get updated OIT with assignments
+        const updatedOit = await prisma.oIT.findUnique({
+            where: { id },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        res.json({
+            success: true,
+            assignedEngineers: updatedOit?.assignedEngineers.map((a: any) => a.user) || []
+        });
+    } catch (error) {
+        console.error('Error assigning engineers:', error);
+        res.status(500).json({ error: 'Error al asignar ingenieros' });
+    }
+};
+
+// Get assigned engineers for an OIT
+export const getAssignedEngineers = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const assignments = await prisma.oITAssignment.findMany({
+            where: { oitId: id },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true, role: true }
+                }
+            }
+        });
+
+        res.json(assignments.map((a: any) => a.user));
+    } catch (error) {
+        console.error('Error getting assigned engineers:', error);
+        res.status(500).json({ error: 'Error al obtener ingenieros asignados' });
+    }
+};
+
+// Get all OIT records (filtered by role)
 export const getAllOITs = async (req: Request, res: Response) => {
     try {
+        const user = (req as any).user;
+        const userRole = user?.role;
+        const userId = user?.userId;
+
+        // If user is ENGINEER, only show OITs assigned to them
+        let whereClause: any = {};
+
+        if (userRole === 'ENGINEER' && userId) {
+            whereClause = {
+                assignedEngineers: {
+                    some: {
+                        userId: userId
+                    }
+                }
+            };
+        }
+
         const oits = await prisma.oIT.findMany({
+            where: whereClause,
             orderBy: { createdAt: 'desc' },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
         });
-        res.status(200).json(oits);
+
+        // Map to include engineers in a cleaner format
+        const result = oits.map((oit: any) => ({
+            ...oit,
+            engineers: oit.assignedEngineers.map((a: any) => a.user)
+        }));
+
+        res.status(200).json(result);
     } catch (error) {
         console.error('Error in getAllOITs:', error);
         res.status(500).json({ message: 'Something went wrong', error: String(error) });
@@ -249,11 +359,37 @@ export const getAllOITs = async (req: Request, res: Response) => {
 export const getOITById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const oit = await prisma.oIT.findUnique({ where: { id } });
+        const user = (req as any).user;
+
+        const oit = await prisma.oIT.findUnique({
+            where: { id },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+
         if (!oit) {
             return res.status(404).json({ message: 'OIT not found' });
         }
-        res.status(200).json(oit);
+
+        // If user is ENGINEER, check if they are assigned
+        if (user?.role === 'ENGINEER') {
+            const isAssigned = oit.assignedEngineers.some((a: any) => a.userId === user.userId);
+            if (!isAssigned) {
+                return res.status(403).json({ message: 'No tienes acceso a esta OIT' });
+            }
+        }
+
+        res.status(200).json({
+            ...oit,
+            engineers: oit.assignedEngineers.map((a: any) => a.user)
+        });
     } catch (error) {
         console.error('Error in getOITById:', error);
         res.status(500).json({ message: 'Something went wrong', error: String(error) });

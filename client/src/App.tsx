@@ -18,6 +18,7 @@ import CreateStandardPage from '@/pages/CreateStandardPage';
 import CreateTemplatePage from '@/pages/CreateTemplatePage';
 import EditStandardPage from '@/pages/EditStandardPage';
 import EditTemplatePage from '@/pages/EditTemplatePage';
+import UsersPage from '@/pages/UsersPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="oits/:id" element={<OITDetailPage />} />
             <Route path="resources" element={<ResourcesPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="users" element={<UsersPage />} />
             <Route path="standards" element={<StandardsPage />} />
             <Route path="standards/create" element={<CreateStandardPage />} />
             <Route path="standards/edit/:id" element={<EditStandardPage />} />

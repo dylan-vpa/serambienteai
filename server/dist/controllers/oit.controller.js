@@ -45,8 +45,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.uploadLabResults = exports.getSamplingData = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
+const ai_service_1 = require("../services/ai.service");
+const aiService = new ai_service_1.AIService();
 const notification_controller_1 = require("./notification.controller");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -180,6 +182,7 @@ const getSamplingData = (req, res) => __awaiter(void 0, void 0, void 0, function
 });
 exports.getSamplingData = getSamplingData;
 // Upload Lab Results
+// Upload Lab Results
 const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -187,13 +190,25 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
         if (!file) {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
+        // 1. Return immediate response and set status to ANALYZING
         const oit = yield prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: file.path
+                labResultsUrl: file.path,
+                labResultsAnalysis: null, // Clear previous analysis
+                status: 'ANALYZING'
             }
         });
-        res.json({ success: true, labResultsUrl: file.path, oit });
+        res.json({
+            success: true,
+            labResultsUrl: file.path,
+            status: 'ANALYZING',
+            message: 'Resultados subidos. Análisis en curso...'
+        });
+        // 2. Trigger asynchronous processing
+        processLabResultsAsync(id, file.path).catch(err => {
+            console.error('Error in background lab processing:', err);
+        });
     }
     catch (error) {
         console.error('Error uploading lab results:', error);
@@ -201,17 +216,160 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.uploadLabResults = uploadLabResults;
+// Background Processor for Lab Results
+function processLabResultsAsync(oitId, filePath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            console.log(`Starting background lab analysis for OIT ${oitId}`);
+            const { pdfService } = require('../services/pdf.service');
+            let extractedText = '';
+            try {
+                if (filePath.endsWith('.pdf')) {
+                    extractedText = yield pdfService.extractText(filePath);
+                }
+                else {
+                    extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                }
+            }
+            catch (readErr) {
+                console.error("Error extracting text from lab file:", readErr);
+                extractedText = "Error al leer documento de laboratorio.";
+            }
+            // Get OIT Context for better analysis
+            const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
+            const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
+            // Analyze with AI - Now returns text
+            const analysis = yield aiService.analyzeLabResults(extractedText || "Texto no extraído", oitContext);
+            // Update OIT with results - Save as plain text
+            yield prisma.oIT.update({
+                where: { id: oitId },
+                data: {
+                    labResultsAnalysis: analysis, // Save as text, not JSON
+                    status: analysis.includes('Error') ? 'REVIEW_NEEDED' : 'COMPLETED'
+                }
+            });
+            console.log(`Lab analysis completed for OIT ${oitId}`);
+        }
+        catch (error) {
+            console.error('Background lab analysis failed:', error);
+            yield prisma.oIT.update({
+                where: { id: oitId },
+                data: {
+                    labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente.",
+                    status: 'REVIEW_NEEDED'
+                }
+            });
+        }
+    });
+}
 // Generate Final Report
-// Get all OIT records
-const getAllOITs = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// Assign Engineers to OIT
+const assignEngineers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const oits = yield prisma.oIT.findMany({
-            orderBy: { createdAt: 'desc' },
+        const { id } = req.params;
+        const { engineerIds } = req.body; // Array of user IDs
+        if (!Array.isArray(engineerIds)) {
+            return res.status(400).json({ error: 'engineerIds debe ser un array' });
+        }
+        // Verify OIT exists
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+        // Remove existing assignments
+        yield prisma.oITAssignment.deleteMany({
+            where: { oitId: id }
         });
-        res.status(200).json(oits);
+        // Create new assignments
+        if (engineerIds.length > 0) {
+            yield prisma.oITAssignment.createMany({
+                data: engineerIds.map((userId) => ({
+                    oitId: id,
+                    userId
+                }))
+            });
+        }
+        // Get updated OIT with assignments
+        const updatedOit = yield prisma.oIT.findUnique({
+            where: { id },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+        res.json({
+            success: true,
+            assignedEngineers: (updatedOit === null || updatedOit === void 0 ? void 0 : updatedOit.assignedEngineers.map((a) => a.user)) || []
+        });
     }
     catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        console.error('Error assigning engineers:', error);
+        res.status(500).json({ error: 'Error al asignar ingenieros' });
+    }
+});
+exports.assignEngineers = assignEngineers;
+// Get assigned engineers for an OIT
+const getAssignedEngineers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const assignments = yield prisma.oITAssignment.findMany({
+            where: { oitId: id },
+            include: {
+                user: {
+                    select: { id: true, name: true, email: true, role: true }
+                }
+            }
+        });
+        res.json(assignments.map((a) => a.user));
+    }
+    catch (error) {
+        console.error('Error getting assigned engineers:', error);
+        res.status(500).json({ error: 'Error al obtener ingenieros asignados' });
+    }
+});
+exports.getAssignedEngineers = getAssignedEngineers;
+// Get all OIT records (filtered by role)
+const getAllOITs = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = req.user;
+        const userRole = user === null || user === void 0 ? void 0 : user.role;
+        const userId = user === null || user === void 0 ? void 0 : user.userId;
+        // If user is ENGINEER, only show OITs assigned to them
+        let whereClause = {};
+        if (userRole === 'ENGINEER' && userId) {
+            whereClause = {
+                assignedEngineers: {
+                    some: {
+                        userId: userId
+                    }
+                }
+            };
+        }
+        const oits = yield prisma.oIT.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
+        // Map to include engineers in a cleaner format
+        const result = oits.map((oit) => (Object.assign(Object.assign({}, oit), { engineers: oit.assignedEngineers.map((a) => a.user) })));
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.error('Error in getAllOITs:', error);
+        res.status(500).json({ message: 'Something went wrong', error: String(error) });
     }
 });
 exports.getAllOITs = getAllOITs;
@@ -219,14 +377,34 @@ exports.getAllOITs = getAllOITs;
 const getOITById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        const user = req.user;
+        const oit = yield prisma.oIT.findUnique({
+            where: { id },
+            include: {
+                assignedEngineers: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
+                }
+            }
+        });
         if (!oit) {
             return res.status(404).json({ message: 'OIT not found' });
         }
-        res.status(200).json(oit);
+        // If user is ENGINEER, check if they are assigned
+        if ((user === null || user === void 0 ? void 0 : user.role) === 'ENGINEER') {
+            const isAssigned = oit.assignedEngineers.some((a) => a.userId === user.userId);
+            if (!isAssigned) {
+                return res.status(403).json({ message: 'No tienes acceso a esta OIT' });
+            }
+        }
+        res.status(200).json(Object.assign(Object.assign({}, oit), { engineers: oit.assignedEngineers.map((a) => a.user) }));
     }
     catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        console.error('Error in getOITById:', error);
+        res.status(500).json({ message: 'Something went wrong', error: String(error) });
     }
 });
 exports.getOITById = getOITById;
@@ -289,14 +467,13 @@ exports.createOITAsync = createOITAsync;
 function runOITAnalysis(oitId, oitFilePath, quotationFilePath, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { aiService } = yield Promise.resolve().then(() => __importStar(require('../services/ai.service')));
             const { complianceService } = yield Promise.resolve().then(() => __importStar(require('../services/compliance.service')));
             const { default: planningService } = yield Promise.resolve().then(() => __importStar(require('../services/planning.service')));
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: { status: 'ANALYZING' }
             });
-            const aiData = {};
+            const aiDataContent = {};
             let extractedDescription = null;
             let extractedLocation = null;
             // Analyze OIT File
@@ -306,7 +483,7 @@ function runOITAnalysis(oitId, oitFilePath, quotationFilePath, userId) {
                 const pdfData = yield pdfParse(dataBuffer);
                 const oitText = pdfData.text;
                 const oitAnalysis = yield aiService.analyzeDocument(oitText);
-                aiData.oit = oitAnalysis;
+                aiDataContent.oit = oitAnalysis;
                 // Extract description
                 if (oitAnalysis.description) {
                     extractedDescription = oitAnalysis.description;
@@ -333,10 +510,10 @@ function runOITAnalysis(oitId, oitFilePath, quotationFilePath, userId) {
                 const pdfData = yield pdfParse(dataBuffer);
                 const quotationText = pdfData.text;
                 const quotationAnalysis = yield aiService.analyzeDocument(quotationText);
-                aiData.quotation = quotationAnalysis;
+                aiDataContent.quotation = quotationAnalysis;
                 // Extract resources
                 if (quotationAnalysis.resources) {
-                    aiData.resources = quotationAnalysis.resources;
+                    aiDataContent.resources = quotationAnalysis.resources;
                 }
             }
             // Update with AI data
@@ -345,8 +522,12 @@ function runOITAnalysis(oitId, oitFilePath, quotationFilePath, userId) {
                 data: {
                     description: extractedDescription || undefined, // Only update if found
                     location: extractedLocation || undefined,
-                    aiData: JSON.stringify(aiData),
-                    resources: aiData.resources ? JSON.stringify(aiData.resources) : undefined
+                    aiData: JSON.stringify({
+                        valid: true,
+                        message: 'Análisis de documentos completado',
+                        data: aiDataContent
+                    }),
+                    resources: aiDataContent.resources ? JSON.stringify(aiDataContent.resources) : undefined
                 }
             });
             // Compliance

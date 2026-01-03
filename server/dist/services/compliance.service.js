@@ -39,7 +39,7 @@ class ComplianceService {
                 };
             }
             // Build detailed prompt for AI with OIT data and Standards
-            const standardsList = standards.map(s => `- **${s.title}**: ${s.description}`).join('\n');
+            const standardsList = standards.map((s) => `- **${s.title}**: ${s.description}`).join('\n');
             const prompt = `
 Actúa como Auditor de Calidad y Cumplimiento experto.
 

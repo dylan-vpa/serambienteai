@@ -13,12 +13,14 @@
         "bcryptjs": "^2.4.3",
         "cors": "^2.8.5",
         "csv-parse": "^6.1.0",
+        "docxtemplater": "^3.67.6",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",
         "pdf-parse": "^1.1.1",
         "pdfjs-dist": "^5.4.449",
+        "pizzip": "^3.2.0",
         "prisma": "^5.7.0"
     },
     "devDependencies": {

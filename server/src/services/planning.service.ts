@@ -54,13 +54,13 @@ class PlanningService {
             };
 
             let currentAiData: any = { valid: true, data: {} };
-            try { 
+            try {
                 if (oit.aiData) {
                     const parsed = JSON.parse(oit.aiData);
                     if (parsed.data) currentAiData = parsed;
                     else currentAiData = { valid: true, data: parsed };
-                } 
-            } catch (e) {}
+                }
+            } catch (e) { }
 
             await prisma.oIT.update({
                 where: { id: oitId },
@@ -80,7 +80,7 @@ class PlanningService {
         // AI suggests best template
         const { aiService } = await import('./ai.service');
 
-        const templatesList = templates.map(t =>
+        const templatesList = templates.map((t: any) =>
             `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`
         ).join('\n');
 
@@ -134,13 +134,13 @@ ${templatesList}
         };
 
         let currentAiData: any = { valid: true, data: {} };
-        try { 
+        try {
             if (oit.aiData) {
                 const parsed = JSON.parse(oit.aiData);
                 if (parsed.data) currentAiData = parsed;
                 else currentAiData = { valid: true, data: parsed };
-            } 
-        } catch (e) {}
+            }
+        } catch (e) { }
 
         await prisma.oIT.update({
             where: { id: oitId },

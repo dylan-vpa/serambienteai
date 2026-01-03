@@ -11,24 +11,36 @@ import {
     Bell,
     Calendar,
     Scale,
-    Workflow
+    Workflow,
+    Users
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
+import { canManageUsers } from '@/types/auth';
 
-const platformItems = [
-    { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
-    { icon: FileText, label: 'OITs', href: '/oits' },
-    { icon: Box, label: 'Recursos', href: '/resources' },
-    { icon: Calendar, label: 'Calendario', href: '/calendar' },
-    { icon: Scale, label: 'Normas', href: '/standards' },
-    { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
-    { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
-    { icon: Bell, label: 'Notificaciones', href: '/notifications' },
-    { icon: Settings, label: 'Configuración', href: '/settings' },
-];
+const getNavigationItems = (userRole?: string) => {
+    const baseItems = [
+        { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
+        { icon: FileText, label: 'OITs', href: '/oits' },
+        { icon: Box, label: 'Recursos', href: '/resources' },
+        { icon: Calendar, label: 'Calendario', href: '/calendar' },
+        { icon: Scale, label: 'Normas', href: '/standards' },
+        { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
+        { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
+        { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+    ];
+
+    // Add Users management for SUPER_ADMIN only
+    if (userRole && canManageUsers(userRole as any)) {
+        baseItems.push({ icon: Users, label: 'Usuarios', href: '/users' });
+    }
+
+    baseItems.push({ icon: Settings, label: 'Configuración', href: '/settings' });
+
+    return baseItems;
+};
 
 interface SidebarProps {
     isOpen: boolean;
@@ -86,7 +98,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             Plataforma
                         </h3>
                         <nav className="space-y-0.5">
-                            {platformItems.map((item) => {
+                            {getNavigationItems(user?.role).map((item) => {
                                 const Icon = item.icon;
                                 const isActive = location.pathname === item.href;
                                 const showBadge = item.href === '/notifications' && unreadCount > 0;

@@ -87,14 +87,21 @@ class PlanningService {
                     assignedResources: resources.slice(0, 3),
                     estimatedDuration: '4 horas'
                 };
+                let currentAiData = { valid: true, data: {} };
+                try {
+                    if (oit.aiData) {
+                        const parsed = JSON.parse(oit.aiData);
+                        if (parsed.data)
+                            currentAiData = parsed;
+                        else
+                            currentAiData = { valid: true, data: parsed };
+                    }
+                }
+                catch (e) { }
                 yield prisma.oIT.update({
                     where: { id: oitId },
                     data: {
-                        aiData: JSON.stringify({
-                            valid: true,
-                            data: proposal,
-                            message: 'Propuesta genérica creada'
-                        }),
+                        aiData: JSON.stringify(Object.assign(Object.assign({}, currentAiData), { message: 'Propuesta genérica creada', data: Object.assign(Object.assign({}, currentAiData.data), proposal) })),
                         planningProposal: JSON.stringify(proposal)
                     }
                 });
@@ -102,7 +109,7 @@ class PlanningService {
             }
             // AI suggests best template
             const { aiService } = yield Promise.resolve().then(() => __importStar(require('./ai.service')));
-            const templatesList = templates.map(t => `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`).join('\n');
+            const templatesList = templates.map((t) => `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`).join('\n');
             const prompt = `
 Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
 
@@ -147,15 +154,22 @@ ${templatesList}
                 assignedResources: resources.slice(0, 3),
                 estimatedDuration: '4 horas'
             };
+            let currentAiData = { valid: true, data: {} };
+            try {
+                if (oit.aiData) {
+                    const parsed = JSON.parse(oit.aiData);
+                    if (parsed.data)
+                        currentAiData = parsed;
+                    else
+                        currentAiData = { valid: true, data: parsed };
+                }
+            }
+            catch (e) { }
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
                     selectedTemplateId: selectedTemplate.id,
-                    aiData: JSON.stringify({
-                        valid: true,
-                        data: proposal,
-                        message: 'Propuesta de planificación generada'
-                    }),
+                    aiData: JSON.stringify(Object.assign(Object.assign({}, currentAiData), { message: 'Propuesta de planificación generada', data: Object.assign(Object.assign({}, currentAiData.data), proposal) })),
                     planningProposal: JSON.stringify(proposal)
                 }
             });

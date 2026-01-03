@@ -16,15 +16,17 @@ import {
     validateStepData,
     finalizeSampling,
     generateSamplingReport,
-    reanalyzeOIT
+    reanalyzeOIT,
+    assignEngineers,
+    getAssignedEngineers
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', getAllOITs);
-router.get('/:id', getOITById);
+router.get('/', authMiddleware, getAllOITs);
+router.get('/:id', authMiddleware, getOITById);
 router.post('/', createOIT);
 
 // Async creation endpoint with file uploads (oitFile and quotationFile)
@@ -65,5 +67,9 @@ router.post('/:id/finalize-sampling', authMiddleware, finalizeSampling);
 router.get('/:id/sampling-report', authMiddleware, generateSamplingReport);
 
 router.delete('/:id', deleteOIT);
+
+// Engineer assignment endpoints
+router.post('/:id/assign-engineers', authMiddleware, requireAdmin, assignEngineers);
+router.get('/:id/engineers', authMiddleware, getAssignedEngineers);
 
 export default router;

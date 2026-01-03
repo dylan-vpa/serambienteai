@@ -163,9 +163,50 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                     <CardContent className="pt-4 space-y-4">
                         {analysisData ? (
                             <div className="prose prose-sm max-w-none">
-                                <div className="text-sm text-indigo-900 leading-relaxed whitespace-pre-wrap">
-                                    {typeof analysisData === 'string' ? analysisData : JSON.stringify(analysisData, null, 2)}
-                                </div>
+                                {(() => {
+                                    // Helper function to format analysis data
+                                    const formatAnalysis = (data: any): string => {
+                                        if (typeof data === 'string') {
+                                            // Check if it's a JSON string
+                                            try {
+                                                const parsed = JSON.parse(data);
+                                                // If it's an error object
+                                                if (parsed.error) {
+                                                    return `⚠️ ${parsed.error}`;
+                                                }
+                                                // If it has analysis content
+                                                if (parsed.analysis) {
+                                                    return parsed.analysis;
+                                                }
+                                                // Otherwise format nicely
+                                                return JSON.stringify(parsed, null, 2);
+                                            } catch {
+                                                // Not JSON, return as-is (this is the expected case for narratives)
+                                                return data;
+                                            }
+                                        }
+                                        // If object, check for common patterns
+                                        if (typeof data === 'object') {
+                                            if (data.error) {
+                                                return `⚠️ ${data.error}`;
+                                            }
+                                            if (data.analysis) {
+                                                return data.analysis;
+                                            }
+                                            return JSON.stringify(data, null, 2);
+                                        }
+                                        return String(data);
+                                    };
+
+                                    const formattedText = formatAnalysis(analysisData);
+                                    const isError = formattedText.startsWith('⚠️') || formattedText.toLowerCase().includes('error');
+
+                                    return (
+                                        <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isError ? 'text-amber-700' : 'text-indigo-900'}`}>
+                                            {formattedText}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-6 text-indigo-400">
