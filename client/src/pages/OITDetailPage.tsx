@@ -1334,7 +1334,8 @@ export default function OITDetailPage() {
                                                                 thead: ({ node, ...props }) => <thead className="bg-green-100 text-green-900 font-semibold" {...props} />,
                                                                 th: ({ node, ...props }) => <th className="px-4 py-2 border-b border-green-200" {...props} />,
                                                                 td: ({ node, ...props }) => <td className="px-4 py-2 border-b border-green-200/50" {...props} />,
-                                                                tr: ({ node, ...props }) => <tr className="even:bg-green-50/30" {...props} />
+                                                                tr: ({ node, ...props }) => <tr className="even:bg-green-50/30" {...props} />,
+                                                                hr: () => null
                                                             }}
                                                         >
                                                             {finalAnalysis}
