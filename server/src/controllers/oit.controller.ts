@@ -1164,7 +1164,7 @@ export const generateFinalReport = async (req: Request, res: Response) => {
         } else {
             // Write Word buffer to file so it can be downloaded/served
             const outputPath = path.join(__dirname, '../../uploads', generatedFileName);
-            fs.writeFileSync(outputPath, generatedFileBuffer);
+            fs.writeFileSync(outputPath, generatedFileBuffer!);
         }
 
         // 4. Update OIT
