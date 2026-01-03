@@ -339,15 +339,19 @@ export default function OITDetailPage() {
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <FileText className="mr-2 h-4 w-4" /> Info
                             </TabsTrigger>
-                            <TabsTrigger value="scheduling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <Calendar className="mr-2 h-4 w-4" /> Agenda
-                            </TabsTrigger>
+                            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+                                <TabsTrigger value="scheduling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                    <Calendar className="mr-2 h-4 w-4" /> Agenda
+                                </TabsTrigger>
+                            )}
                             <TabsTrigger value="sampling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <Beaker className="mr-2 h-4 w-4" /> Muestreo
                             </TabsTrigger>
-                            <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <FileBarChart className="mr-2 h-4 w-4" /> Informe
-                            </TabsTrigger>
+                            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+                                <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                    <FileBarChart className="mr-2 h-4 w-4" /> Informe
+                                </TabsTrigger>
+                            )}
                         </TabsList>
                     </div>
 
