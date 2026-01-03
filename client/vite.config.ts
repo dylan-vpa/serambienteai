@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 1612,
+    allowedHosts: ['als.paradixe.xyz', 'localhost'],
   },
   resolve: {
     alias: {
