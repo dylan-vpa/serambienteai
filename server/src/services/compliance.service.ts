@@ -201,7 +201,7 @@ ${standardsContent}
         `.trim();
 
         try {
-            const aiResponse = await aiService.chat(prompt, 'llama3.2:3b');
+            const aiResponse = await aiService.chat(prompt);
 
             let result;
             try {

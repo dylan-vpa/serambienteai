@@ -94,7 +94,7 @@ export const getModels = async (req: Request, res: Response) => {
         res.status(200).json({
             available,
             models,
-            defaultModel: process.env.OLLAMA_MODEL || 'llama3.2:3b'
+            defaultModel: process.env.OLLAMA_MODEL || 'gpt-oss'
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch models' });
