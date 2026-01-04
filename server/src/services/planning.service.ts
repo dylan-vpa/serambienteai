@@ -89,7 +89,8 @@ class PlanningService {
             return prisma.resource.findMany({
                 where: { status: 'AVAILABLE' },
                 take: limit,
-                orderBy: { name: 'asc' }
+                orderBy: { name: 'asc' },
+                distinct: ['name']
             });
         }
 
@@ -118,6 +119,9 @@ class PlanningService {
             // We can check if recommendResources supports text, which it does
             candidateNames = await aiService.recommendResources(documentText);
         }
+
+        // Deduplicate candidates immediately to avoid redundancy
+        candidateNames = [...new Set(candidateNames)];
 
         // 2. Fallback to existing metadata (Quotation/OIT resources)
         if (candidateNames.length === 0) {

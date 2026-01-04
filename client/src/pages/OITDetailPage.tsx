@@ -702,460 +702,475 @@ export default function OITDetailPage() {
                     </TabsContent>
 
                     <TabsContent value="scheduling" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <>
-                            <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                                <CardHeader>
-                                    <CardTitle>Programación de Visita</CardTitle>
-                                    <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {/* AI Proposal Section */}
-                                    {aiData?.data?.proposedDate && !isManualScheduling && !oit.scheduledDate ? (
-                                        <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-xl animate-in fade-in slide-in-from-top-2">
-                                            <div className="flex items-start gap-4">
-                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                                    <Sparkles className="h-5 w-5 text-indigo-600" />
-                                                </div>
-                                                <div className="flex-1 space-y-3">
-                                                    <div>
-                                                        <h4 className="text-base font-semibold text-indigo-900">Propuesta de Agendamiento IA</h4>
-                                                        <p className="text-sm text-indigo-700 mt-1">
-                                                            Basado en el análisis de documentos, se sugiere la siguiente fecha:
-                                                        </p>
+                        {(oit.status === 'ANALYZING' || (oit.status === 'PENDING' && !aiData?.data)) ? (
+                            <div className="flex flex-col items-center justify-center py-24 text-slate-400 animate-in fade-in duration-700">
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-75 duration-1000"></div>
+                                    <div className="relative bg-white p-6 rounded-full border border-indigo-50 shadow-sm">
+                                        <Sparkles className="h-10 w-10 text-indigo-500 animate-pulse" />
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-medium text-slate-800 mb-2">Analizando Documentación</h3>
+                                <p className="text-sm text-slate-500 max-w-sm text-center leading-relaxed">
+                                    Nuestra IA está procesando el documento completo para extraer recursos y generar la propuesta de visita. Esto puede tardar unos segundos.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                    <CardHeader>
+                                        <CardTitle>Programación de Visita</CardTitle>
+                                        <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* AI Proposal Section */}
+                                        {aiData?.data?.proposedDate && !isManualScheduling && !oit.scheduledDate ? (
+                                            <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-xl animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                                        <Sparkles className="h-5 w-5 text-indigo-600" />
                                                     </div>
+                                                    <div className="flex-1 space-y-3">
+                                                        <div>
+                                                            <h4 className="text-base font-semibold text-indigo-900">Propuesta de Agendamiento IA</h4>
+                                                            <p className="text-sm text-indigo-700 mt-1">
+                                                                Basado en el análisis de documentos, se sugiere la siguiente fecha:
+                                                            </p>
+                                                        </div>
 
-                                                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 w-fit">
-                                                        <Calendar className="h-5 w-5 text-indigo-600" />
-                                                        <span className="text-lg font-semibold text-indigo-900">
-                                                            {new Date(aiData.data.proposedDate).toLocaleDateString()}
-                                                        </span>
-                                                        {aiData.data.proposedTime && (
-                                                            <>
-                                                                <span className="text-indigo-300">|</span>
-                                                                <Clock className="h-5 w-5 text-indigo-600" />
-                                                                <span className="text-lg font-semibold text-indigo-900">
-                                                                    {aiData.data.proposedTime}
-                                                                </span>
-                                                            </>
+                                                        <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 w-fit">
+                                                            <Calendar className="h-5 w-5 text-indigo-600" />
+                                                            <span className="text-lg font-semibold text-indigo-900">
+                                                                {new Date(aiData.data.proposedDate).toLocaleDateString()}
+                                                            </span>
+                                                            {aiData.data.proposedTime && (
+                                                                <>
+                                                                    <span className="text-indigo-300">|</span>
+                                                                    <Clock className="h-5 w-5 text-indigo-600" />
+                                                                    <span className="text-lg font-semibold text-indigo-900">
+                                                                        {aiData.data.proposedTime}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
+
+                                                        {oit.location && (
+                                                            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 mt-2">
+                                                                <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
+                                                                <div>
+                                                                    <p className="text-xs font-medium text-indigo-700 uppercase tracking-wider">Ubicación</p>
+                                                                    <p className="text-sm text-slate-900 mt-0.5">{oit.location}</p>
+                                                                </div>
+                                                            </div>
                                                         )}
-                                                    </div>
 
-                                                    {oit.location && (
-                                                        <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 mt-2">
-                                                            <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
-                                                            <div>
-                                                                <p className="text-xs font-medium text-indigo-700 uppercase tracking-wider">Ubicación</p>
-                                                                <p className="text-sm text-slate-900 mt-0.5">{oit.location}</p>
-                                                            </div>
+                                                        {/* AI Proposal Actions */}
+                                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                                                            <Button
+                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const dateStr = aiData.data.proposedDate;
+                                                                        const timeStr = aiData.data.proposedTime || '09:00';
+
+                                                                        // Validar que dateStr existe
+                                                                        if (!dateStr) throw new Error("Fecha no disponible");
+
+                                                                        // Intentar parsing básico
+                                                                        let proposedDate = new Date(`${dateStr}T${timeStr}`);
+
+                                                                        // Si falla, intentar solo fecha
+                                                                        if (isNaN(proposedDate.getTime())) {
+                                                                            proposedDate = new Date(dateStr);
+                                                                        }
+
+                                                                        // Si sigue fallando
+                                                                        if (isNaN(proposedDate.getTime())) {
+                                                                            console.error("Fecha inválida recibida:", dateStr);
+                                                                            toast.error("Error al procesar la fecha propuesta. Por favor selecciónala manualmente.");
+                                                                            setIsManualScheduling(true);
+                                                                            return;
+                                                                        }
+
+                                                                        setOit((prev: any) => ({
+                                                                            ...prev,
+                                                                            scheduledDate: proposedDate.toISOString()
+                                                                        }));
+
+                                                                        toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
+                                                                    } catch (e) {
+                                                                        console.error("Error setting date:", e);
+                                                                        toast.warning("No se pudo cargar la fecha automáticamente.");
+                                                                    }
+                                                                    setIsManualScheduling(true);
+                                                                }}
+                                                            >
+                                                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                                Revisar y Aceptar
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
+                                                                onClick={() => setIsManualScheduling(true)}
+                                                            >
+                                                                Modificar Manualmente
+                                                            </Button>
                                                         </div>
-                                                    )}
-
-                                                    {/* AI Proposal Actions */}
-                                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                                                        <Button
-                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const dateStr = aiData.data.proposedDate;
-                                                                    const timeStr = aiData.data.proposedTime || '09:00';
-
-                                                                    // Validar que dateStr existe
-                                                                    if (!dateStr) throw new Error("Fecha no disponible");
-
-                                                                    // Intentar parsing básico
-                                                                    let proposedDate = new Date(`${dateStr}T${timeStr}`);
-
-                                                                    // Si falla, intentar solo fecha
-                                                                    if (isNaN(proposedDate.getTime())) {
-                                                                        proposedDate = new Date(dateStr);
-                                                                    }
-
-                                                                    // Si sigue fallando
-                                                                    if (isNaN(proposedDate.getTime())) {
-                                                                        console.error("Fecha inválida recibida:", dateStr);
-                                                                        toast.error("Error al procesar la fecha propuesta. Por favor selecciónala manualmente.");
-                                                                        setIsManualScheduling(true);
-                                                                        return;
-                                                                    }
-
-                                                                    setOit((prev: any) => ({
-                                                                        ...prev,
-                                                                        scheduledDate: proposedDate.toISOString()
-                                                                    }));
-
-                                                                    toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
-                                                                } catch (e) {
-                                                                    console.error("Error setting date:", e);
-                                                                    toast.warning("No se pudo cargar la fecha automáticamente.");
-                                                                }
-                                                                setIsManualScheduling(true);
-                                                            }}
-                                                        >
-                                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                            Revisar y Aceptar
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
-                                                            onClick={() => setIsManualScheduling(true)}
-                                                        >
-                                                            Modificar Manualmente
-                                                        </Button>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ) : (oit.status === 'SCHEDULED' && !isEditingSchedule) ? (
-                                        <div className="space-y-6 animate-in fade-in">
-                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                                                            <Calendar className="h-4 w-4 text-indigo-600" />
-                                                            Visita Programada
-                                                        </h4>
-                                                        <p className="text-sm text-slate-500 mt-1">La visita técnica ya ha sido confirmada.</p>
-                                                    </div>
-                                                    <Button variant="outline" size="sm" onClick={() => setIsEditingSchedule(true)}>
-                                                        Editar Programación
-                                                    </Button>
-                                                </div>
-
-                                                <div className="grid md:grid-cols-2 gap-6 pt-2">
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-medium text-slate-500 uppercase">Fecha y Hora</p>
-                                                        <div className="flex items-center gap-2 text-slate-900 font-medium">
-                                                            <Calendar className="h-4 w-4 text-slate-400" />
-                                                            {new Date(oit.scheduledDate).toLocaleDateString()}
-                                                            <span className="text-slate-300">|</span>
-                                                            <Clock className="h-4 w-4 text-slate-400" />
-                                                            {new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        ) : (oit.status === 'SCHEDULED' && !isEditingSchedule) ? (
+                                            <div className="space-y-6 animate-in fade-in">
+                                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                                                <Calendar className="h-4 w-4 text-indigo-600" />
+                                                                Visita Programada
+                                                            </h4>
+                                                            <p className="text-sm text-slate-500 mt-1">La visita técnica ya ha sido confirmada.</p>
                                                         </div>
+                                                        <Button variant="outline" size="sm" onClick={() => setIsEditingSchedule(true)}>
+                                                            Editar Programación
+                                                        </Button>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-medium text-slate-500 uppercase">Ubicación</p>
-                                                        <div className="flex items-center gap-2 text-slate-900 font-medium">
-                                                            <MapPin className="h-4 w-4 text-slate-400" />
-                                                            {oit.location || 'No especificada'}
-                                                        </div>
-                                                    </div>
-                                                </div>
 
-                                                <div className="pt-2">
-                                                    <p className="text-xs font-medium text-slate-500 uppercase mb-2">Ingenieros Asignados</p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {selectedEngineerIds.map(id => {
-                                                            const eng = availableEngineers.find(e => e.id === id);
-                                                            return eng ? (
-                                                                <Badge key={id} variant="secondary" className="pl-1 pr-3 py-1 bg-indigo-50 text-indigo-700 border-indigo-100 gap-2">
-                                                                    <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-[10px]">
-                                                                        {eng.name.charAt(0)}
-                                                                    </div>
-                                                                    {eng.name}
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6 animate-in fade-in">
-                                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                                                        <Calendar className="h-4 w-4 text-indigo-600" />
-                                                        Programar Fecha y Hora
-                                                    </h4>
-                                                    <div className="grid md:grid-cols-2 gap-6">
-                                                        {/* Date Input */}
-                                                        <div className="space-y-2">
-                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Fecha</label>
-                                                            <div className="relative">
-                                                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                                <input
-                                                                    type="date"
-                                                                    className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-                                                                    value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().split('T')[0] : ''}
-                                                                    onChange={(e) => {
-                                                                        const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
-                                                                        const newDate = new Date(e.target.value);
-                                                                        // Keep time if exists
-                                                                        newDate.setHours(currentDate.getHours(), currentDate.getMinutes());
-                                                                        // Just update local state for preview, commit on button click
-                                                                        setOit({ ...oit, scheduledDate: newDate.toISOString() });
-                                                                    }}
-                                                                />
+                                                    <div className="grid md:grid-cols-2 gap-6 pt-2">
+                                                        <div className="space-y-1">
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">Fecha y Hora</p>
+                                                            <div className="flex items-center gap-2 text-slate-900 font-medium">
+                                                                <Calendar className="h-4 w-4 text-slate-400" />
+                                                                {new Date(oit.scheduledDate).toLocaleDateString()}
+                                                                <span className="text-slate-300">|</span>
+                                                                <Clock className="h-4 w-4 text-slate-400" />
+                                                                {new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </div>
                                                         </div>
-
-                                                        {/* Time Input */}
-                                                        <div className="space-y-2">
-                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Hora</label>
-                                                            <div className="relative">
-                                                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                                <input
-                                                                    type="time"
-                                                                    className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-                                                                    value={oit.scheduledDate ? new Date(oit.scheduledDate).toTimeString().slice(0, 5) : '09:00'}
-                                                                    onChange={(e) => {
-                                                                        const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
-                                                                        const [hours, minutes] = e.target.value.split(':');
-                                                                        currentDate.setHours(parseInt(hours), parseInt(minutes));
-                                                                        setOit({ ...oit, scheduledDate: currentDate.toISOString() });
-                                                                    }}
-                                                                />
+                                                        <div className="space-y-1">
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">Ubicación</p>
+                                                            <div className="flex items-center gap-2 text-slate-900 font-medium">
+                                                                <MapPin className="h-4 w-4 text-slate-400" />
+                                                                {oit.location || 'No especificada'}
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Location Input */}
-                                                    <div className="space-y-2 mt-4">
-                                                        <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Ubicación del Muestreo</label>
-                                                        <div className="relative">
-                                                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                            <input
-                                                                type="text"
-                                                                className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-                                                                value={oit.location || ''}
-                                                                placeholder="Dirección o Coordenadas (Ej: Calle 123 # 45-67)"
-                                                                onChange={(e) => setOit({ ...oit, location: e.target.value })}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="w-full h-px bg-slate-100" />
-
-                                                {/* Engineer Selection */}
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                                                            <Users className="h-4 w-4 text-indigo-600" />
-                                                            Ingenieros Asignados
-                                                            <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">* Requerido</span>
-                                                        </h4>
-
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" size="sm" className="h-8 border-dashed">
-                                                                    <Plus className="mr-2 h-3.5 w-3.5" />
-                                                                    Asignar Ingeniero
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-56">
-                                                                <DropdownMenuLabel>Ingenieros Disponibles</DropdownMenuLabel>
-                                                                {availableEngineers.map((eng) => {
-                                                                    const isSelected = selectedEngineerIds.includes(eng.id);
-                                                                    const isAvailable = isEngineerAvailable(eng, oit.scheduledDate || aiData?.data?.proposedDate);
-
-                                                                    return (
-                                                                        <DropdownMenuCheckboxItem
-                                                                            key={eng.id}
-                                                                            checked={isSelected}
-                                                                            disabled={!isAvailable && !isSelected} // Optional: disable if busy, or just warn
-                                                                            onCheckedChange={(checked) => {
-                                                                                if (checked) {
-                                                                                    setSelectedEngineerIds([...selectedEngineerIds, eng.id]);
-                                                                                } else {
-                                                                                    setSelectedEngineerIds(selectedEngineerIds.filter(id => id !== eng.id));
-                                                                                }
-                                                                            }}
-                                                                        >
-                                                                            <div className="flex flex-col w-full">
-                                                                                <div className="flex justify-between items-center w-full gap-2">
-                                                                                    <span>{eng.name}</span>
-                                                                                    {!isAvailable && (
-                                                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
-                                                                                            Ocupado
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                <span className="text-xs text-slate-500">{eng.email}</span>
-                                                                            </div>
-                                                                        </DropdownMenuCheckboxItem>
-                                                                    );
-                                                                })}
-                                                                {availableEngineers.length === 0 && (
-                                                                    <div className="p-2 text-xs text-slate-500 text-center">No hay ingenieros disponibles</div>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-
-                                                    {selectedEngineerIds.length > 0 ? (
+                                                    <div className="pt-2">
+                                                        <p className="text-xs font-medium text-slate-500 uppercase mb-2">Ingenieros Asignados</p>
                                                         <div className="flex flex-wrap gap-2">
                                                             {selectedEngineerIds.map(id => {
                                                                 const eng = availableEngineers.find(e => e.id === id);
                                                                 return eng ? (
-                                                                    <Badge key={id} variant="secondary" className="pl-2 pr-1 py-1 h-7 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100 gap-1">
-                                                                        <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-[10px] mr-1">
+                                                                    <Badge key={id} variant="secondary" className="pl-1 pr-3 py-1 bg-indigo-50 text-indigo-700 border-indigo-100 gap-2">
+                                                                        <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-[10px]">
                                                                             {eng.name.charAt(0)}
                                                                         </div>
                                                                         {eng.name}
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-4 w-4 ml-1 hover:bg-indigo-200 rounded-full"
-                                                                            onClick={() => setSelectedEngineerIds(selectedEngineerIds.filter(eid => eid !== id))}
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
                                                                     </Badge>
                                                                 ) : null;
                                                             })}
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-sm text-slate-500 italic p-3 bg-slate-50 rounded border border-dashed border-slate-200 text-center">
-                                                            No hay ingenieros asignados. Debes seleccionar al menos uno.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-6 animate-in fade-in">
+                                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4 text-indigo-600" />
+                                                            Programar Fecha y Hora
+                                                        </h4>
+                                                        <div className="grid md:grid-cols-2 gap-6">
+                                                            {/* Date Input */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Fecha</label>
+                                                                <div className="relative">
+                                                                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                    <input
+                                                                        type="date"
+                                                                        className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                        value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().split('T')[0] : ''}
+                                                                        onChange={(e) => {
+                                                                            const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
+                                                                            const newDate = new Date(e.target.value);
+                                                                            // Keep time if exists
+                                                                            newDate.setHours(currentDate.getHours(), currentDate.getMinutes());
+                                                                            // Just update local state for preview, commit on button click
+                                                                            setOit({ ...oit, scheduledDate: newDate.toISOString() });
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Time Input */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Hora</label>
+                                                                <div className="relative">
+                                                                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                    <input
+                                                                        type="time"
+                                                                        className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                        value={oit.scheduledDate ? new Date(oit.scheduledDate).toTimeString().slice(0, 5) : '09:00'}
+                                                                        onChange={(e) => {
+                                                                            const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
+                                                                            const [hours, minutes] = e.target.value.split(':');
+                                                                            currentDate.setHours(parseInt(hours), parseInt(minutes));
+                                                                            setOit({ ...oit, scheduledDate: currentDate.toISOString() });
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Location Input */}
+                                                        <div className="space-y-2 mt-4">
+                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Ubicación del Muestreo</label>
+                                                            <div className="relative">
+                                                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
+                                                                    value={oit.location || ''}
+                                                                    placeholder="Dirección o Coordenadas (Ej: Calle 123 # 45-67)"
+                                                                    onChange={(e) => setOit({ ...oit, location: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="w-full h-px bg-slate-100" />
+
+                                                    {/* Engineer Selection */}
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                                                <Users className="h-4 w-4 text-indigo-600" />
+                                                                Ingenieros Asignados
+                                                                <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">* Requerido</span>
+                                                            </h4>
+
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" size="sm" className="h-8 border-dashed">
+                                                                        <Plus className="mr-2 h-3.5 w-3.5" />
+                                                                        Asignar Ingeniero
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-56">
+                                                                    <DropdownMenuLabel>Ingenieros Disponibles</DropdownMenuLabel>
+                                                                    {availableEngineers.map((eng) => {
+                                                                        const isSelected = selectedEngineerIds.includes(eng.id);
+                                                                        const isAvailable = isEngineerAvailable(eng, oit.scheduledDate || aiData?.data?.proposedDate);
+
+                                                                        return (
+                                                                            <DropdownMenuCheckboxItem
+                                                                                key={eng.id}
+                                                                                checked={isSelected}
+                                                                                disabled={!isAvailable && !isSelected} // Optional: disable if busy, or just warn
+                                                                                onCheckedChange={(checked) => {
+                                                                                    if (checked) {
+                                                                                        setSelectedEngineerIds([...selectedEngineerIds, eng.id]);
+                                                                                    } else {
+                                                                                        setSelectedEngineerIds(selectedEngineerIds.filter(id => id !== eng.id));
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <div className="flex flex-col w-full">
+                                                                                    <div className="flex justify-between items-center w-full gap-2">
+                                                                                        <span>{eng.name}</span>
+                                                                                        {!isAvailable && (
+                                                                                            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                                                                                                Ocupado
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <span className="text-xs text-slate-500">{eng.email}</span>
+                                                                                </div>
+                                                                            </DropdownMenuCheckboxItem>
+                                                                        );
+                                                                    })}
+                                                                    {availableEngineers.length === 0 && (
+                                                                        <div className="p-2 text-xs text-slate-500 text-center">No hay ingenieros disponibles</div>
+                                                                    )}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+
+                                                        {selectedEngineerIds.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {selectedEngineerIds.map(id => {
+                                                                    const eng = availableEngineers.find(e => e.id === id);
+                                                                    return eng ? (
+                                                                        <Badge key={id} variant="secondary" className="pl-2 pr-1 py-1 h-7 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100 gap-1">
+                                                                            <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-[10px] mr-1">
+                                                                                {eng.name.charAt(0)}
+                                                                            </div>
+                                                                            {eng.name}
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-4 w-4 ml-1 hover:bg-indigo-200 rounded-full"
+                                                                                onClick={() => setSelectedEngineerIds(selectedEngineerIds.filter(eid => eid !== id))}
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </Badge>
+                                                                    ) : null;
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-sm text-slate-500 italic p-3 bg-slate-50 rounded border border-dashed border-slate-200 text-center">
+                                                                No hay ingenieros asignados. Debes seleccionar al menos uno.
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="pt-4 flex justify-end">
+                                                        <Button
+                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[200px]"
+                                                            disabled={!selectedEngineerIds.length || !oit.scheduledDate}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    setIsProcessing(true);
+                                                                    await api.patch(`/oits/${id}`, {
+                                                                        scheduledDate: oit.scheduledDate,
+                                                                        location: oit.location,
+                                                                        status: 'SCHEDULED',
+                                                                        engineerIds: selectedEngineerIds
+                                                                    });
+                                                                    toast.success('Visita programada exitosamente');
+
+                                                                    // Refresh
+                                                                    const res = await api.get(`/oits/${id}`);
+                                                                    setOit(res.data);
+                                                                } catch (error: any) {
+                                                                    toast.error(error.response?.data?.error || 'Error al programar visita');
+                                                                } finally {
+                                                                    setIsProcessing(false);
+                                                                }
+                                                            }}
+                                                        >
+                                                            {isProcessing ? (
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Calendar className="mr-2 h-4 w-4" />
+                                                            )}
+                                                            Confirmar Programación
+                                                        </Button>
+                                                    </div>
+
+                                                    {aiData?.data?.proposedDate && (
+                                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mt-4">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                                <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
+                                                            </div>
+                                                            <p className="text-sm text-indigo-700">
+                                                                {new Date(aiData.data.proposedDate).toLocaleDateString('es-ES', {
+                                                                    weekday: 'long',
+                                                                    year: 'numeric',
+                                                                    month: 'long',
+                                                                    day: 'numeric'
+                                                                })} a las {aiData.data.proposedTime || '09:00'}
+                                                            </p>
+                                                            <Button
+                                                                variant="link"
+                                                                className="h-auto p-0 text-indigo-600 text-sm mt-1"
+                                                                onClick={() => setIsManualScheduling(false)}
+                                                            >
+                                                                ← Volver a la propuesta
+                                                            </Button>
                                                         </div>
                                                     )}
                                                 </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
 
-                                                <div className="pt-4 flex justify-end">
-                                                    <Button
-                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[200px]"
-                                                        disabled={!selectedEngineerIds.length || !oit.scheduledDate}
-                                                        onClick={async () => {
-                                                            try {
-                                                                setIsProcessing(true);
-                                                                await api.patch(`/oits/${id}`, {
-                                                                    scheduledDate: oit.scheduledDate,
-                                                                    location: oit.location,
-                                                                    status: 'SCHEDULED',
-                                                                    engineerIds: selectedEngineerIds
-                                                                });
-                                                                toast.success('Visita programada exitosamente');
-
-                                                                // Refresh
-                                                                const res = await api.get(`/oits/${id}`);
-                                                                setOit(res.data);
-                                                            } catch (error: any) {
-                                                                toast.error(error.response?.data?.error || 'Error al programar visita');
-                                                            } finally {
-                                                                setIsProcessing(false);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {isProcessing ? (
-                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Calendar className="mr-2 h-4 w-4" />
-                                                        )}
-                                                        Confirmar Programación
+                                <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+                                    <CardHeader>
+                                        <CardTitle>Recursos</CardTitle>
+                                        <CardDescription>Personal y equipos identificados y propuestos para el muestreo.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        {/* AI Proposed Resources */}
+                                        {aiData?.data?.assignedResources && aiData.data.assignedResources.length > 0 && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                        <h4 className="text-sm font-semibold text-indigo-900">Equipos Propuestos por IA</h4>
+                                                        <Badge variant="outline" className="text-xs">{aiData.data.assignedResources.length} equipos</Badge>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={handleOpenResourceDialog}>
+                                                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                                                        Editar
                                                     </Button>
                                                 </div>
-
-                                                {aiData?.data?.proposedDate && (
-                                                    <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mt-4">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                            <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
-                                                        </div>
-                                                        <p className="text-sm text-indigo-700">
-                                                            {new Date(aiData.data.proposedDate).toLocaleDateString('es-ES', {
-                                                                weekday: 'long',
-                                                                year: 'numeric',
-                                                                month: 'long',
-                                                                day: 'numeric'
-                                                            })} a las {aiData.data.proposedTime || '09:00'}
-                                                        </p>
-                                                        <Button
-                                                            variant="link"
-                                                            className="h-auto p-0 text-indigo-600 text-sm mt-1"
-                                                            onClick={() => setIsManualScheduling(false)}
-                                                        >
-                                                            ← Volver a la propuesta
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                                <CardHeader>
-                                    <CardTitle>Recursos</CardTitle>
-                                    <CardDescription>Personal y equipos identificados y propuestos para el muestreo.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* AI Proposed Resources */}
-                                    {aiData?.data?.assignedResources && aiData.data.assignedResources.length > 0 && (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2 justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                    <h4 className="text-sm font-semibold text-indigo-900">Equipos Propuestos por IA</h4>
-                                                    <Badge variant="outline" className="text-xs">{aiData.data.assignedResources.length} equipos</Badge>
-                                                </div>
-                                                <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={handleOpenResourceDialog}>
-                                                    <Pencil className="h-3.5 w-3.5 mr-1" />
-                                                    Editar
-                                                </Button>
-                                            </div>
-                                            <div className="grid md:grid-cols-2 gap-4">
-                                                {aiData.data.assignedResources.map((res: any, idx: number) => (
-                                                    <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 shadow-sm">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-700">
-                                                                <Beaker className="h-5 w-5" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-medium text-slate-900">{res.name}</p>
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    {res.code && <span className="text-xs font-mono text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">{res.code}</span>}
-                                                                    {res.brand && res.model && (
-                                                                        <span className="text-xs text-slate-500">{res.brand} {res.model}</span>
-                                                                    )}
+                                                <div className="grid md:grid-cols-2 gap-4">
+                                                    {aiData.data.assignedResources.map((res: any, idx: number) => (
+                                                        <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 shadow-sm">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-700">
+                                                                    <Beaker className="h-5 w-5" />
                                                                 </div>
-                                                                {res.type && <p className="text-xs text-slate-400 mt-0.5">{res.type}</p>}
+                                                                <div>
+                                                                    <p className="font-medium text-slate-900">{res.name}</p>
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        {res.code && <span className="text-xs font-mono text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">{res.code}</span>}
+                                                                        {res.brand && res.model && (
+                                                                            <span className="text-xs text-slate-500">{res.brand} {res.model}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    {res.type && <p className="text-xs text-slate-400 mt-0.5">{res.type}</p>}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* Document Extracted Resources */}
-                                    {resources.length > 0 && (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4 text-slate-600" />
-                                                <h4 className="text-sm font-semibold text-slate-700">Recursos Extraídos de Documentos</h4>
-                                            </div>
-                                            <div className="grid md:grid-cols-2 gap-4">
-                                                {resources.map((res: any, idx: number) => (
-                                                    <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-600'}`}>
-                                                                {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                        {/* Document Extracted Resources */}
+                                        {resources.length > 0 && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText className="h-4 w-4 text-slate-600" />
+                                                    <h4 className="text-sm font-semibold text-slate-700">Recursos Extraídos de Documentos</h4>
+                                                </div>
+                                                <div className="grid md:grid-cols-2 gap-4">
+                                                    {resources.map((res: any, idx: number) => (
+                                                        <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-600'}`}>
+                                                                    {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
+                                                                    <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
-                                                                <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
-                                                            </div>
+                                                            {typeof res !== 'string' && res.quantity && (
+                                                                <Badge variant="outline" className="bg-slate-50">x{res.quantity}</Badge>
+                                                            )}
                                                         </div>
-                                                        {typeof res !== 'string' && res.quantity && (
-                                                            <Badge variant="outline" className="bg-slate-50">x{res.quantity}</Badge>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* No resources */}
-                                    {(!resources || resources.length === 0) && (!aiData?.data?.assignedResources || aiData.data.assignedResources.length === 0) && (
-                                        <div className="text-center py-12 text-slate-400">
-                                            <p>No se han identificado recursos.</p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </>
+                                        {/* No resources */}
+                                        {(!resources || resources.length === 0) && (!aiData?.data?.assignedResources || aiData.data.assignedResources.length === 0) && (
+                                            <div className="text-center py-12 text-slate-400">
+                                                <p>No se han identificado recursos.</p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </>
+                        )}
 
                         {/* Resource Edit Dialog */}
                         <Dialog open={isResourceDialogOpen} onOpenChange={setIsResourceDialogOpen}>

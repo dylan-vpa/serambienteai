@@ -180,9 +180,9 @@ JSON:`;
                 return this.heuristicResourceRecommendation(documentText);
             }
             try {
-                const prompt = `Basándote en este documento OIT, recomienda los recursos necesarios. Responde SOLO con un JSON array de strings:
+                const prompt = `Basándote en este documento OIT, extrae los recursos (equipos y personal) necesarios. Responde SOLO con un JSON array de strings ÚNICOS que representen el tipo de equipo/persona. Si se requieren múltiples del mismo tipo, inclúyelo solo UNA vez. Evita IDs específicos (como 001) a menos que el documento los exija explícitamente:
 
-["recurso1", "recurso2", ...]
+["Tipo Recurso 1", "Tipo Recurso 2", ...]
 
 Documento:
 ${documentText}
