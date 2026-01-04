@@ -257,7 +257,7 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
             if (parsed && Array.isArray(parsed) && parsed.length > 0) {
                 // Post-processing: Validate against DB resources to ensure exact matches
                 const validResources: string[] = [];
-                const dbResourceNames = dbResources.map(r => r.name); // dbResources is available in scope
+                const dbResourceNames = dbResources.map((r: any) => r.name); // dbResources is available in scope
 
                 console.log('[AI] Validating AI response against DB inventory...');
 
@@ -270,7 +270,7 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
 
                     // 2. Find best partial match in DB inventory
                     // (e.g. AI: "Multiparámetro de campo", DB: "Multiparámetro" -> Match)
-                    const bestMatch = dbResourceNames.find(dbName =>
+                    const bestMatch = dbResourceNames.find((dbName: string) =>
                         aiName.toLowerCase().includes(dbName.toLowerCase()) ||
                         dbName.toLowerCase().includes(aiName.toLowerCase())
                     );
