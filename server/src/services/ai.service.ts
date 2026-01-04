@@ -186,30 +186,34 @@ JSON:`;
                 .map(([type, names]) => `- ${type}: ${names.slice(0, 10).join(', ')}`)
                 .join('\n');
 
-            const systemPrompt = `Eres un asistente robótico de inventario. TU ÚNICA FUNCIÓN es seleccionar extrictamente ítems de una lista predefinida.
+            const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
+Tu objetivo es PLANIFICAR COMPLETAMENTE los equipos necesarios para una jornada de muestreo en campo.
 
-INSTRUCCIONES ABSOLUTAS:
-1. Recibirás un texto y una lista de inventario.
-2. Debes devolver un array con los nombres de los equipos necesarios.
-3. ⚠️ **COPIA Y PEGA** los nombres EXACTAMENTE como están en el inventario.
-4. ❌ PROHIBIDO modificar una sola letra, agregar palabras extra o cambiar mayúsculas/minúsculas.
-5. Si el equipo necesario es "Multiparámetro" y tú escribes "Multiparámetro de agua", FALLASTE. Debes escribir "Multiparámetro".
+INSTRUCCIONES CRÍTICAS (Estricto cumplimiento):
+1. Usa **ÚNICAMENTE** los nombres EXACTOS del inventario proporcionado abajo.
+2. ❌ NO inventes nombres compuestos (Ej: si el inventario dice "Multiparámetro", NO escribas "Multiparámetro de campo").
+3. ❌ NO agregues marcas ni modelos (Ej: si el inventario dice "GPS", NO escribas "GPS Garmin").
+4. Si un equipo necesario no está en la lista exacta, busca el más cercano o GENÉRICO disponible (ej: "Analizador SO2" en vez de "Monitor de gases").
 
-INVENTARIO AUTORIZADO (COPIA LITERAL):
+INVENTARIO DISPONIBLE (Copia estos nombres EXACTAMENTE):
 ${inventoryList}
-- Cámara Fotográfica
-- GPS
 
-Si necesitas un equipo que no está EXACTO en la lista, usa el más parecido de la lista, pero SIN MODIFICARLO.`;
+Planifica una operación robusta (5-15 equipos).`;
 
-            const prompt = `Analiza el documento y extrae los equipos usando SOLO el inventario autorizado.
+            const prompt = `Analiza esta cotización/OIT y lista los equipos necesarios usando SOLO el vocabulario del inventario.
+
+REGLAS:
+- Identifica el tipo de monitoreo (Agua, Aire, Ruido, etc.)
+- Selecciona TODOS los equipos necesarios de la lista.
+- Copia los nombres EXACTAMENTE como aparecen en el inventario.
+- Incluye siempre equipos base como GPS, Cámara Fotográfica si están en lista.
 
 Documento:
 ${documentText.substring(0, 8000)}
 
-Responde SOLO con el JSON array de strings exactos.
-Ejemplo de RESPUESTA CORRECTA: ["Multiparámetro", "Analizador SO2", "GPS"]
-Ejemplo de RESPUESTA INCORRECTA (PROHIBIDA): ["Multiparámetro de campo", "Analizador de gases SO2", "GPS Garmin"]`;
+Responde con un JSON array de strings.
+Ejemplo CORRECTO: ["Multiparámetro", "GPS", "Botella Muestreo"]
+Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
@@ -217,9 +221,6 @@ Ejemplo de RESPUESTA INCORRECTA (PROHIBIDA): ["Multiparámetro de campo", "Anali
                 system: systemPrompt,
                 stream: false,
                 format: 'json',
-                options: {
-                    temperature: 0.1 // Force deterministic, strict behavior
-                }
             });
 
             let responseText = response.data.response;
@@ -254,13 +255,42 @@ Ejemplo de RESPUESTA INCORRECTA (PROHIBIDA): ["Multiparámetro de campo", "Anali
             }
 
             if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-                console.log('[AI] Resource recommendations:', parsed);
-                return parsed;
+                // Post-processing: Validate against DB resources to ensure exact matches
+                const validResources: string[] = [];
+                const dbResourceNames = dbResources.map(r => r.name); // dbResources is available in scope
+
+                console.log('[AI] Validating AI response against DB inventory...');
+
+                for (const aiName of parsed) {
+                    // 1. Check exact match
+                    if (dbResourceNames.includes(aiName)) {
+                        validResources.push(aiName);
+                        continue;
+                    }
+
+                    // 2. Find best partial match in DB inventory
+                    // (e.g. AI: "Multiparámetro de campo", DB: "Multiparámetro" -> Match)
+                    const bestMatch = dbResourceNames.find(dbName =>
+                        aiName.toLowerCase().includes(dbName.toLowerCase()) ||
+                        dbName.toLowerCase().includes(aiName.toLowerCase())
+                    );
+
+                    if (bestMatch) {
+                        console.log(`[AI] Corrected "${aiName}" -> "${bestMatch}"`);
+                        validResources.push(bestMatch);
+                    } else {
+                        console.log(`[AI] Dropped invalid resource "${aiName}"`);
+                    }
+                }
+
+                console.log('[AI] Final valid resource recommendations:', validResources);
+                return validResources.length > 0 ? validResources : this.heuristicResourceRecommendation(documentText);
             }
 
             console.log('[AI] Failed to parse resources, falling back to heuristic');
             return this.heuristicResourceRecommendation(documentText);
         } catch (error) {
+            console.error('[AI] Error in recommendResources:', error);
             return this.heuristicResourceRecommendation(documentText);
         }
     }
