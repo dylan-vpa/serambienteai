@@ -187,29 +187,39 @@ JSON:`;
                 .join('\n');
 
             const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
-Tu objetivo es identificar los EQUIPOS DE CAMPO necesarios para el muestreo.
+Tu objetivo es PLANIFICAR COMPLETAMENTE los equipos necesarios para una jornada de muestreo en campo.
 
-IMPORTANTE: Identifica SOLO equipos físicos de campo, NO métodos de análisis de laboratorio.
-- ❌ NO incluyas códigos de métodos (SM xxxx, EPA xxxx, NTC xxxx)
-- ❌ NO incluyas técnicas de laboratorio
-- ✅ SÍ incluye equipos físicos que coincidan con nuestro inventario
+IMPORTANTE: 
+- Identifica TODOS los equipos necesarios para una operación completa
+- NO incluyas códigos de métodos (SM, EPA, NTC) ni técnicas de laboratorio
+- SÍ incluye todos los equipos físicos de campo necesarios
 
-EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO (SELECCIONA DE ESTA LISTA):
+CUANDO DETECTES UN TIPO DE MONITOREO, INCLUYE TODOS LOS EQUIPOS RELACIONADOS:
+- Monitoreo de AGUA: Multiparámetro, Botella Muestreo, GPS, Nevera, Kit Cloro Residual
+- Monitoreo de AIRE: Analizador SO2, Analizador CO, Analizador H2S, Estación Meteorológica, Hi-Vol, Low-Vol, GPS
+- Monitoreo de RUIDO: Sonómetro, Pistófono, GPS, Trípode
+- Fuentes FIJAS/Isocinético: Consola Isocinética, Sonda, Caja Fría, Balanza, GPS
+- HIDROBIOLOGÍA: Ictiometro, Corazador, Red Surber, GPS, Nevera
+- GENERAL (siempre incluir): GPS, Cámara Fotográfica
+
+EQUIPOS DISPONIBLES EN INVENTARIO:
 ${inventoryList}
 
-Analiza el documento y extrae SOLO equipos que estén en nuestro inventario.`;
+Sé EXHAUSTIVO: lista entre 5 y 15 equipos apropiados para la operación.`;
 
-            const prompt = `Analiza esta cotización/OIT y selecciona los EQUIPOS DE CAMPO de nuestro inventario que se necesitan.
+            const prompt = `Analiza esta cotización/OIT y PLANIFICA todos los equipos de campo necesarios.
 
-REGLAS:
-1. Selecciona SOLO equipos que aparecen en el inventario proporcionado
-2. NO incluyas códigos de métodos (SM, EPA, NTC)
-3. Basado en el tipo de monitoreo mencionado, selecciona equipos apropiados
+INSTRUCCIONES:
+1. Identifica el TIPO de monitoreo (agua, aire, ruido, fuentes fijas, hidrobiología)
+2. Selecciona TODOS los equipos del inventario necesarios para esa operación
+3. Incluye siempre: GPS, Cámara Fotográfica como equipos base
+4. Sé EXHAUSTIVO - una jornada de muestreo requiere múltiples equipos
 
 Documento:
 ${documentText.substring(0, 8000)}
 
-Responde SOLO con un JSON array de nombres de equipos del inventario.
+Responde con un JSON array de 5-15 nombres de equipos del inventario.
+Ejemplo: ["Multiparámetro", "GPS", "Botella Muestreo", "Nevera", "Cámara Fotográfica"]
 NO uses Markdown.`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
