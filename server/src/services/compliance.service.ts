@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { aiService } from './ai.service';
 import { createNotification } from '../controllers/notification.controller';
 import * as fs from 'fs';
-import pdfParse from 'pdf-parse';
+import { pdfService } from './pdf.service';
 
 const prisma = new PrismaClient();
 
@@ -74,9 +74,7 @@ export class ComplianceService {
         }
 
         try {
-            const dataBuffer = fs.readFileSync(quotationFileUrl);
-            const data = await pdfParse(dataBuffer);
-            return data.text.substring(0, 50000); // Limit to 50k chars
+            return await pdfService.extractText(quotationFileUrl);
         } catch (error) {
             console.error('Error extracting quotation:', error);
             return '';

@@ -41,16 +41,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.complianceService = exports.ComplianceService = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("./ai.service");
 const notification_controller_1 = require("../controllers/notification.controller");
 const fs = __importStar(require("fs"));
-const pdf_parse_1 = __importDefault(require("pdf-parse"));
+const pdf_service_1 = require("./pdf.service");
 const prisma = new client_1.PrismaClient();
 // Category mapping for OIT types
 const OIT_TYPE_CATEGORIES = {
@@ -122,9 +119,7 @@ class ComplianceService {
                 return '';
             }
             try {
-                const dataBuffer = fs.readFileSync(quotationFileUrl);
-                const data = yield (0, pdf_parse_1.default)(dataBuffer);
-                return data.text.substring(0, 50000); // Limit to 50k chars
+                return yield pdf_service_1.pdfService.extractText(quotationFileUrl);
             }
             catch (error) {
                 console.error('Error extracting quotation:', error);
