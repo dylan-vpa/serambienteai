@@ -46,6 +46,9 @@ exports.pdfService = void 0;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const marked_1 = require("marked");
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class PDFService {
     /**
      * Extract text from PDF file
@@ -53,6 +56,58 @@ class PDFService {
     extractText(filePath) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                console.log(`[PDF] Extracting text from: ${filePath}`);
+                // 1. Try pdftotext (fast, accurate for digital PDFs)
+                try {
+                    const { stdout } = yield execAsync(`pdftotext -layout "${filePath}" -`);
+                    const text = stdout.trim();
+                    if (text.length > 100) {
+                        console.log(`[PDF] Digital text extracted (${text.length} chars)`);
+                        return text;
+                    }
+                    console.log('[PDF] Low text content (<100 chars), suspecting scanned document. Trying OCR...');
+                }
+                catch (e) {
+                    console.warn('[PDF] pdftotext failed, falling back to OCR:', e);
+                }
+                // 2. Fallback to OCR (pdftoppm + tesseract)
+                try {
+                    const tempDir = path.dirname(filePath);
+                    const baseName = path.basename(filePath, path.extname(filePath));
+                    const imgPrefix = path.join(tempDir, `${baseName}_ocr`);
+                    // Convert PDF to PNGs (150 DPI is usually enough for text)
+                    console.log('[OCR] Converting PDF to images...');
+                    yield execAsync(`pdftoppm -png -r 150 "${filePath}" "${imgPrefix}"`);
+                    // Find generated images
+                    const files = fs.readdirSync(tempDir).filter(f => f.startsWith(`${baseName}_ocr`) && f.endsWith('.png'));
+                    files.sort(); // Ensure page order
+                    let fullText = '';
+                    for (const file of files) {
+                        const imgPath = path.join(tempDir, file);
+                        console.log(`[OCR] Processing page: ${file}`);
+                        // Run tesseract on each page (stdout)
+                        // Try Spanish (-l spa), fallback to eng if needed, but assuming spa installed or using default
+                        // Just using default/eng if spa missing, but typically 'tesseract' works auto
+                        try {
+                            const { stdout } = yield execAsync(`tesseract "${imgPath}" stdout`);
+                            fullText += stdout + '\n\n';
+                        }
+                        catch (err) {
+                            console.error(`[OCR] Failed on page ${file}:`, err);
+                        }
+                        // Cleanup image
+                        try {
+                            fs.unlinkSync(imgPath);
+                        }
+                        catch (e) { }
+                    }
+                    console.log(`[OCR] Completed. Extracted ${fullText.length} chars.`);
+                    return fullText;
+                }
+                catch (ocrError) {
+                    console.error('[OCR] Critical failure:', ocrError);
+                }
+                // 3. Last resort: pdf-parse (likely fails if scanned)
                 const pdfParse = require('pdf-parse');
                 const dataBuffer = fs.readFileSync(filePath);
                 const data = yield pdfParse(dataBuffer);
