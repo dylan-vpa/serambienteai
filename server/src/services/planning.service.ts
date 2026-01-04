@@ -113,15 +113,34 @@ class PlanningService {
 
         // 1. Try to get resources from FULL DOCUMENT text if available
         let candidateNames: string[] = [];
+        let fullDocumentText = documentText || '';
 
-        if (documentText) {
-            console.log('[Planning] analyzing FULL DOCUMENT for resources...');
+        // If no documentText provided, try to extract from quotation PDF
+        if (!fullDocumentText && oit.quotationFileUrl) {
             try {
-                // We can check if recommendResources supports text, which it does
-                candidateNames = await aiService.recommendResources(documentText);
+                console.log('[Planning] Extracting quotation content for resource analysis...');
+                const { pdfService } = await import('./pdf.service');
+                const fs = await import('fs');
+                let filePath = oit.quotationFileUrl;
+                if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+                    filePath = filePath.substring(1);
+                }
+                if (fs.existsSync(filePath)) {
+                    fullDocumentText = await pdfService.extractText(filePath);
+                    console.log(`[Planning] Extracted ${fullDocumentText.length} chars from quotation`);
+                }
+            } catch (extractError) {
+                console.error('[Planning] Failed to extract quotation:', extractError);
+            }
+        }
+
+        if (fullDocumentText && fullDocumentText.length > 100) {
+            console.log('[Planning] Analyzing FULL DOCUMENT for resources...');
+            try {
+                candidateNames = await aiService.recommendResources(fullDocumentText);
+                console.log('[AI] Resource recommendations:', candidateNames);
             } catch (err) {
                 console.error('[Planning] AI Resource Extraction Failed:', err);
-                // Continue to fallbacks
             }
         }
 
