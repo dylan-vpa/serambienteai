@@ -69,7 +69,9 @@ export class ComplianceService {
      * Extract text from quotation PDF
      */
     private async extractQuotationContent(quotationFileUrl: string | null): Promise<string> {
+        console.log(`[Compliance] Extracting quotation from: ${quotationFileUrl}`);
         if (!quotationFileUrl || !fs.existsSync(quotationFileUrl)) {
+            console.warn(`[Compliance] File not found or null: ${quotationFileUrl}`);
             return '';
         }
 
