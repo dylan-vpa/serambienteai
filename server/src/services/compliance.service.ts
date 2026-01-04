@@ -94,7 +94,7 @@ export class ComplianceService {
         }
 
         try {
-            return await pdfService.extractText(quotationFileUrl);
+            return await pdfService.extractText(filePath);
         } catch (error) {
             console.error('Error extracting quotation:', error);
             return '';

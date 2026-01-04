@@ -22,6 +22,35 @@ class PDFService {
      */
     async extractText(filePath: string): Promise<string> {
         try {
+            // Robust path resolution with Debug Logging
+            const cwd = process.cwd();
+            console.log(`[PDF] Raw Input Path: '${filePath}' | CWD: '${cwd}'`);
+
+            if (!fs.existsSync(filePath)) {
+                console.log(`[PDF] Path '${filePath}' not found directly. Attempting resolution...`);
+
+                if (filePath.startsWith('/') || filePath.startsWith('\\')) {
+                    const striped = filePath.substring(1);
+                    const stripedPath = path.join(cwd, striped);
+                    console.log(`[PDF] Checking striped: '${striped}' | Exists: ${fs.existsSync(striped)}`);
+                    console.log(`[PDF] Checking joined: '${stripedPath}' | Exists: ${fs.existsSync(stripedPath)}`);
+
+                    if (fs.existsSync(striped)) {
+                        filePath = striped;
+                    } else if (fs.existsSync(stripedPath)) {
+                        filePath = stripedPath;
+                    }
+                } else {
+                    const absPath = path.join(cwd, filePath);
+                    console.log(`[PDF] Checking relative join: '${absPath}' | Exists: ${fs.existsSync(absPath)}`);
+                    if (fs.existsSync(absPath)) {
+                        filePath = absPath;
+                    }
+                }
+            } else {
+                console.log(`[PDF] Path '${filePath}' found directly.`);
+            }
+
             console.log(`[PDF] Extracting text from: ${filePath}`);
 
             // 1. Try pdftotext (fast, accurate for digital PDFs)

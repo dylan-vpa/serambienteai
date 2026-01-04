@@ -61,6 +61,10 @@ export class AIService {
         const useModel = model || this.defaultModel;
 
         try {
+            console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
+            if (system) console.log(`[AI] System Prompt: ${system.substring(0, 100)}...`);
+            console.log(`[AI] User Prompt: ${message.substring(0, 200)}...`);
+
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: useModel,
                 prompt: message,
@@ -68,9 +72,14 @@ export class AIService {
                 stream: false,
             });
 
-            return response.data.response || 'No response from AI';
+            const reply = response.data.response || 'No response from AI';
+            console.log(`[AI] Response: ${reply.substring(0, 200)}...`);
+            return reply;
         } catch (error: any) {
             console.error('AI Chat error:', error.message);
+            if (error.response) {
+                console.error('AI Error Data:', error.response.data);
+            }
             throw new Error('AI service unavailable. Please ensure Ollama is running.');
         }
     }
