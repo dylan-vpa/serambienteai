@@ -60,13 +60,28 @@ model OITAssignment {
 }
 
 model Resource {
-  id          String   @id @default(uuid())
-  name        String
-  type        String
-  quantity    Int
-  status      String   @default("AVAILABLE") // AVAILABLE, IN_USE, MAINTENANCE
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String    @id @default(uuid())
+  name                  String    // Tipo equipo
+  type                  String    // Matriz (Calidad del aire, Agua, etc.)
+  code                  String?   @unique // Código Interno (H2S-001, etc.)
+  brand                 String?   // Marca
+  model                 String?   // Modelo
+  serial                String?   // Serial
+  location              String?   // Ubicación
+  maintenanceType       String?   // Tipo mantenimiento
+  maintenanceFrequency  String?   // Frecuencia mantenimiento
+  requiresCalibration   Boolean   @default(false)
+  calibrationFrequency  String?   
+  calibrationExpiry     DateTime? // Vigencia calibración
+  variable              String?   // Variable que mide
+  workRange             String?   // Rango de trabajo
+  resolution            String?   // Resolución
+  calibrationPoints     String?   // Puntos calibración
+  status                String    @default("AVAILABLE") // OPERATIVO, MANTENIMIENTO, FUERA_SERVICIO
+  observations          String?   // Observaciones
+  quantity              Int       @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model Notification {
