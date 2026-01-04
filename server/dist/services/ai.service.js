@@ -458,20 +458,24 @@ JSON:`;
                 return "Análisis no disponible. El servicio de IA está desconectado.";
             }
             try {
-                const prompt = `Eres un auditor técnico de calidad. Analiza el siguiente reporte de laboratorio.
+                const prompt = `Eres un auditor técnico de calidad especialista en laboratorios ambientales. Analiza el siguiente reporte de laboratorio y compáralo con los objetivos de la OIT.
 
-Contexto OIT: "${oitContext || 'Sin contexto específico'}"
+Contexto de la OIT (Servicio):
+"${oitContext || 'Sin contexto específico'}"
 
-Reporte de Laboratorio:
-"${documentText.substring(0, 3000).replace(/"/g, "'")}"
+Contenido Extraído del Reporte de Laboratorio:
+"${documentText.substring(0, 5000).replace(/"/g, "'")}"
 
-Genera un análisis detallado en español que incluya:
-1. Resumen ejecutivo de los resultados
-2. Hallazgos principales y valores críticos
-3. Comparación con límites normativos (si están presentes)
-4. Recomendaciones o alertas
+Tu tarea es generar un informe de supervisión detallado utilizando estrictamente formato MARKDOWN. 
 
-Escribe el análisis en prosa, como un informe técnico profesional.`;
+Estructura requerida del informe:
+1. **Resumen Ejecutivo**: Una síntesis profesional de lo hallado.
+2. **Tabla de Resultados Clave**: Una tabla comparando los parámetros analizados vs los límites normativos (si el texto los menciona) o vs valores de referencia típicos. Debe tener columnas: Parámetro, Valor Hallado, Límite/Referencia, Estado (Cumple/No Cumple).
+3. **Hallazgos Críticos**: Si hay excedencias o valores preocupantes, lístalos con negritas.
+4. **Opinión Técnica**: Análisis sobre si el muestreo y los resultados son coherentes con lo solicitado en la OIT.
+5. **Recomendaciones**: Pasos a seguir basándose en estos resultados.
+
+Usa tablas de Markdown, negritas e iconos empaquetados si es necesario para que sea muy legible y "Premium". No incluyas meta-comentarios como "Aquí tienes el análisis". Ve directo al grano.`;
                 console.log('[LAB ANALYSIS] Calling AI for narrative analysis, prompt length:', prompt.length);
                 const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
                     model: this.defaultModel,
@@ -491,6 +495,40 @@ Escribe el análisis en prosa, como un informe técnico profesional.`;
             catch (error) {
                 console.error('AI Lab Analysis error:', error);
                 return "Error al analizar los resultados de laboratorio. Por favor, revise manualmente el documento.";
+            }
+        });
+    }
+    analyzeSamplingResults(samplingData, oitContext) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const available = yield this.isAvailable();
+            if (!available) {
+                return "Análisis no disponible (Offline).";
+            }
+            try {
+                const dataStr = JSON.stringify(samplingData, null, 2).substring(0, 3000);
+                const prompt = `Eres un supervisor técnico de campo. Analiza los siguientes datos de un muestreo ambiental ejecutado.
+
+Contexto OIT: "${oitContext || 'N/A'}"
+Datos del Muestreo:
+${dataStr}
+
+Genera un informe corto de supervisión (en texto plano/markdown) que incluya:
+1. Resumen de lo ejecutado (cantidad de muestras, condiciones).
+2. Verificación de completitud (¿Faltan datos obvios?).
+3. Anomalías detectadas en los valores o comentarios.
+4. Conclusión: ¿El muestreo parece válido?
+
+Responde en español de forma profesional.`;
+                const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
+                    model: this.defaultModel,
+                    prompt,
+                    stream: false,
+                });
+                return response.data.response || "No se pudo generar análisis.";
+            }
+            catch (error) {
+                console.error('AI Sampling Analysis error:', error);
+                return "Error al analizar datos de muestreo.";
             }
         });
     }

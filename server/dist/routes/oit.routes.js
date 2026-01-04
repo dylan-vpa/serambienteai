@@ -32,6 +32,7 @@ router.post('/:id/generate-final-report', auth_middleware_1.authMiddleware, oit_
 // Sampling validation workflow
 router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controller_1.validateStepData);
 router.post('/:id/finalize-sampling', auth_middleware_1.authMiddleware, oit_controller_1.finalizeSampling);
+router.post('/:id/submit-sampling', auth_middleware_1.authMiddleware, oit_controller_1.submitSampling);
 router.get('/:id/sampling-report', auth_middleware_1.authMiddleware, oit_controller_1.generateSamplingReport);
 router.delete('/:id', oit_controller_1.deleteOIT);
 // Engineer assignment endpoints

@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -165,6 +165,50 @@ const saveSamplingData = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.saveSamplingData = saveSamplingData;
+// Submit Final Sampling
+const submitSampling = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const samplingData = req.body; // Full JSON of all steps
+        // 1. Update OIT with raw data
+        const oit = yield prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingData: JSON.stringify(samplingData),
+                status: 'ANALYZING', // Temporary status while AI runs
+                pendingSync: false
+            }
+        });
+        res.json({ success: true, message: 'Muestreo recibido. Analizando...', oit });
+        // 2. Trigger async AI analysis
+        (() => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                const analysis = yield aiService.analyzeSamplingResults(samplingData, oit.description || '');
+                yield prisma.oIT.update({
+                    where: { id },
+                    data: {
+                        finalAnalysis: analysis,
+                        status: 'COMPLETED' // Flow finished, ready for admin review
+                    }
+                });
+                // Notify user/admin
+                // await createNotification(...)
+            }
+            catch (err) {
+                console.error('Error in background sampling analysis:', err);
+                yield prisma.oIT.update({
+                    where: { id },
+                    data: { status: 'REVIEW_IMPORTANT' }
+                });
+            }
+        }))();
+    }
+    catch (error) {
+        console.error('Error submitting sampling:', error);
+        res.status(500).json({ error: 'Error al enviar muestreo' });
+    }
+});
+exports.submitSampling = submitSampling;
 // Get Sampling Data
 const getSamplingData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -194,7 +238,7 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const oit = yield prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: file.path,
+                labResultsUrl: `uploads/${file.filename}`,
                 labResultsAnalysis: null, // Clear previous analysis
                 status: 'ANALYZING'
             }
@@ -249,6 +293,17 @@ function processLabResultsAsync(oitId, filePath) {
                 }
             });
             console.log(`Lab analysis completed for OIT ${oitId}`);
+            // Automatically generate final report if analysis was successful
+            if (!analysis.includes('Error')) {
+                console.log(`Triggering automatic report generation for OIT ${oitId}`);
+                try {
+                    yield internalGenerateFinalReport(oitId);
+                    console.log(`Automatic report generation successful for OIT ${oitId}`);
+                }
+                catch (reportErr) {
+                    console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
+                }
+            }
         }
         catch (error) {
             console.error('Background lab analysis failed:', error);
@@ -260,6 +315,126 @@ function processLabResultsAsync(oitId, filePath) {
                 }
             });
         }
+    });
+}
+// Reusable report generation logic
+function internalGenerateFinalReport(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const { pdfService } = require('../services/pdf.service');
+        const { validationService } = require('../services/validation.service');
+        const marked = require('marked');
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit)
+            throw new Error('OIT no encontrada');
+        // 1. Extract Lab Text if available
+        let labText = '';
+        if (oit.labResultsUrl) {
+            const uploadsRoot = path_1.default.join(__dirname, '../../');
+            const potentialPath = path_1.default.join(uploadsRoot, oit.labResultsUrl);
+            if (fs_1.default.existsSync(potentialPath)) {
+                labText = yield pdfService.extractText(potentialPath);
+            }
+            else {
+                const potentialPath2 = path_1.default.join(uploadsRoot, 'uploads', oit.labResultsUrl);
+                if (fs_1.default.existsSync(potentialPath2)) {
+                    labText = yield pdfService.extractText(potentialPath2);
+                }
+            }
+        }
+        // 2. AI Generation
+        const reportMarkdown = yield validationService.generateFinalReportContent(oit, labText);
+        const date = new Date().toLocaleDateString('es-CO');
+        // 3. Try to generate Word report if template exists
+        let generatedFileBuffer = null;
+        let generatedFileName = '';
+        let isDocx = false;
+        try {
+            const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
+            if (templateIds.length > 0) {
+                const template = yield prisma.samplingTemplate.findUnique({
+                    where: { id: templateIds[0] }
+                });
+                if (template && template.reportTemplateFile) {
+                    const { docxService } = require('../services/docx.service');
+                    const docxData = {
+                        oitNumber: oit.oitNumber,
+                        description: oit.description || '',
+                        location: oit.location || '',
+                        date: date,
+                        analysis: reportMarkdown.replace(/[#*`]/g, ''),
+                        narrative: reportMarkdown,
+                        client: ((_a = oit.description) === null || _a === void 0 ? void 0 : _a.split(':')[0]) || 'Cliente'
+                    };
+                    generatedFileBuffer = yield docxService.generateDocument(template.reportTemplateFile, docxData);
+                    generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
+                    isDocx = true;
+                }
+            }
+        }
+        catch (docxErr) {
+            console.error('Word generation error, falling back to PDF:', docxErr);
+        }
+        if (!isDocx) {
+            // Fallback: Convert to HTML & PDF 
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                    h1, h2, h3, h4, h5, h6 { color: #14532d; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
+                    h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 28px; }
+                    h2 { background: #f0fdf4; padding: 10px 15px; border-left: 5px solid #22c55e; font-size: 20px; border-radius: 4px; }
+                    h3 { font-size: 18px; color: #15803d; }
+                    p { margin-bottom: 15px; text-align: justify; }
+                    ul, ol { margin-bottom: 15px; padding-left: 20px; }
+                    li { margin-bottom: 6px; }
+                    strong { color: #14532d; }
+                    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; }
+                    thead { background-color: #dcfce7; color: #14532d; }
+                    th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #bbf7d0; }
+                    td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                    tr:nth-child(even) { background-color: #f0fdf4; }
+                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; }
+                    .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="meta">
+                    <div>
+                        <strong style="font-size: 1.2em; color: #14532d;">ALS V2 - Informe de Supervisión IA</strong><br>
+                        <span style="color: #64748b;">Sistema de Gestión Ambiental</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>OIT:</strong> ${oit.oitNumber}<br>
+                        <strong>Fecha:</strong> ${date}
+                    </div>
+                </div>
+                <div class="content">
+                    ${marked.parse(reportMarkdown)}
+                </div>
+                <div class="footer">
+                    Este documento ha sido generado automáticamente por el sistema ALS V2.
+                </div>
+            </body>
+            </html>
+        `;
+            generatedFileName = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
+            const pdfPath = yield pdfService.generatePDFFromHTML(htmlContent, generatedFileName);
+            generatedFileBuffer = fs_1.default.readFileSync(pdfPath);
+        }
+        else {
+            const outputPath = path_1.default.join(__dirname, '../../uploads', generatedFileName);
+            fs_1.default.writeFileSync(outputPath, generatedFileBuffer);
+        }
+        if (!generatedFileBuffer)
+            throw new Error('No se pudo generar el contenido del informe');
+        yield prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: generatedFileName }
+        });
+        return { generatedFileBuffer, generatedFileName, isDocx };
     });
 }
 // Generate Final Report
@@ -936,85 +1111,10 @@ exports.generateSamplingReport = generateSamplingReport;
 const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const oit = yield prisma.oIT.findUnique({ where: { id } });
-        if (!oit) {
-            return res.status(404).json({ error: 'OIT no encontrada' });
-        }
-        const { pdfService } = require('../services/pdf.service');
-        const { validationService } = require('../services/validation.service');
-        // 1. Extract Lab Results Text (from previously uploaded file via PATCH)
-        let labText = 'No hay resultados de laboratorio adjuntos.';
-        if (oit.labResultsUrl) {
-            const uploadsRoot = path_1.default.join(__dirname, '../../');
-            if (!oit.labResultsUrl.startsWith('http')) {
-                // If labResultsUrl is just filename or relative path
-                // Check if it exists in uploads/ OR uploads/lab_results/
-                // For now, assuming oit.labResultsUrl is what was stored (e.g. "uploads/filename")
-                const potentialPath = path_1.default.join(uploadsRoot, oit.labResultsUrl);
-                if (fs_1.default.existsSync(potentialPath)) {
-                    labText = yield pdfService.extractText(potentialPath);
-                }
-                else {
-                    // Try just uploads/ + filename if URL is just filename
-                    const potentialPath2 = path_1.default.join(uploadsRoot, 'uploads', oit.labResultsUrl);
-                    if (fs_1.default.existsSync(potentialPath2)) {
-                        labText = yield pdfService.extractText(potentialPath2);
-                    }
-                }
-            }
-        }
-        // 2. AI Generation
-        const reportMarkdown = yield validationService.generateFinalReportContent(oit, labText);
-        // 3. Convert to HTML & PDF 
-        const date = new Date().toLocaleDateString('es-CO');
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                    h1, h2, h3 { color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }
-                    h1 { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; font-size: 24px; }
-                    h2 { background: #f8f9fa; padding: 10px; border-left: 5px solid #2c3e50; font-size: 18px; }
-                    p { margin-bottom: 15px; text-align: justify; }
-                    ul { margin-bottom: 15px; }
-                    li { margin-bottom: 5px; }
-                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-                    .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="meta">
-                    <strong>ALS V2 - Sistema de Gestión Ambiental</strong><br>
-                    OIT: ${oit.oitNumber}<br>
-                    Fecha de Emisión: ${date}
-                </div>
-                
-                <div class="content">
-                    ${reportMarkdown
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
-            .replace(/\*(.*?)\*/gim, '<i>$1</i>')
-            .replace(/^- (.*$)/gim, '<li>$1</li>')
-            .replace(/\n\n/g, '<br>')} 
-                </div>
-
-                <div class="footer">
-                    Este documento ha sido generado automáticamente por el sistema ALS V2.
-                </div>
-            </body>
-            </html>
-        `;
-        const filename = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
-        const pdfPath = yield pdfService.generatePDFFromHTML(htmlContent, filename);
-        // 4. Update OIT
-        yield prisma.oIT.update({
-            where: { id },
-            data: { finalReportUrl: filename }
-        });
-        res.download(pdfPath);
+        const { generatedFileBuffer, generatedFileName, isDocx } = yield internalGenerateFinalReport(id);
+        res.setHeader('Content-Disposition', `attachment; filename=${generatedFileName}`);
+        res.setHeader('Content-Type', isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
+        res.send(generatedFileBuffer);
     }
     catch (error) {
         console.error('Final Report Error:', error);

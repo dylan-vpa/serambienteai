@@ -88,6 +88,8 @@ model Standard {
   description String
   type        String   // OIT, QUOTATION
   fileUrl     String?  // URL to the uploaded standard document
+  content     String?  // Extracted text content from PDF/XLSX
+  category    String?  // agua_potable, vertimientos, piscina, ruido, aire, fuentes_fijas, etc.
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
