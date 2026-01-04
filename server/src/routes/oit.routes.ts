@@ -19,7 +19,8 @@ import {
     reanalyzeOIT,
     assignEngineers,
     getAssignedEngineers,
-    submitSampling
+    submitSampling,
+    updatePlanningResources
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
@@ -73,5 +74,8 @@ router.delete('/:id', deleteOIT);
 // Engineer assignment endpoints
 router.post('/:id/assign-engineers', authMiddleware, requireAdmin, assignEngineers);
 router.get('/:id/engineers', authMiddleware, getAssignedEngineers);
+
+// Update resources explicitly
+router.put('/:id/resources', authMiddleware, updatePlanningResources);
 
 export default router;

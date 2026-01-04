@@ -1181,3 +1181,65 @@ export const generateFinalReport = async (req: Request, res: Response) => {
     }
 };
 
+
+// Update Resources in Planning Proposal
+export const updatePlanningResources = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { resourceIds } = req.body;
+
+        if (!Array.isArray(resourceIds)) {
+            return res.status(400).json({ error: 'resourceIds debe ser un array' });
+        }
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) return res.status(404).json({ error: 'OIT no encontrada' });
+
+        // Fetch details of selected resources
+        const selectedResources = await prisma.resource.findMany({
+            where: { id: { in: resourceIds } }
+        });
+
+        const mappedResources = selectedResources.map(r => ({
+            id: r.id,
+            name: r.name,
+            code: r.code,
+            type: r.type,
+            brand: r.brand,
+            model: r.model
+        }));
+
+        // Update planningProposal
+        let planningProposal: any = {};
+        if (oit.planningProposal) {
+            try {
+                planningProposal = JSON.parse(oit.planningProposal);
+            } catch (e) { }
+        }
+        planningProposal.assignedResources = mappedResources;
+
+        // Update aiData too for consistency in UI
+        let aiData: any = {};
+        if (oit.aiData) {
+            try {
+                aiData = JSON.parse(oit.aiData);
+                if (aiData.data) {
+                    aiData.data.assignedResources = mappedResources;
+                }
+            } catch (e) { }
+        }
+
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                planningProposal: JSON.stringify(planningProposal),
+                aiData: JSON.stringify(aiData)
+            }
+        });
+
+        res.json({ success: true, resources: mappedResources });
+    } catch (error) {
+        console.error('Error updating planning resources:', error);
+        res.status(500).json({ error: 'Error al actualizar recursos' });
+    }
+};

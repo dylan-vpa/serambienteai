@@ -19,6 +19,15 @@ import {
     DropdownMenuLabel,
     DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Pencil, Search } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 
 export default function OITDetailPage() {
@@ -36,6 +45,13 @@ export default function OITDetailPage() {
     const [availableEngineers, setAvailableEngineers] = useState<any[]>([]);
     const [selectedEngineerIds, setSelectedEngineerIds] = useState<string[]>([]);
     const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+
+    // Resource Editing State
+    const [isResourceDialogOpen, setIsResourceDialogOpen] = useState(false);
+    const [allResources, setAllResources] = useState<any[]>([]);
+    const [selectedResourceIdsEdit, setSelectedResourceIdsEdit] = useState<string[]>([]);
+    const [resourceSearch, setResourceSearch] = useState('');
+    const [isSavingResources, setIsSavingResources] = useState(false);
 
     // Auth for permissions
     const { user } = useAuthStore();
@@ -173,7 +189,18 @@ export default function OITDetailPage() {
                 }
             }
         };
+
+        const loadResources = async () => {
+            try {
+                const res = await api.get('/resources');
+                setAllResources(res.data);
+            } catch (error) {
+                console.error('Error fetching resources', error);
+            }
+        };
+
         loadEngineers();
+        loadResources();
     }, []);
 
     // Helper to check if engineer is available on a specific date
@@ -329,6 +356,62 @@ export default function OITDetailPage() {
             toast.error('Error al descargar el informe');
         }
     };
+
+    const handleOpenResourceDialog = () => {
+        // Pre-select currently assigned resources
+        const currentResources = oit.aiData ? JSON.parse(oit.aiData)?.data?.assignedResources : [];
+        const ids = currentResources?.map((r: any) => r.id).filter(Boolean) || [];
+        setSelectedResourceIdsEdit(ids);
+        setResourceSearch('');
+        setIsResourceDialogOpen(true);
+    };
+
+    const handleSaveResources = async () => {
+        if (!id) return;
+        try {
+            setIsSavingResources(true);
+            const response = await api.put(`/oits/${id}/resources`, {
+                resourceIds: selectedResourceIdsEdit
+            });
+
+            // Update local state
+            setOit((prev: any) => {
+                let newData = { ...prev };
+                if (newData.aiData) {
+                    const parsed = JSON.parse(newData.aiData);
+                    if (parsed.data) {
+                        parsed.data.assignedResources = response.data.resources;
+                        newData.aiData = JSON.stringify(parsed);
+                    }
+                }
+                // Also update planningProposal if exists? Yes backend does it
+                return newData;
+            });
+
+            toast.success('Recursos actualizados exitosamente');
+            setIsResourceDialogOpen(false);
+        } catch (error) {
+            console.error('Error saving resources:', error);
+            toast.error('Error al actualizar recursos');
+        } finally {
+            setIsSavingResources(false);
+        }
+    };
+
+    const toggleResource = (resourceId: string) => {
+        setSelectedResourceIdsEdit(prev =>
+            prev.includes(resourceId)
+                ? prev.filter(id => id !== resourceId)
+                : [...prev, resourceId]
+        );
+    };
+
+    const filteredResources = allResources.filter(r =>
+        r.name.toLowerCase().includes(resourceSearch.toLowerCase()) ||
+        r.code?.toLowerCase().includes(resourceSearch.toLowerCase()) ||
+        r.type.toLowerCase().includes(resourceSearch.toLowerCase()) ||
+        r.brand?.toLowerCase().includes(resourceSearch.toLowerCase())
+    );
 
     if (!oit) return <div className="flex items-center justify-center min-h-screen bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
 
@@ -1001,25 +1084,35 @@ export default function OITDetailPage() {
                                     {/* AI Proposed Resources */}
                                     {aiData?.data?.assignedResources && aiData.data.assignedResources.length > 0 && (
                                         <div className="space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                <h4 className="text-sm font-semibold text-indigo-900">Recursos Propuestos por IA</h4>
+                                            <div className="flex items-center gap-2 justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                    <h4 className="text-sm font-semibold text-indigo-900">Equipos Propuestos por IA</h4>
+                                                    <Badge variant="outline" className="text-xs">{aiData.data.assignedResources.length} equipos</Badge>
+                                                </div>
+                                                <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={handleOpenResourceDialog}>
+                                                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                                                    Editar
+                                                </Button>
                                             </div>
                                             <div className="grid md:grid-cols-2 gap-4">
                                                 {aiData.data.assignedResources.map((res: any, idx: number) => (
                                                     <div key={idx} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 shadow-sm">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${res.type === 'PERSONNEL' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                                {res.type === 'PERSONNEL' ? <Users className="h-5 w-5" /> : <Beaker className="h-5 w-5" />}
+                                                            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-700">
+                                                                <Beaker className="h-5 w-5" />
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-slate-900">{res.name}</p>
-                                                                <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    {res.code && <span className="text-xs font-mono text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">{res.code}</span>}
+                                                                    {res.brand && res.model && (
+                                                                        <span className="text-xs text-slate-500">{res.brand} {res.model}</span>
+                                                                    )}
+                                                                </div>
+                                                                {res.type && <p className="text-xs text-slate-400 mt-0.5">{res.type}</p>}
                                                             </div>
                                                         </div>
-                                                        {res.quantity && (
-                                                            <Badge variant="outline" className="bg-white">x{res.quantity}</Badge>
-                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -1063,6 +1156,81 @@ export default function OITDetailPage() {
                                 </CardContent>
                             </Card>
                         </>
+
+                        {/* Resource Edit Dialog */}
+                        <Dialog open={isResourceDialogOpen} onOpenChange={setIsResourceDialogOpen}>
+                            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+                                <DialogHeader>
+                                    <DialogTitle>Editar Recursos Asignados</DialogTitle>
+                                    <DialogDescription>
+                                        Selecciona los equipos y personal necesarios para esta OIT.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="mb-4 relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <input
+                                        placeholder="Buscar equipo por nombre, código o marca..."
+                                        className="w-full pl-9 h-10 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        value={resourceSearch}
+                                        onChange={(e) => setResourceSearch(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md p-2 space-y-1">
+                                    {filteredResources.length === 0 ? (
+                                        <div className="text-center py-8 text-slate-500">No se encontraron recursos matching "{resourceSearch}"</div>
+                                    ) : (
+                                        filteredResources.map((resource) => (
+                                            <div
+                                                key={resource.id}
+                                                className={`flex items-start space-x-3 p-3 rounded-md hover:bg-slate-50 transition-colors cursor-pointer ${selectedResourceIdsEdit.includes(resource.id) ? 'bg-indigo-50/50 border border-indigo-100' : ''}`}
+                                                onClick={() => toggleResource(resource.id)}
+                                            >
+                                                <Checkbox
+                                                    id={`resource-${resource.id}`}
+                                                    checked={selectedResourceIdsEdit.includes(resource.id)}
+                                                    onCheckedChange={() => toggleResource(resource.id)}
+                                                />
+                                                <div className="grid gap-1.5 leading-none flex-1">
+                                                    <label
+                                                        htmlFor={`resource-${resource.id}`}
+                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-slate-900"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {resource.name}
+                                                    </label>
+                                                    <div className="text-xs text-slate-500 flex gap-2 flex-wrap">
+                                                        {resource.code && <span className="bg-slate-100 px-1.5 rounded font-mono">{resource.code}</span>}
+                                                        <span>{resource.brand} {resource.model}</span>
+                                                        <span className="text-slate-400">•</span>
+                                                        <span>{resource.type}</span>
+                                                    </div>
+                                                </div>
+                                                {resource.status !== 'AVAILABLE' && !selectedResourceIdsEdit.includes(resource.id) && (
+                                                    <Badge variant="secondary" className="text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                                        {resource.status}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                                    <div className="text-sm text-slate-500">
+                                        {selectedResourceIdsEdit.length} recursos seleccionados
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" onClick={() => setIsResourceDialogOpen(false)}>Cancelar</Button>
+                                        <Button onClick={handleSaveResources} disabled={isSavingResources}>
+                                            {isSavingResources ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Guardar Cambios
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </TabsContent>
 
                     <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">

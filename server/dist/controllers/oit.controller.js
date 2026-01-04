@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -1122,3 +1122,61 @@ const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.generateFinalReport = generateFinalReport;
+// Update Resources in Planning Proposal
+const updatePlanningResources = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { resourceIds } = req.body;
+        if (!Array.isArray(resourceIds)) {
+            return res.status(400).json({ error: 'resourceIds debe ser un array' });
+        }
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit)
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        // Fetch details of selected resources
+        const selectedResources = yield prisma.resource.findMany({
+            where: { id: { in: resourceIds } }
+        });
+        const mappedResources = selectedResources.map(r => ({
+            id: r.id,
+            name: r.name,
+            code: r.code,
+            type: r.type,
+            brand: r.brand,
+            model: r.model
+        }));
+        // Update planningProposal
+        let planningProposal = {};
+        if (oit.planningProposal) {
+            try {
+                planningProposal = JSON.parse(oit.planningProposal);
+            }
+            catch (e) { }
+        }
+        planningProposal.assignedResources = mappedResources;
+        // Update aiData too for consistency in UI
+        let aiData = {};
+        if (oit.aiData) {
+            try {
+                aiData = JSON.parse(oit.aiData);
+                if (aiData.data) {
+                    aiData.data.assignedResources = mappedResources;
+                }
+            }
+            catch (e) { }
+        }
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                planningProposal: JSON.stringify(planningProposal),
+                aiData: JSON.stringify(aiData)
+            }
+        });
+        res.json({ success: true, resources: mappedResources });
+    }
+    catch (error) {
+        console.error('Error updating planning resources:', error);
+        res.status(500).json({ error: 'Error al actualizar recursos' });
+    }
+});
+exports.updatePlanningResources = updatePlanningResources;

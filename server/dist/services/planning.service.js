@@ -44,6 +44,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
+// Map OIT types to resource matrix types
+const OIT_TO_RESOURCE_TYPE = {
+    'AGUA': ['Aguas'],
+    'AGUA_POTABLE': ['Aguas'],
+    'AGUAS_MARINAS': ['Aguas'],
+    'AGUAS_RESIDUALES': ['Aguas'],
+    'VERTIMIENTOS': ['Aguas'],
+    'PISCINA': ['Aguas'],
+    'AIRE': ['Calidad del aire'],
+    'FUENTES_FIJAS': ['Fuentes fijas'],
+    'RUIDO': ['Ruido'],
+    'BIOTA': ['Hidrobiología y Biota'],
+    'SUELO': ['Aguas'], // Suelos uses some water equipment
+    'SEDIMENTOS': ['Aguas'],
+    'LODOS': ['Aguas'],
+    'DEFAULT': ['General']
+};
 class PlanningService {
     /**
      * Cleans AI response by removing markdown code blocks
@@ -61,15 +78,79 @@ class PlanningService {
         }
         return cleaned;
     }
+    /**
+     * Detect OIT type from description and aiData
+     */
+    detectOitType(oit) {
+        var _a;
+        const aiData = oit.aiData ? JSON.parse(oit.aiData) : {};
+        const description = (oit.description || '').toLowerCase();
+        const templateName = (((_a = aiData.data) === null || _a === void 0 ? void 0 : _a.templateName) || '').toLowerCase();
+        const combined = `${description} ${templateName}`;
+        if (combined.includes('agua potable') || combined.includes('potable'))
+            return 'AGUA_POTABLE';
+        if (combined.includes('vertimiento'))
+            return 'VERTIMIENTOS';
+        if (combined.includes('marina') || combined.includes('mar'))
+            return 'AGUAS_MARINAS';
+        if (combined.includes('residual'))
+            return 'AGUAS_RESIDUALES';
+        if (combined.includes('piscina'))
+            return 'PISCINA';
+        if (combined.includes('ruido'))
+            return 'RUIDO';
+        if (combined.includes('aire') || combined.includes('atmosféric') || combined.includes('calidad del aire'))
+            return 'AIRE';
+        if (combined.includes('fuente fija') || combined.includes('chimenea') || combined.includes('emisión'))
+            return 'FUENTES_FIJAS';
+        if (combined.includes('biota') || combined.includes('hidrobiolog'))
+            return 'BIOTA';
+        if (combined.includes('suelo'))
+            return 'SUELO';
+        if (combined.includes('sedimento'))
+            return 'SEDIMENTOS';
+        if (combined.includes('lodo'))
+            return 'LODOS';
+        if (combined.includes('agua'))
+            return 'AGUA';
+        return 'DEFAULT';
+    }
+    /**
+     * Get resources filtered by OIT type
+     */
+    getRelevantResources(oitType_1) {
+        return __awaiter(this, arguments, void 0, function* (oitType, limit = 5) {
+            const resourceTypes = OIT_TO_RESOURCE_TYPE[oitType] || OIT_TO_RESOURCE_TYPE['DEFAULT'];
+            // Get resources matching the type
+            const relevantResources = yield prisma.resource.findMany({
+                where: {
+                    status: 'AVAILABLE',
+                    type: { in: resourceTypes }
+                },
+                take: limit,
+                orderBy: { name: 'asc' }
+            });
+            // If no resources found for specific type, get general ones
+            if (relevantResources.length === 0) {
+                return prisma.resource.findMany({
+                    where: { status: 'AVAILABLE' },
+                    take: limit,
+                    orderBy: { name: 'asc' }
+                });
+            }
+            return relevantResources;
+        });
+    }
     generateProposal(oitId) {
         return __awaiter(this, void 0, void 0, function* () {
             const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
             if (!oit) {
                 throw new Error('OIT not found');
             }
-            const resources = yield prisma.resource.findMany({
-                where: { status: 'AVAILABLE' }
-            });
+            // Detect OIT type and get relevant resources
+            const oitType = this.detectOitType(oit);
+            const resources = yield this.getRelevantResources(oitType, 5);
+            console.log(`[Planning] OIT tipo: ${oitType}, recursos encontrados: ${resources.length}`);
             const templates = yield prisma.samplingTemplate.findMany();
             if (templates.length === 0) {
                 // No templates available, create generic proposal
@@ -84,7 +165,14 @@ class PlanningService {
                         { id: '3', title: 'Documentación', description: 'Registrar datos y fotografías' },
                         { id: '4', title: 'Entrega a laboratorio', description: 'Enviar muestras para análisis' }
                     ],
-                    assignedResources: resources.slice(0, 3),
+                    assignedResources: resources.map(r => ({
+                        id: r.id,
+                        name: r.name,
+                        code: r.code,
+                        type: r.type,
+                        brand: r.brand,
+                        model: r.model
+                    })),
                     estimatedDuration: '4 horas'
                 };
                 let currentAiData = { valid: true, data: {} };
@@ -166,7 +254,14 @@ Si se requieren múltiples tipos de muestreo (ej: Suelos y Aguas), selecciona am
                 proposedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 proposedTime: '09:00',
                 steps: combinedSteps,
-                assignedResources: resources.slice(0, 3), // AI usually improves this via other calls
+                assignedResources: resources.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    code: r.code,
+                    type: r.type,
+                    brand: r.brand,
+                    model: r.model
+                })),
                 estimatedDuration: '4 horas'
             };
             let currentAiData = { valid: true, data: {} };

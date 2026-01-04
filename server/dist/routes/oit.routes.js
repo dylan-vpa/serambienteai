@@ -38,4 +38,6 @@ router.delete('/:id', oit_controller_1.deleteOIT);
 // Engineer assignment endpoints
 router.post('/:id/assign-engineers', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.assignEngineers);
 router.get('/:id/engineers', auth_middleware_1.authMiddleware, oit_controller_1.getAssignedEngineers);
+// Update resources explicitly
+router.put('/:id/resources', auth_middleware_1.authMiddleware, oit_controller_1.updatePlanningResources);
 exports.default = router;
