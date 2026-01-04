@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { pushService } from '../services/push.service';
 
 const prisma = new PrismaClient();
 
@@ -92,6 +93,14 @@ export const deleteNotification = async (req: Request, res: Response) => {
     }
 };
 
+// Type icons for push notifications
+const typeIcons: Record<string, string> = {
+    INFO: 'ℹ️',
+    SUCCESS: '✅',
+    WARNING: '⚠️',
+    ERROR: '❌'
+};
+
 export const createNotification = async (
     userId: string,
     title: string,
@@ -100,6 +109,7 @@ export const createNotification = async (
     oitId?: string
 ) => {
     try {
+        // Store notification in database
         const notification = await prisma.notification.create({
             data: {
                 userId,
@@ -109,6 +119,19 @@ export const createNotification = async (
                 oitId
             }
         });
+
+        // Send Web Push notification (async, don't wait)
+        pushService.sendToUser(userId, {
+            title: `${typeIcons[type]} ${title}`,
+            body: message,
+            url: oitId ? `/oits/${oitId}` : '/notifications',
+            data: {
+                notificationId: notification.id,
+                type,
+                oitId
+            }
+        }).catch(err => console.error('Push send error:', err));
+
         return notification;
     } catch (error) {
         console.error('Error creating notification:', error);

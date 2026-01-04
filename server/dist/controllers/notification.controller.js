@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotification = exports.deleteNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
 const client_1 = require("@prisma/client");
+const push_service_1 = require("../services/push.service");
 const prisma = new client_1.PrismaClient();
 const getNotifications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -93,8 +94,16 @@ const deleteNotification = (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.deleteNotification = deleteNotification;
+// Type icons for push notifications
+const typeIcons = {
+    INFO: 'ℹ️',
+    SUCCESS: '✅',
+    WARNING: '⚠️',
+    ERROR: '❌'
+};
 const createNotification = (userId_1, title_1, message_1, ...args_1) => __awaiter(void 0, [userId_1, title_1, message_1, ...args_1], void 0, function* (userId, title, message, type = 'INFO', oitId) {
     try {
+        // Store notification in database
         const notification = yield prisma.notification.create({
             data: {
                 userId,
@@ -104,6 +113,17 @@ const createNotification = (userId_1, title_1, message_1, ...args_1) => __awaite
                 oitId
             }
         });
+        // Send Web Push notification (async, don't wait)
+        push_service_1.pushService.sendToUser(userId, {
+            title: `${typeIcons[type]} ${title}`,
+            body: message,
+            url: oitId ? `/oits/${oitId}` : '/notifications',
+            data: {
+                notificationId: notification.id,
+                type,
+                oitId
+            }
+        }).catch(err => console.error('Push send error:', err));
         return notification;
     }
     catch (error) {

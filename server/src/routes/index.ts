@@ -8,6 +8,7 @@ import standardRoutes from './standard.routes';
 import samplingTemplateRoutes from './sampling-template.routes';
 import filesRoutes from './files.routes';
 import userRoutes from './user.routes';
+import pushRoutes from './push.routes';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/ai', aiRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/standards', standardRoutes);
 router.use('/sampling-templates', samplingTemplateRoutes);
+router.use('/push', pushRoutes);
 
 export default router;
 

@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  name          String
-  role          String         @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  notifications Notification[]
-  assignedOITs  OITAssignment[]
+  id               String         @id @default(uuid())
+  email            String         @unique
+  password         String
+  name             String
+  role             String         @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
+  pushSubscription String?        // JSON string with push subscription data
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  notifications    Notification[]
+  assignedOITs     OITAssignment[]
 }
 
 model OIT {

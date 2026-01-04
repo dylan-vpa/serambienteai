@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileJson, FileText } from 'lucide-react';
+import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
