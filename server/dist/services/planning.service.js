@@ -147,10 +147,62 @@ class PlanningService {
             if (!oit) {
                 throw new Error('OIT not found');
             }
-            // Detect OIT type and get relevant resources
+            // Detect OIT type
             const oitType = this.detectOitType(oit);
-            const resources = yield this.getRelevantResources(oitType, 5);
-            console.log(`[Planning] OIT tipo: ${oitType}, recursos encontrados: ${resources.length}`);
+            // Better Resource Selection Logic
+            let resources = [];
+            const { aiService } = yield Promise.resolve().then(() => __importStar(require('./ai.service')));
+            // 1. Try to get resources from analyzed docs (Quotation/OIT)
+            let candidateNames = [];
+            try {
+                if (oit.resources) {
+                    const parsed = JSON.parse(oit.resources);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        console.log(`[Planning] Using resources from document analysis: ${parsed.length}`);
+                        candidateNames = parsed;
+                    }
+                }
+            }
+            catch (e) { }
+            // 2. If no docs resources, ask AI using description
+            if (candidateNames.length === 0 && oit.description) {
+                console.log('[Planning] Asking AI for resource recommendations based on description...');
+                candidateNames = yield aiService.recommendResources(oit.description);
+            }
+            // 3. Match candidates to DB Resources
+            if (candidateNames.length > 0) {
+                console.log('[Planning] Matching candidates to DB:', candidateNames);
+                // We want unique equipment. If AI asks for "H2S Analyzer", pick ONE.
+                const uniqueTypes = new Set();
+                for (const name of candidateNames) {
+                    // Skip generic terms if better matches exist
+                    // Search available resources loosely matching the name
+                    const match = yield prisma.resource.findFirst({
+                        where: {
+                            status: 'AVAILABLE',
+                            OR: [
+                                { name: { contains: name } }, // removed mode: 'insensitive' to avoid sqlite error if not supported or check prisma version. Default contains is case sensitive in some DBs, insensitive in others. SQLite is case insensitive naturally for ASCII? No, depends.
+                                // Case insensitive mode requires Prisma feature? 
+                                // Safest is to just try. If Postgres, mode: insensitive. If SQLite, it might not support mode.
+                                // User environment is Linux, DB is SQLite (from schema).
+                                // SQLite contains is case-insensitive usually.
+                                { type: { contains: name } },
+                                { observations: { contains: name } }
+                            ]
+                        }
+                    });
+                    if (match && !uniqueTypes.has(match.id)) {
+                        resources.push(match);
+                        uniqueTypes.add(match.id);
+                    }
+                }
+            }
+            // 4. Fallback to generic relevant resources if nothing found
+            if (resources.length === 0) {
+                console.log('[Planning] No specific matches, using category fallback.');
+                resources = yield this.getRelevantResources(oitType, 3);
+            }
+            console.log(`[Planning] OIT tipo: ${oitType}, recursos finales: ${resources.length}`);
             const templates = yield prisma.samplingTemplate.findMany();
             if (templates.length === 0) {
                 // No templates available, create generic proposal
@@ -196,7 +248,6 @@ class PlanningService {
                 return proposal;
             }
             // AI suggests best template
-            const { aiService } = yield Promise.resolve().then(() => __importStar(require('./ai.service')));
             const templatesList = templates.map((t) => `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`).join('\n');
             const prompt = `
 Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
