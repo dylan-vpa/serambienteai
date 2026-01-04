@@ -1102,22 +1102,34 @@ export const finalizeSampling = async (req: Request, res: Response) => {
         });
 
         // Release Resources (Set to AVAILABLE)
+        // Check both oit.resources and aiData.data.assignedResources for consistency
+        const resourceIdsToRelease: string[] = [];
+
         if (oit.resources) {
             try {
                 const resources = JSON.parse(oit.resources);
-                const resourceIds = Array.isArray(resources)
+                const ids = Array.isArray(resources)
                     ? resources.map((r: any) => typeof r === 'string' ? r : r.id).filter(Boolean)
                     : [];
+                resourceIdsToRelease.push(...ids);
+            } catch (e) { }
+        }
 
-                if (resourceIds.length > 0) {
-                    await prisma.resource.updateMany({
-                        where: { id: { in: resourceIds } },
-                        data: { status: 'AVAILABLE' }
-                    });
+        // Also check aiData.data.assignedResources
+        if (aiData?.data?.assignedResources && Array.isArray(aiData.data.assignedResources)) {
+            for (const resource of aiData.data.assignedResources) {
+                if (resource.id && !resourceIdsToRelease.includes(resource.id)) {
+                    resourceIdsToRelease.push(resource.id);
                 }
-            } catch (e) {
-                console.error("Error releasing resources:", e);
             }
+        }
+
+        if (resourceIdsToRelease.length > 0) {
+            await prisma.resource.updateMany({
+                where: { id: { in: resourceIdsToRelease } },
+                data: { status: 'AVAILABLE' }
+            });
+            console.log(`Released ${resourceIdsToRelease.length} resources for OIT ${oit.oitNumber}`);
         }
 
         res.json({
