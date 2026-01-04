@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, ChevronRight, Upload, FileDown, Beaker, Camera, MapPin, WifiOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import LocationMap from '@/components/shared/LocationMap';
+import { cn } from '@/lib/utils';
 
 interface SamplingWizardProps {
     oitId: string;
@@ -181,28 +182,62 @@ export function SamplingWizard({ oitId, scheduledDate }: SamplingWizardProps) {
             )}
 
             {/* Progress Steps */}
-            <div className="flex justify-between items-center px-4 py-4 bg-slate-50/50 rounded-xl border border-slate-100">
-                {steps.map((s, idx) => {
-                    const Icon = s.icon;
-                    const isActive = s.id === step;
-                    const isCompleted = s.id < step;
+            <div className="relative px-4 py-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg shadow-slate-200/40 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20" />
 
-                    return (
-                        <div key={s.id} className="flex items-center">
-                            <div className={`flex items-center gap-2 ${isActive ? 'text-slate-900' : isCompleted ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all
-                                    ${isActive ? 'border-slate-900 bg-white' : isCompleted ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}
-                                `}>
-                                    {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                <div className="flex justify-between items-center relative z-10">
+                    {steps.map((s, idx) => {
+                        const Icon = s.icon;
+                        const isActive = s.id === step;
+                        const isCompleted = s.id < step;
+
+                        return (
+                            <div key={s.id} className="flex-1 flex flex-col items-center relative group">
+                                <div className={cn(
+                                    "relative z-10 flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-500 transform",
+                                    isActive
+                                        ? "bg-slate-900 text-white scale-110 shadow-lg shadow-indigo-500/30 ring-4 ring-white"
+                                        : isCompleted
+                                            ? "bg-emerald-500 text-white ring-4 ring-white/50"
+                                            : "bg-slate-100 text-slate-400"
+                                )}>
+                                    {isCompleted ? (
+                                        <CheckCircle2 className="h-5 w-5 animate-in zoom-in spin-in-180 duration-500" />
+                                    ) : (
+                                        <Icon className={cn("h-5 w-5 transition-transform duration-300", isActive && "scale-110")} />
+                                    )}
+
+                                    {/* Active Step Indicator Pulse */}
+                                    {isActive && (
+                                        <span className="absolute inset-0 rounded-xl bg-indigo-400 opacity-75 animate-ping -z-10" />
+                                    )}
                                 </div>
-                                <span className="text-sm font-medium hidden md:block">{s.title}</span>
+
+                                <span className={cn(
+                                    "mt-3 text-xs font-semibold tracking-wide transition-colors duration-300 absolute -bottom-8 w-24 text-center hidden md:block",
+                                    isActive ? "text-slate-900" : isCompleted ? "text-emerald-600" : "text-slate-400"
+                                )}>
+                                    {s.title}
+                                </span>
+
+                                {/* Connecting Line */}
+                                {idx < steps.length - 1 && (
+                                    <div className="absolute top-5 left-1/2 w-full h-[2px] -z-0">
+                                        <div className="w-full h-full bg-slate-100" />
+                                        <div
+                                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-slate-900 transition-all duration-700 ease-out"
+                                            style={{
+                                                width: isCompleted ? '100%' : isActive ? '50%' : '0%',
+                                                opacity: isCompleted || isActive ? 1 : 0
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                            {idx < steps.length - 1 && (
-                                <div className={`h-[2px] w-12 mx-4 ${isCompleted ? 'bg-emerald-200' : 'bg-slate-100'}`} />
-                            )}
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
+                <div className="h-6 md:h-8" /> {/* Spacing for labels */}
             </div>
 
             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">

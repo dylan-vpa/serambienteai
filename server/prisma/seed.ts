@@ -15,7 +15,26 @@ async function main() {
         console.log('   - No existing templates to clear or table missing.');
     }
 
+    const headerSteps = [
+        { order: -6, title: 'Cliente', description: 'Nombre del cliente', icon: 'User', type: 'INPUT', required: true },
+        { order: -5, title: 'Número OT', description: 'Número de Orden de Trabajo', icon: 'Hash', type: 'INPUT', required: true },
+        { order: -4, title: 'Responsable en Campo', description: 'Nombre del técnico responsable', icon: 'UserCheck', type: 'INPUT', required: true },
+        { order: -3, title: 'Fecha de Inicio', description: 'Fecha y hora de inicio', icon: 'Calendar', type: 'INPUT', inputType: 'datetime-local', required: true },
+        { order: -2, title: 'Fecha de Fin', description: 'Fecha y hora de finalización', icon: 'CalendarClock', type: 'INPUT', inputType: 'datetime-local', required: true },
+        { order: -1, title: 'Coordenadas de la Estación', description: 'Latitud y Longitud', icon: 'MapPin', type: 'INPUT', required: true }
+    ];
+
+    const wasteSteps = [
+        ...headerSteps,
+        { order: 1, title: 'Segregación', description: 'Identificar y separar tipos de residuos', icon: 'List' },
+        { order: 2, title: 'Pesaje', description: 'Pesar cada corriente de residuos', icon: 'Scale' },
+        { order: 3, title: 'Homogeneización', description: 'Mezclar residuos para muestra compuesta (Cuarteo)', icon: 'RefreshCw' },
+        { order: 4, title: 'Envasado', description: 'Envasar muestra en recipiente adecuado', icon: 'Package' },
+        { order: 5, title: 'Etiquetado', description: 'Rotular muestra con ID único', icon: 'Tag' }
+    ];
+
     const noiseSteps = [
+        ...headerSteps,
         { order: 1, title: 'Verificación Meteorológica', description: 'Registrar condiciones de clima (Lluvia, Viento, Humedad)', icon: 'CloudSun' },
         { order: 2, title: 'Calibración Inicial', description: 'Realizar y registrar calibración del sonómetro antes de la medición', icon: 'Settings' },
         { order: 3, title: 'Medición Ruido de Fondo', description: 'Medir nivel de presión sonora sin la fuente activa', icon: 'Volume1' },
@@ -25,20 +44,13 @@ async function main() {
     ];
 
     const airSteps = [
+        ...headerSteps,
         { order: 1, title: 'Inspección de Sitio', description: 'Verificar condiciones de seguridad y acceso a plataforma', icon: 'Eye' },
         { order: 2, title: 'Armado de Tren', description: 'Ensamblar tren de muestreo y verificar componentes', icon: 'Tool' },
         { order: 3, title: 'Prueba de Fugas', description: 'Realizar prueba de hermeticidad del sistema', icon: 'Activity' },
         { order: 4, title: 'Toma de Muestra', description: 'Ejecutar muestreo isocinético o de gases según norma', icon: 'Wind' },
         { order: 5, title: 'Recuperación', description: 'Recuperar muestras y lavar sondas', icon: 'Beaker' },
         { order: 6, title: 'Cadena de Custodia', description: 'Embalar y etiquetar muestras para laboratorio', icon: 'FileText' }
-    ];
-
-    const wasteSteps = [
-        { order: 1, title: 'Segregación', description: 'Identificar y separar tipos de residuos', icon: 'List' },
-        { order: 2, title: 'Pesaje', description: 'Pesar cada corriente de residuos', icon: 'Scale' },
-        { order: 3, title: 'Homogeneización', description: 'Mezclar residuos para muestra compuesta (Cuarteo)', icon: 'RefreshCw' },
-        { order: 4, title: 'Envasado', description: 'Envasar muestra en recipiente adecuado', icon: 'Package' },
-        { order: 5, title: 'Etiquetado', description: 'Rotular muestra con ID único', icon: 'Tag' }
     ];
 
     const templates = [
