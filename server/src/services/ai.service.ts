@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 
 interface OllamaResponse {
     model: string;
