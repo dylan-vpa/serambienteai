@@ -164,36 +164,52 @@ JSON:`;
         }
 
         try {
+            // Fetch actual resources from database
+            const PrismaClient = require('@prisma/client').PrismaClient;
+            const prisma = new PrismaClient();
+            const dbResources = await prisma.resource.findMany({
+                where: { status: 'AVAILABLE' },
+                select: { name: true, type: true }
+            });
+            await prisma.$disconnect();
+
+            // Group resources by type for the prompt
+            const resourcesByType: Record<string, string[]> = {};
+            for (const r of dbResources) {
+                const type = r.type || 'General';
+                if (!resourcesByType[type]) resourcesByType[type] = [];
+                resourcesByType[type].push(r.name);
+            }
+
+            // Build inventory list
+            const inventoryList = Object.entries(resourcesByType)
+                .map(([type, names]) => `- ${type}: ${names.slice(0, 10).join(', ')}`)
+                .join('\n');
+
             const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
 Tu objetivo es identificar los EQUIPOS DE CAMPO necesarios para el muestreo.
 
 IMPORTANTE: Identifica SOLO equipos físicos de campo, NO métodos de análisis de laboratorio.
 - ❌ NO incluyas códigos de métodos (SM xxxx, EPA xxxx, NTC xxxx)
-- ❌ NO incluyas técnicas de laboratorio (Espectrofotometría, Cromatografía, etc.)
-- ✅ SÍ incluye equipos físicos para muestreo en campo
+- ❌ NO incluyas técnicas de laboratorio
+- ✅ SÍ incluye equipos físicos que coincidan con nuestro inventario
 
-EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO:
-- Calidad del Aire: Analizador SO2, Analizador CO, Analizador H2S, Estación Meteorológica, Datalogger, Hi-Vol, Low-Vol
-- Fuentes Fijas: Consola Isocinética, Sonda Isocinética, Caja Fría, Balanza
-- Aguas: Multiparámetro, Kit Cloro Residual, Kit Conos Imhoff, Botella Muestreo, Bomba Peristáltica
-- Ruido: Sonómetro, Pistófono
-- Hidrobiología: Ictiometro, Corazador, Red Surber, Red de Arrastre
-- General: GPS, Cámara Fotográfica
+EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO (SELECCIONA DE ESTA LISTA):
+${inventoryList}
 
-Analiza el documento y extrae SOLO equipos de muestreo de campo que coincidan con nuestro inventario.`;
+Analiza el documento y extrae SOLO equipos que estén en nuestro inventario.`;
 
-            const prompt = `Analiza esta cotización/OIT y extrae los EQUIPOS DE CAMPO requeridos para el muestreo.
+            const prompt = `Analiza esta cotización/OIT y selecciona los EQUIPOS DE CAMPO de nuestro inventario que se necesitan.
 
 REGLAS:
-1. Extrae solo nombres de equipos físicos (ej: "Multiparámetro", "Analizador SO2")
-2. NO incluyas códigos de métodos como "SM 2320 B" o "EPA 200.7" - estos son análisis de laboratorio
-3. Busca menciones de tipo de monitoreo (agua, aire, ruido) y deduce los equipos necesarios
+1. Selecciona SOLO equipos que aparecen en el inventario proporcionado
+2. NO incluyas códigos de métodos (SM, EPA, NTC)
+3. Basado en el tipo de monitoreo mencionado, selecciona equipos apropiados
 
 Documento:
 ${documentText.substring(0, 8000)}
 
-Responde SOLO con un JSON array de nombres de equipos.
-Ejemplo correcto: ["Multiparámetro", "GPS", "Botella Muestreo", "Estación Meteorológica"]
+Responde SOLO con un JSON array de nombres de equipos del inventario.
 NO uses Markdown.`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
