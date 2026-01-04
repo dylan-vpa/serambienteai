@@ -164,16 +164,26 @@ JSON:`;
         }
 
         try {
-            const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental (Calidad de Aire, Agua, Suelo, Ruido). 
-Tu objetivo es identificar con precisión los recursos técnicos (equipos y personal) necesarios para ejecutar el trabajo descrito.
-Razona técnicamente: Si el monitoreo es isocinético, se requiere consola, sonda, caja fría, etc. Si es calidad de aire, se requieren muestreadores Hi-Vol o Low-Vol según el parámetro.
-Evita equipos genéricos irrelevantes. Sé específico.`;
+            const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
+Tu objetivo es identificar con precisión los equipos técnicos necesarios para ejecutar el trabajo descrito.
 
-            const prompt = `Analiza el siguiente documento OIT/Cotización y extrae el listado de recursos únicos.
+EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO (usa estos nombres exactos cuando apliquen):
+- Calidad del Aire: Analizador SO2, Analizador CO, Analizador H2S, Estación Meteorológica, Datalogger de Temperatura, Hi-Vol, Low-Vol
+- Fuentes Fijas: Consola Isocinética, Sonda Isocinética, Caja Fría, Balanza Compacta
+- Aguas: Multiparámetro, Kit Cloro Residual, Kit Conos Imhoff, Botella Muestreo
+- Ruido: Sonómetro, Pistófono de Calibración
+- Hidrobiología: Ictiometro, Corazador, Red Surber
+- General: GPS, Cámara Fotográfica
+
+Analiza el documento y extrae SOLO los equipos específicos necesarios. NO devuelvas términos genéricos como "Recursos estándar" o "Equipo de protección".`;
+
+            const prompt = `Analiza el siguiente documento OIT/Cotización y extrae los equipos técnicos requeridos.
 Documento:
-${documentText}
+${documentText.substring(0, 8000)}
 
-Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses Markdown.`;
+Responde SOLO con un JSON array de strings con nombres de equipos específicos.
+Ejemplo: ["Multiparámetro", "Analizador SO2", "Estación Meteorológica", "GPS"]
+NO uses Markdown.`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
@@ -193,6 +203,7 @@ Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses
             }
 
             const parsed = JSON.parse(responseText);
+            console.log('[AI] Resource recommendations:', parsed);
             return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
             return this.heuristicResourceRecommendation(documentText);
