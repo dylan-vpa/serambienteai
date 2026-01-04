@@ -266,8 +266,10 @@ class PlanningService {
             }
             // AI suggests best template
             const templatesList = templates.map((t) => `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`).join('\n');
-            const prompt = `
-Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
+            const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales. 
+Tu responsabilidad es asignar la metodología de muestreo correcta para cada OIT basándote en su descripción y los estándares técnicos.
+Analiza si se requiere monitoreo de aguas, aire, suelos o una combinación.`;
+            const prompt = `Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
 
 **OIT:**
 - Número: ${oit.oitNumber}
@@ -279,14 +281,13 @@ ${templatesList}
 **Responde ÚNICAMENTE en formato JSON:**
 {
   "templateIds": ["id1", "id2"],
-  "reason": "razón de la selección combinada",
+  "reason": "razón técnica de la selección",
   "confidence": número entre 0 y 1
 }
-Si se requieren múltiples tipos de muestreo (ej: Suelos y Aguas), selecciona ambas plantillas.
-        `;
+Si se requieren múltiples tipos de muestreo, selecciona ambas.`;
             let selectedTemplates = [];
             try {
-                const aiResponse = yield aiService.chat(prompt);
+                const aiResponse = yield aiService.chat(prompt, undefined, systemPrompt);
                 console.log('AI Response for template selection:', aiResponse);
                 const cleanedResponse = this.cleanAIResponse(aiResponse);
                 const templateSuggestion = JSON.parse(cleanedResponse);

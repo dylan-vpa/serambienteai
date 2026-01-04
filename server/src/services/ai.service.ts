@@ -57,13 +57,14 @@ export class AIService {
     /**
      * Chat with AI
      */
-    async chat(message: string, model?: string): Promise<string> {
+    async chat(message: string, model?: string, system?: string): Promise<string> {
         const useModel = model || this.defaultModel;
 
         try {
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: useModel,
                 prompt: message,
+                system: system, // Pass system prompt
                 stream: false,
             });
 
@@ -154,18 +155,21 @@ JSON:`;
         }
 
         try {
-            const prompt = `Basándote en este documento OIT, extrae los recursos (equipos y personal) necesarios. Responde SOLO con un JSON array de strings ÚNICOS que representen el tipo de equipo/persona. Si se requieren múltiples del mismo tipo, inclúyelo solo UNA vez. Evita IDs específicos (como 001) a menos que el documento los exija explícitamente:
+            const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental (Calidad de Aire, Agua, Suelo, Ruido). 
+Tu objetivo es identificar con precisión los recursos técnicos (equipos y personal) necesarios para ejecutar el trabajo descrito.
+Razona técnicamente: Si el monitoreo es isocinético, se requiere consola, sonda, caja fría, etc. Si es calidad de aire, se requieren muestreadores Hi-Vol o Low-Vol según el parámetro.
+Evita equipos genéricos irrelevantes. Sé específico.`;
 
-["Tipo Recurso 1", "Tipo Recurso 2", ...]
-
+            const prompt = `Analiza el siguiente documento OIT/Cotización y extrae el listado de recursos únicos.
 Documento:
 ${documentText}
 
-JSON:`;
+Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses Markdown.`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt: prompt,
+                system: systemPrompt,
                 stream: false,
                 format: 'json',
             });

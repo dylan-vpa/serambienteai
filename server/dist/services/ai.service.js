@@ -88,13 +88,14 @@ class AIService {
     /**
      * Chat with AI
      */
-    chat(message, model) {
+    chat(message, model, system) {
         return __awaiter(this, void 0, void 0, function* () {
             const useModel = model || this.defaultModel;
             try {
                 const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
                     model: useModel,
                     prompt: message,
+                    system: system, // Pass system prompt
                     stream: false,
                 });
                 return response.data.response || 'No response from AI';
@@ -180,17 +181,19 @@ JSON:`;
                 return this.heuristicResourceRecommendation(documentText);
             }
             try {
-                const prompt = `Basándote en este documento OIT, extrae los recursos (equipos y personal) necesarios. Responde SOLO con un JSON array de strings ÚNICOS que representen el tipo de equipo/persona. Si se requieren múltiples del mismo tipo, inclúyelo solo UNA vez. Evita IDs específicos (como 001) a menos que el documento los exija explícitamente:
-
-["Tipo Recurso 1", "Tipo Recurso 2", ...]
-
+                const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental (Calidad de Aire, Agua, Suelo, Ruido). 
+Tu objetivo es identificar con precisión los recursos técnicos (equipos y personal) necesarios para ejecutar el trabajo descrito.
+Razona técnicamente: Si el monitoreo es isocinético, se requiere consola, sonda, caja fría, etc. Si es calidad de aire, se requieren muestreadores Hi-Vol o Low-Vol según el parámetro.
+Evita equipos genéricos irrelevantes. Sé específico.`;
+                const prompt = `Analiza el siguiente documento OIT/Cotización y extrae el listado de recursos únicos.
 Documento:
 ${documentText}
 
-JSON:`;
+Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses Markdown.`;
                 const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
                     model: this.defaultModel,
                     prompt: prompt,
+                    system: systemPrompt,
                     stream: false,
                     format: 'json',
                 });
