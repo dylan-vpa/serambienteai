@@ -186,34 +186,30 @@ JSON:`;
                 .map(([type, names]) => `- ${type}: ${names.slice(0, 10).join(', ')}`)
                 .join('\n');
 
-            const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
-Tu objetivo es PLANIFICAR COMPLETAMENTE los equipos necesarios para una jornada de muestreo en campo.
+            const systemPrompt = `Eres un asistente robótico de inventario. TU ÚNICA FUNCIÓN es seleccionar extrictamente ítems de una lista predefinida.
 
-INSTRUCCIONES CRÍTICAS (Estricto cumplimiento):
-1. Usa **ÚNICAMENTE** los nombres EXACTOS del inventario proporcionado abajo.
-2. ❌ NO inventes nombres compuestos (Ej: si el inventario dice "Multiparámetro", NO escribas "Multiparámetro de campo").
-3. ❌ NO agregues marcas ni modelos (Ej: si el inventario dice "GPS", NO escribas "GPS Garmin").
-4. Si un equipo necesario no está en la lista exacta, busca el más cercano o GENÉRICO disponible (ej: "Analizador SO2" en vez de "Monitor de gases").
+INSTRUCCIONES ABSOLUTAS:
+1. Recibirás un texto y una lista de inventario.
+2. Debes devolver un array con los nombres de los equipos necesarios.
+3. ⚠️ **COPIA Y PEGA** los nombres EXACTAMENTE como están en el inventario.
+4. ❌ PROHIBIDO modificar una sola letra, agregar palabras extra o cambiar mayúsculas/minúsculas.
+5. Si el equipo necesario es "Multiparámetro" y tú escribes "Multiparámetro de agua", FALLASTE. Debes escribir "Multiparámetro".
 
-INVENTARIO DISPONIBLE (Copia estos nombres EXACTAMENTE):
+INVENTARIO AUTORIZADO (COPIA LITERAL):
 ${inventoryList}
+- Cámara Fotográfica
+- GPS
 
-Planifica una operación robusta (5-15 equipos).`;
+Si necesitas un equipo que no está EXACTO en la lista, usa el más parecido de la lista, pero SIN MODIFICARLO.`;
 
-            const prompt = `Analiza esta cotización/OIT y lista los equipos necesarios usando SOLO el vocabulario del inventario.
-
-REGLAS:
-- Identifica el tipo de monitoreo (Agua, Aire, Ruido, etc.)
-- Selecciona TODOS los equipos necesarios de la lista.
-- Copia los nombres EXACTAMENTE como aparecen en el inventario.
-- Incluye siempre equipos base como GPS, Cámara Fotográfica si están en lista.
+            const prompt = `Analiza el documento y extrae los equipos usando SOLO el inventario autorizado.
 
 Documento:
 ${documentText.substring(0, 8000)}
 
-Responde con un JSON array de strings.
-Ejemplo CORRECTO: ["Multiparámetro", "GPS", "Botella Muestreo"]
-Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
+Responde SOLO con el JSON array de strings exactos.
+Ejemplo de RESPUESTA CORRECTA: ["Multiparámetro", "Analizador SO2", "GPS"]
+Ejemplo de RESPUESTA INCORRECTA (PROHIBIDA): ["Multiparámetro de campo", "Analizador de gases SO2", "GPS Garmin"]`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
@@ -221,6 +217,9 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
                 system: systemPrompt,
                 stream: false,
                 format: 'json',
+                options: {
+                    temperature: 0.1 // Force deterministic, strict behavior
+                }
             });
 
             let responseText = response.data.response;
