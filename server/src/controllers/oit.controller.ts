@@ -1200,14 +1200,17 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
             where: { id: { in: resourceIds } }
         });
 
-        const mappedResources = selectedResources.map(r => ({
-            id: r.id,
-            name: r.name,
-            code: r.code,
-            type: r.type,
-            brand: r.brand,
-            model: r.model
-        }));
+        const mappedResources = selectedResources.map(r => {
+            const res = r as any;
+            return {
+                id: res.id,
+                name: res.name,
+                code: res.code,
+                type: res.type,
+                brand: res.brand,
+                model: res.model
+            };
+        });
 
         // Update planningProposal
         let planningProposal: any = {};

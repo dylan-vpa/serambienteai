@@ -1137,14 +1137,17 @@ const updatePlanningResources = (req, res) => __awaiter(void 0, void 0, void 0, 
         const selectedResources = yield prisma.resource.findMany({
             where: { id: { in: resourceIds } }
         });
-        const mappedResources = selectedResources.map(r => ({
-            id: r.id,
-            name: r.name,
-            code: r.code,
-            type: r.type,
-            brand: r.brand,
-            model: r.model
-        }));
+        const mappedResources = selectedResources.map(r => {
+            const res = r;
+            return {
+                id: res.id,
+                name: res.name,
+                code: res.code,
+                type: res.type,
+                brand: res.brand,
+                model: res.model
+            };
+        });
         // Update planningProposal
         let planningProposal = {};
         if (oit.planningProposal) {
