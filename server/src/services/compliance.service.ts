@@ -69,9 +69,27 @@ export class ComplianceService {
      * Extract text from quotation PDF
      */
     private async extractQuotationContent(quotationFileUrl: string | null): Promise<string> {
-        console.log(`[Compliance] Extracting quotation from: ${quotationFileUrl}`);
-        if (!quotationFileUrl || !fs.existsSync(quotationFileUrl)) {
-            console.warn(`[Compliance] File not found or null: ${quotationFileUrl}`);
+        console.log(`[Compliance] Received quotation path: ${quotationFileUrl}`);
+
+        if (!quotationFileUrl) return '';
+
+        let filePath = quotationFileUrl;
+        // Fix: If path starts with slash but doesn't exist at root, assume relative to project root
+        // and strip the leading slash to make it relative to process.cwd()
+        if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+            filePath = filePath.substring(1); // Remove leading slash -> "uploads/file.pdf"
+        }
+
+        // Ensure absolute path resolution if needed or rely on cwd (server/)
+        if (!fs.existsSync(filePath)) {
+            // Try resolving relative to CWD
+            filePath = require('path').join(process.cwd(), filePath);
+        }
+
+        console.log(`[Compliance] Resolved path: ${filePath}`);
+
+        if (!fs.existsSync(filePath)) {
+            console.warn(`[Compliance] FINAL CHECK - File not found: ${filePath}`);
             return '';
         }
 
