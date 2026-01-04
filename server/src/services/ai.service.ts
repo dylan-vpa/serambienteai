@@ -165,24 +165,35 @@ JSON:`;
 
         try {
             const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
-Tu objetivo es identificar con precisión los equipos técnicos necesarios para ejecutar el trabajo descrito.
+Tu objetivo es identificar los EQUIPOS DE CAMPO necesarios para el muestreo.
 
-EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO (usa estos nombres exactos cuando apliquen):
-- Calidad del Aire: Analizador SO2, Analizador CO, Analizador H2S, Estación Meteorológica, Datalogger de Temperatura, Hi-Vol, Low-Vol
-- Fuentes Fijas: Consola Isocinética, Sonda Isocinética, Caja Fría, Balanza Compacta
-- Aguas: Multiparámetro, Kit Cloro Residual, Kit Conos Imhoff, Botella Muestreo
-- Ruido: Sonómetro, Pistófono de Calibración
-- Hidrobiología: Ictiometro, Corazador, Red Surber
+IMPORTANTE: Identifica SOLO equipos físicos de campo, NO métodos de análisis de laboratorio.
+- ❌ NO incluyas códigos de métodos (SM xxxx, EPA xxxx, NTC xxxx)
+- ❌ NO incluyas técnicas de laboratorio (Espectrofotometría, Cromatografía, etc.)
+- ✅ SÍ incluye equipos físicos para muestreo en campo
+
+EQUIPOS DISPONIBLES EN NUESTRO INVENTARIO:
+- Calidad del Aire: Analizador SO2, Analizador CO, Analizador H2S, Estación Meteorológica, Datalogger, Hi-Vol, Low-Vol
+- Fuentes Fijas: Consola Isocinética, Sonda Isocinética, Caja Fría, Balanza
+- Aguas: Multiparámetro, Kit Cloro Residual, Kit Conos Imhoff, Botella Muestreo, Bomba Peristáltica
+- Ruido: Sonómetro, Pistófono
+- Hidrobiología: Ictiometro, Corazador, Red Surber, Red de Arrastre
 - General: GPS, Cámara Fotográfica
 
-Analiza el documento y extrae SOLO los equipos específicos necesarios. NO devuelvas términos genéricos como "Recursos estándar" o "Equipo de protección".`;
+Analiza el documento y extrae SOLO equipos de muestreo de campo que coincidan con nuestro inventario.`;
 
-            const prompt = `Analiza el siguiente documento OIT/Cotización y extrae los equipos técnicos requeridos.
+            const prompt = `Analiza esta cotización/OIT y extrae los EQUIPOS DE CAMPO requeridos para el muestreo.
+
+REGLAS:
+1. Extrae solo nombres de equipos físicos (ej: "Multiparámetro", "Analizador SO2")
+2. NO incluyas códigos de métodos como "SM 2320 B" o "EPA 200.7" - estos son análisis de laboratorio
+3. Busca menciones de tipo de monitoreo (agua, aire, ruido) y deduce los equipos necesarios
+
 Documento:
 ${documentText.substring(0, 8000)}
 
-Responde SOLO con un JSON array de strings con nombres de equipos específicos.
-Ejemplo: ["Multiparámetro", "Analizador SO2", "Estación Meteorológica", "GPS"]
+Responde SOLO con un JSON array de nombres de equipos.
+Ejemplo correcto: ["Multiparámetro", "GPS", "Botella Muestreo", "Estación Meteorológica"]
 NO uses Markdown.`;
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
