@@ -49,7 +49,7 @@ exports.aiService = exports.AIService = void 0;
 const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 class AIService {
     constructor() {
         this.baseURL = OLLAMA_URL;
