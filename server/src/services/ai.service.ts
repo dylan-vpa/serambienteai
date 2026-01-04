@@ -221,17 +221,43 @@ NO uses Markdown.`;
             });
 
             let responseText = response.data.response;
+            console.log('[AI] Raw resource response:', responseText.substring(0, 200));
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonStart = responseText.indexOf('[');
-            const jsonEnd = responseText.lastIndexOf(']');
 
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            // Try to extract JSON array or object
+            const jsonArrayStart = responseText.indexOf('[');
+            const jsonArrayEnd = responseText.lastIndexOf(']');
+            const jsonObjStart = responseText.indexOf('{');
+            const jsonObjEnd = responseText.lastIndexOf('}');
+
+            let parsed: any;
+
+            // First try to parse as array
+            if (jsonArrayStart !== -1 && jsonArrayEnd !== -1) {
+                const arrayStr = responseText.substring(jsonArrayStart, jsonArrayEnd + 1);
+                try {
+                    parsed = JSON.parse(arrayStr);
+                } catch (e) { }
             }
 
-            const parsed = JSON.parse(responseText);
-            console.log('[AI] Resource recommendations:', parsed);
-            return Array.isArray(parsed) ? parsed : [];
+            // If not an array, try to parse as object and extract keys
+            if (!parsed && jsonObjStart !== -1 && jsonObjEnd !== -1) {
+                const objStr = responseText.substring(jsonObjStart, jsonObjEnd + 1);
+                try {
+                    const obj = JSON.parse(objStr);
+                    // Extract keys as resource names
+                    parsed = Object.keys(obj);
+                    console.log('[AI] Extracted keys from object:', parsed);
+                } catch (e) { }
+            }
+
+            if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                console.log('[AI] Resource recommendations:', parsed);
+                return parsed;
+            }
+
+            console.log('[AI] Failed to parse resources, falling back to heuristic');
+            return this.heuristicResourceRecommendation(documentText);
         } catch (error) {
             return this.heuristicResourceRecommendation(documentText);
         }
