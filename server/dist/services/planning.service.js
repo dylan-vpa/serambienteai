@@ -141,7 +141,7 @@ class PlanningService {
             return relevantResources;
         });
     }
-    generateProposal(oitId) {
+    generateProposal(oitId, documentText) {
         return __awaiter(this, void 0, void 0, function* () {
             const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
             if (!oit) {
@@ -152,19 +152,27 @@ class PlanningService {
             // Better Resource Selection Logic
             let resources = [];
             const { aiService } = yield Promise.resolve().then(() => __importStar(require('./ai.service')));
-            // 1. Try to get resources from analyzed docs (Quotation/OIT)
+            // 1. Try to get resources from FULL DOCUMENT text if available
             let candidateNames = [];
-            try {
-                if (oit.resources) {
-                    const parsed = JSON.parse(oit.resources);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        console.log(`[Planning] Using resources from document analysis: ${parsed.length}`);
-                        candidateNames = parsed;
+            if (documentText) {
+                console.log('[Planning] analyzing FULL DOCUMENT for resources...');
+                // We can check if recommendResources supports text, which it does
+                candidateNames = yield aiService.recommendResources(documentText);
+            }
+            // 2. Fallback to existing metadata (Quotation/OIT resources)
+            if (candidateNames.length === 0) {
+                try {
+                    if (oit.resources) {
+                        const parsed = JSON.parse(oit.resources);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            console.log(`[Planning] Using resources from document analysis: ${parsed.length}`);
+                            candidateNames = parsed;
+                        }
                     }
                 }
+                catch (e) { }
             }
-            catch (e) { }
-            // 2. If no docs resources, ask AI using description
+            // 3. Last resort: ask AI using description
             if (candidateNames.length === 0 && oit.description) {
                 console.log('[Planning] Asking AI for resource recommendations based on description...');
                 candidateNames = yield aiService.recommendResources(oit.description);

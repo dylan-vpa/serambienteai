@@ -379,9 +379,11 @@ JSON:`;
                 const aiDataContent = {};
                 let extractedDescription = null;
                 let extractedLocation = null;
+                let finalDocumentText = '';
                 // Analyze OIT File
                 if (oitFilePath && fs_1.default.existsSync(oitFilePath)) {
                     const oitText = yield extractText(oitFilePath);
+                    finalDocumentText = oitText;
                     const extracted = yield this.extractOITData(oitText);
                     if (extracted.valid && extracted.data.description) {
                         extractedDescription = extracted.data.description;
@@ -399,7 +401,7 @@ JSON:`;
                 }
                 // Generate Planning
                 try {
-                    const proposal = yield planningService.generateProposal(oitId);
+                    const proposal = yield planningService.generateProposal(oitId, finalDocumentText);
                     if (proposal) {
                         aiDataContent.data = proposal;
                     }

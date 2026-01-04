@@ -96,7 +96,7 @@ class PlanningService {
         return relevantResources;
     }
 
-    async generateProposal(oitId: string) {
+    async generateProposal(oitId: string, documentText?: string) {
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
 
         if (!oit) {
@@ -110,19 +110,29 @@ class PlanningService {
         let resources: any[] = [];
         const { aiService } = await import('./ai.service');
 
-        // 1. Try to get resources from analyzed docs (Quotation/OIT)
+        // 1. Try to get resources from FULL DOCUMENT text if available
         let candidateNames: string[] = [];
-        try {
-            if (oit.resources) {
-                const parsed = JSON.parse(oit.resources);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    console.log(`[Planning] Using resources from document analysis: ${parsed.length}`);
-                    candidateNames = parsed;
-                }
-            }
-        } catch (e) { }
 
-        // 2. If no docs resources, ask AI using description
+        if (documentText) {
+            console.log('[Planning] analyzing FULL DOCUMENT for resources...');
+            // We can check if recommendResources supports text, which it does
+            candidateNames = await aiService.recommendResources(documentText);
+        }
+
+        // 2. Fallback to existing metadata (Quotation/OIT resources)
+        if (candidateNames.length === 0) {
+            try {
+                if (oit.resources) {
+                    const parsed = JSON.parse(oit.resources);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        console.log(`[Planning] Using resources from document analysis: ${parsed.length}`);
+                        candidateNames = parsed;
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // 3. Last resort: ask AI using description
         if (candidateNames.length === 0 && oit.description) {
             console.log('[Planning] Asking AI for resource recommendations based on description...');
             candidateNames = await aiService.recommendResources(oit.description);

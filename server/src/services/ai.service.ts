@@ -367,10 +367,12 @@ JSON:`;
             const aiDataContent: any = {};
             let extractedDescription: string | null = null;
             let extractedLocation: string | null = null;
+            let finalDocumentText = '';
 
             // Analyze OIT File
             if (oitFilePath && fs.existsSync(oitFilePath)) {
                 const oitText = await extractText(oitFilePath);
+                finalDocumentText = oitText;
                 const extracted = await this.extractOITData(oitText);
                 if (extracted.valid && extracted.data.description) {
                     extractedDescription = extracted.data.description;
@@ -389,7 +391,7 @@ JSON:`;
 
             // Generate Planning
             try {
-                const proposal = await planningService.generateProposal(oitId);
+                const proposal = await planningService.generateProposal(oitId, finalDocumentText);
                 if (proposal) {
                     aiDataContent.data = proposal;
                 }
