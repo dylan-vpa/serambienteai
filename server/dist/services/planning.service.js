@@ -157,8 +157,14 @@ class PlanningService {
             let candidateNames = [];
             if (documentText) {
                 console.log('[Planning] analyzing FULL DOCUMENT for resources...');
-                // We can check if recommendResources supports text, which it does
-                candidateNames = yield aiService.recommendResources(documentText);
+                try {
+                    // We can check if recommendResources supports text, which it does
+                    candidateNames = yield aiService.recommendResources(documentText);
+                }
+                catch (err) {
+                    console.error('[Planning] AI Resource Extraction Failed:', err);
+                    // Continue to fallbacks
+                }
             }
             // Deduplicate candidates immediately to avoid redundancy
             candidateNames = [...new Set(candidateNames)];
