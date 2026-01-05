@@ -64,7 +64,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                     if (response.data && response.data.labResultsAnalysis) {
                         setAnalysisData(response.data.labResultsAnalysis);
                         // Also update parent/context if possible, but local state is enough for display
-                        toast.success('¡Análisis IA Completado!');
+                        notify.success('¡Análisis IA Completado!');
                     }
                 } catch (error) {
                     console.error('Error polling OIT:', error);
