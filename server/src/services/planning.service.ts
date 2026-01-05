@@ -272,25 +272,44 @@ class PlanningService {
         ).join('\n');
 
         const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales. 
-Tu responsabilidad es asignar la metodología de muestreo correcta para cada OIT basándote en su descripción y los estándares técnicos.
-Analiza si se requiere monitoreo de aguas, aire, suelos o una combinación.`;
+Tu responsabilidad es asignar TODAS las metodologías de muestreo necesarias para cada OIT.
+IMPORTANTE: Analiza TODO el documento y selecciona TODAS las plantillas que apliquen.
+- Si hay monitoreo de AGUA (vertimientos, aguas residuales, potable): incluir template de Agua
+- Si hay monitoreo de AIRE (PM10, PM2.5, gases, calidad aire): incluir template de Calidad de Aire
+- Si hay monitoreo de RUIDO (emisión, ambiental, intradomiciliario): incluir template de Ruido
+- Si hay FUENTES FIJAS (chimeneas, emisiones): incluir template de Fuentes Fijas
+- Si hay OLORES (sustancias odoríferas, H2S, NH3): incluir template de Olores
+- Si hay PARTÍCULAS VIABLES (microbiología aire): incluir template de Partículas Viables
+- Si hay RESPEL (residuos peligrosos, caracterización): incluir template RESPEL
+NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`;
 
-        const prompt = `Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
+        // Include document content for better analysis (truncated to avoid token limits)
+        const docPreview = fullDocumentText ? fullDocumentText.substring(0, 12000) : '';
+
+        const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
 
 **OIT:**
 - Número: ${oit.oitNumber}
 - Descripción: ${oit.description || 'Sin descripción'}
 
-**Plantillas Disponibles:**
+${docPreview ? `**CONTENIDO DEL DOCUMENTO (Cotización/OIT):**
+${docPreview}
+...
+
+` : ''}**Plantillas Disponibles:**
 ${templatesList}
+
+**INSTRUCCIONES:**
+1. Lee TODO el contenido del documento
+2. Identifica TODOS los tipos de monitoreo mencionados
+3. Selecciona TODAS las plantillas que apliquen (pueden ser 1, 2, 3 o más)
 
 **Responde ÚNICAMENTE en formato JSON:**
 {
-  "templateIds": ["id1", "id2"],
-  "reason": "razón técnica de la selección",
+  "templateIds": ["id1", "id2", "id3", ...],
+  "reason": "razón técnica de CADA selección",
   "confidence": número entre 0 y 1
-}
-Si se requieren múltiples tipos de muestreo, selecciona ambas.`;
+}`;
 
         let selectedTemplates: any[] = [];
         try {
