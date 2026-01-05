@@ -373,6 +373,14 @@ async function internalGenerateFinalReport(id: string) {
                     var_13: reportContent,
                     var_14: reportContent,
                     var_15: reportContent,
+                    var_16: reportContent.substring(0, 1000),
+                    var_17: 'Conforme', // Placeholder for compliance status
+                    var_18: 'N/A',
+                    var_19: 'N/A',
+                    var_20: 'N/A',
+
+                    // Generic fill for remaining potential vars up to 40 to prevent empty holes
+                    ...Array.from({ length: 20 }, (_, i) => ({ [`var_${i + 21}`]: 'N/A' })).reduce((a, b) => ({ ...a, ...b }), {}),
 
                     // Capitalized variations
                     Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
