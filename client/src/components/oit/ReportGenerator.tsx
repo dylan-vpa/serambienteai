@@ -120,9 +120,23 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                 responseType: 'blob'
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            // Determine content type from headers or default to octet-stream
+            const contentType = response.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            const isPdf = contentType.includes('pdf');
+
+            const fileBlob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(fileBlob);
             setFinalReportUrl(url);
             setReportGenerated(true);
+
+            // Auto-trigger download with correct extension
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Informe_Final_OIT-${oitId}.${isPdf ? 'pdf' : 'docx'}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
             notify.success('Informe final generado exitosamente');
         } catch (error) {
             console.error('Error generating report:', error);
