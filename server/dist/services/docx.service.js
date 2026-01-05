@@ -37,13 +37,36 @@ exports.docxService = {
         const content = fs_1.default.readFileSync(templatePath, 'binary');
         const zip = new pizzip_1.default(content);
         // Create docxtemplater instance
+        // START DEBUG: Inspect keys inside the zip
+        const InspectModule = require("docxtemplater/js/inspect-module");
+        const inspectModule = new InspectModule();
         const doc = new docxtemplater_1.default(zip, {
             paragraphLoop: true,
             linebreaks: true,
-            delimiters: { start: '{', end: '}' }
+            delimiters: { start: '{', end: '}' },
+            modules: [inspectModule],
+            nullGetter: (part) => {
+                if (!part.module) {
+                    return "---";
+                }
+                if (part.module === "rawxml") {
+                    return "";
+                }
+                return "";
+            }
         });
+        // Debug: Print found placeholders
+        const tags = inspectModule.getAllTags();
+        console.log('[DocxService] DEBUG - Template Tags Found:', JSON.stringify(tags));
+        console.log('[DocxService] DEBUG - Data Keys Provided:', JSON.stringify(Object.keys(data)));
         // Render the document with data
-        doc.render(data);
+        try {
+            doc.render(data);
+        }
+        catch (error) {
+            console.error('[DocxService] Render Error:', error);
+            throw error;
+        }
         // Generate output buffer
         const buffer = doc.getZip().generate({
             type: 'nodebuffer',

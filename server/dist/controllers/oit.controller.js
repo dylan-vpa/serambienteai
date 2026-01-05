@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -320,10 +320,10 @@ function processLabResultsAsync(oitId, filePath) {
 // Reusable report generation logic
 function internalGenerateFinalReport(id) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
         const { pdfService } = require('../services/pdf.service');
         const { validationService } = require('../services/validation.service');
         const marked = require('marked');
+        console.log(`[Report] Starting generation for OIT ${id}`);
         const oit = yield prisma.oIT.findUnique({ where: { id } });
         if (!oit)
             throw new Error('OIT no encontrada');
@@ -331,20 +331,21 @@ function internalGenerateFinalReport(id) {
         let labText = '';
         if (oit.labResultsUrl) {
             const uploadsRoot = path_1.default.join(__dirname, '../../');
-            const potentialPath = path_1.default.join(uploadsRoot, oit.labResultsUrl);
+            const potentialPath = oit.labResultsUrl.startsWith('/') ? oit.labResultsUrl : path_1.default.join(uploadsRoot, oit.labResultsUrl);
+            const potentialPath2 = path_1.default.join(uploadsRoot, 'uploads', path_1.default.basename(oit.labResultsUrl));
             if (fs_1.default.existsSync(potentialPath)) {
                 labText = yield pdfService.extractText(potentialPath);
             }
-            else {
-                const potentialPath2 = path_1.default.join(uploadsRoot, 'uploads', oit.labResultsUrl);
-                if (fs_1.default.existsSync(potentialPath2)) {
-                    labText = yield pdfService.extractText(potentialPath2);
-                }
+            else if (fs_1.default.existsSync(potentialPath2)) {
+                labText = yield pdfService.extractText(potentialPath2);
             }
         }
         // 2. AI Generation
-        const reportMarkdown = yield validationService.generateFinalReportContent(oit, labText);
-        const date = new Date().toLocaleDateString('es-CO');
+        // Ensure we have some analysis text even if standard generation fails
+        let reportMarkdown = yield validationService.generateFinalReportContent(oit, labText);
+        if (!reportMarkdown)
+            reportMarkdown = "No se pudo generar el análisis automático.";
+        const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
         // 3. Try to generate Word report if template exists
         let generatedFileBuffer = null;
         let generatedFileName = '';
@@ -356,26 +357,32 @@ function internalGenerateFinalReport(id) {
                     where: { id: templateIds[0] }
                 });
                 if (template && template.reportTemplateFile) {
+                    console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
                     const { docxService } = require('../services/docx.service');
-                    const docxData = {
+                    // Use intelligent template-aware data mapper
+                    const { TemplateDataMapper } = require('../config/templateDataMapper');
+                    const mapper = new TemplateDataMapper(template.reportTemplateFile, {
                         oitNumber: oit.oitNumber,
-                        description: oit.description || '',
-                        location: oit.location || '',
-                        date: date,
-                        analysis: reportMarkdown.replace(/[#*`]/g, ''),
-                        narrative: reportMarkdown,
-                        client: ((_a = oit.description) === null || _a === void 0 ? void 0 : _a.split(':')[0]) || 'Cliente'
-                    };
+                        description: oit.description,
+                        location: oit.location,
+                        scheduledDate: oit.scheduledDate
+                    }, reportMarkdown);
+                    const docxData = mapper.generateData();
                     generatedFileBuffer = yield docxService.generateDocument(template.reportTemplateFile, docxData);
                     generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
                     isDocx = true;
+                    console.log(`[Report] Word document generated successfully: ${generatedFileName}`);
+                }
+                else {
+                    console.log('[Report] No template file configured for this template.');
                 }
             }
         }
         catch (docxErr) {
-            console.error('Word generation error, falling back to PDF:', docxErr);
+            console.error('[Report] Word generation error, falling back to PDF:', docxErr);
         }
         if (!isDocx) {
+            console.log('[Report] Generating PDF fallback...');
             // Fallback: Convert to HTML & PDF 
             const htmlContent = `
             <!DOCTYPE html>
@@ -425,7 +432,11 @@ function internalGenerateFinalReport(id) {
             generatedFileBuffer = fs_1.default.readFileSync(pdfPath);
         }
         else {
-            const outputPath = path_1.default.join(__dirname, '../../uploads', generatedFileName);
+            // Ensure uploads directory exists
+            const uploadsDir = path_1.default.join(__dirname, '../../uploads');
+            if (!fs_1.default.existsSync(uploadsDir))
+                fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+            const outputPath = path_1.default.join(uploadsDir, generatedFileName);
             fs_1.default.writeFileSync(outputPath, generatedFileBuffer);
         }
         if (!generatedFileBuffer)
@@ -1013,7 +1024,7 @@ const validateStepData = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.validateStepData = validateStepData;
 // Finalize Sampling and Generate Analysis
 const finalizeSampling = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { id } = req.params;
         const oit = yield prisma.oIT.findUnique({ where: { id } });
@@ -1049,22 +1060,32 @@ const finalizeSampling = (req, res) => __awaiter(void 0, void 0, void 0, functio
             }
         });
         // Release Resources (Set to AVAILABLE)
+        // Check both oit.resources and aiData.data.assignedResources for consistency
+        const resourceIdsToRelease = [];
         if (oit.resources) {
             try {
                 const resources = JSON.parse(oit.resources);
-                const resourceIds = Array.isArray(resources)
+                const ids = Array.isArray(resources)
                     ? resources.map((r) => typeof r === 'string' ? r : r.id).filter(Boolean)
                     : [];
-                if (resourceIds.length > 0) {
-                    yield prisma.resource.updateMany({
-                        where: { id: { in: resourceIds } },
-                        data: { status: 'AVAILABLE' }
-                    });
+                resourceIdsToRelease.push(...ids);
+            }
+            catch (e) { }
+        }
+        // Also check aiData.data.assignedResources
+        if (((_c = aiData === null || aiData === void 0 ? void 0 : aiData.data) === null || _c === void 0 ? void 0 : _c.assignedResources) && Array.isArray(aiData.data.assignedResources)) {
+            for (const resource of aiData.data.assignedResources) {
+                if (resource.id && !resourceIdsToRelease.includes(resource.id)) {
+                    resourceIdsToRelease.push(resource.id);
                 }
             }
-            catch (e) {
-                console.error("Error releasing resources:", e);
-            }
+        }
+        if (resourceIdsToRelease.length > 0) {
+            yield prisma.resource.updateMany({
+                where: { id: { in: resourceIdsToRelease } },
+                data: { status: 'AVAILABLE' }
+            });
+            console.log(`Released ${resourceIdsToRelease.length} resources for OIT ${oit.oitNumber}`);
         }
         res.json({
             success: true,
@@ -1183,3 +1204,92 @@ const updatePlanningResources = (req, res) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.updatePlanningResources = updatePlanningResources;
+// Request Redo of Sampling Steps (Admin Only)
+const requestRedoSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { stepIndices, redoAll, reason } = req.body;
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+        // Parse existing data
+        let samplingProgress = oit.samplingProgress ? JSON.parse(oit.samplingProgress) : { currentStep: 0, completedSteps: [], redoRequests: [] };
+        let stepValidations = oit.stepValidations ? JSON.parse(oit.stepValidations) : {};
+        // Initialize redoRequests array if not present
+        if (!samplingProgress.redoRequests) {
+            samplingProgress.redoRequests = [];
+        }
+        if (redoAll) {
+            // Mark all steps for redo
+            samplingProgress.redoRequests = samplingProgress.completedSteps.map((idx) => ({
+                stepIndex: idx,
+                reason: reason || 'Solicitado por administrador',
+                requestedAt: new Date().toISOString(),
+                status: 'PENDING'
+            }));
+            // Reset completed steps
+            samplingProgress.completedSteps = [];
+            samplingProgress.currentStep = 0;
+            // Mark all validations as requiring redo
+            Object.keys(stepValidations).forEach(key => {
+                stepValidations[key].redoRequired = true;
+                stepValidations[key].redoReason = reason || 'Solicitado por administrador';
+            });
+        }
+        else if (stepIndices && Array.isArray(stepIndices)) {
+            // Mark specific steps for redo
+            stepIndices.forEach((stepIndex) => {
+                // Add to redo requests
+                samplingProgress.redoRequests.push({
+                    stepIndex,
+                    reason: reason || 'Solicitado por administrador',
+                    requestedAt: new Date().toISOString(),
+                    status: 'PENDING'
+                });
+                // Remove from completed if present
+                samplingProgress.completedSteps = samplingProgress.completedSteps.filter((idx) => idx !== stepIndex);
+                // Mark the validation as needing redo
+                if (stepValidations[stepIndex]) {
+                    stepValidations[stepIndex].redoRequired = true;
+                    stepValidations[stepIndex].redoReason = reason || 'Solicitado por administrador';
+                }
+            });
+            // Adjust current step if needed
+            const minRedoStep = Math.min(...stepIndices);
+            if (samplingProgress.currentStep > minRedoStep) {
+                samplingProgress.currentStep = minRedoStep;
+            }
+        }
+        // Update OIT
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingProgress: JSON.stringify(samplingProgress),
+                stepValidations: JSON.stringify(stepValidations),
+                status: 'REDO_REQUIRED' // New status to indicate redo needed
+            }
+        });
+        // Create notification for assigned engineers
+        const assignedEngineers = yield prisma.oITAssignment.findMany({
+            where: { oitId: id },
+            include: { user: true }
+        });
+        for (const eng of assignedEngineers) {
+            const notifMessage = redoAll
+                ? `La OIT #${oit.oitNumber} requiere rehacer todos los pasos de muestreo. Razón: ${reason || 'Solicitado por admin'}`
+                : `La OIT #${oit.oitNumber} requiere rehacer ${stepIndices === null || stepIndices === void 0 ? void 0 : stepIndices.length} paso(s). Razón: ${reason || 'Solicitado por admin'}`;
+            yield (0, notification_controller_1.createNotification)(eng.userId, 'Pasos de muestreo requieren corrección', notifMessage, 'WARNING', id);
+        }
+        res.json({
+            success: true,
+            message: redoAll ? 'Todos los pasos marcados para rehacer' : `${stepIndices === null || stepIndices === void 0 ? void 0 : stepIndices.length} paso(s) marcado(s) para rehacer`,
+            samplingProgress
+        });
+    }
+    catch (error) {
+        console.error('Error requesting redo:', error);
+        res.status(500).json({ error: 'Error al solicitar corrección' });
+    }
+});
+exports.requestRedoSteps = requestRedoSteps;

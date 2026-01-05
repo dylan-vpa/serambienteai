@@ -18,4 +18,6 @@ router.post('/', auth_middleware_1.requireSuperAdmin, user_controller_1.createUs
 router.get('/:id', auth_middleware_1.requireSuperAdmin, user_controller_1.getUserById);
 // Update user role - requires SUPER_ADMIN
 router.put('/:id/role', auth_middleware_1.requireSuperAdmin, user_controller_1.updateUserRole);
+// Update user password - requires ADMIN+
+router.put('/:id/password', auth_middleware_1.requireAdmin, user_controller_1.updatePassword);
 exports.default = router;

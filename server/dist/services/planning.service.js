@@ -144,26 +144,52 @@ class PlanningService {
     }
     generateProposal(oitId, documentText) {
         return __awaiter(this, void 0, void 0, function* () {
-            const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
+            const oit = yield prisma.oIT.findUnique({
+                where: { id: oitId },
+                include: { assignedEngineers: { include: { user: true } } }
+            });
             if (!oit) {
                 throw new Error('OIT not found');
             }
             // Detect OIT type
             const oitType = this.detectOitType(oit);
+            // ... existing resource logic ...
+            // (This part is long, omitting for brevity in replacement if possible, but replace_file_content requires context.
+            // I will target the specific block where `oit` is fetched and then where `combinedSteps` is processed.)
+            // Since I need to replace the fetch at top AND the logic at bottom, and they are far apart, I should use multi_replace.
             // Better Resource Selection Logic
             let resources = [];
             const { aiService } = yield Promise.resolve().then(() => __importStar(require('./ai.service')));
             // 1. Try to get resources from FULL DOCUMENT text if available
             let candidateNames = [];
-            if (documentText) {
-                console.log('[Planning] analyzing FULL DOCUMENT for resources...');
+            let fullDocumentText = documentText || '';
+            // If no documentText provided, try to extract from quotation PDF
+            if (!fullDocumentText && oit.quotationFileUrl) {
                 try {
-                    // We can check if recommendResources supports text, which it does
-                    candidateNames = yield aiService.recommendResources(documentText);
+                    console.log('[Planning] Extracting quotation content for resource analysis...');
+                    const { pdfService } = yield Promise.resolve().then(() => __importStar(require('./pdf.service')));
+                    const fs = yield Promise.resolve().then(() => __importStar(require('fs')));
+                    let filePath = oit.quotationFileUrl;
+                    if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+                        filePath = filePath.substring(1);
+                    }
+                    if (fs.existsSync(filePath)) {
+                        fullDocumentText = yield pdfService.extractText(filePath);
+                        console.log(`[Planning] Extracted ${fullDocumentText.length} chars from quotation`);
+                    }
+                }
+                catch (extractError) {
+                    console.error('[Planning] Failed to extract quotation:', extractError);
+                }
+            }
+            if (fullDocumentText && fullDocumentText.length > 100) {
+                console.log('[Planning] Analyzing FULL DOCUMENT for resources...');
+                try {
+                    candidateNames = yield aiService.recommendResources(fullDocumentText);
+                    console.log('[AI] Resource recommendations:', candidateNames);
                 }
                 catch (err) {
                     console.error('[Planning] AI Resource Extraction Failed:', err);
-                    // Continue to fallbacks
                 }
             }
             // Deduplicate candidates immediately to avoid redundancy
@@ -316,6 +342,41 @@ Si se requieren múltiples tipos de muestreo, selecciona ambas.`;
                     combinedSteps = [...combinedSteps, ...steps];
                 }
                 catch (e) { }
+            });
+            // AUTO-FILL HEADER STEPS
+            // Populate administrative data automatically from OIT context
+            combinedSteps = combinedSteps.map(step => {
+                var _a;
+                const title = step.title;
+                if (title === 'Número OT') {
+                    return Object.assign(Object.assign({}, step), { value: oit.oitNumber });
+                }
+                if (title === 'Cliente') {
+                    try {
+                        const aiData = JSON.parse(oit.aiData || '{}');
+                        const clientName = ((_a = aiData.data) === null || _a === void 0 ? void 0 : _a.clientName) || aiData.clientName || '';
+                        if (clientName)
+                            return Object.assign(Object.assign({}, step), { value: clientName });
+                    }
+                    catch (e) { }
+                }
+                if (title === 'Responsable en Campo') {
+                    if (oit.assignedEngineers && oit.assignedEngineers.length > 0) {
+                        return Object.assign(Object.assign({}, step), { value: oit.assignedEngineers.map((ae) => ae.user.name).join(', ') });
+                    }
+                }
+                if (title === 'Fecha de Inicio' && oit.scheduledDate) {
+                    return Object.assign(Object.assign({}, step), { value: new Date(oit.scheduledDate).toISOString().slice(0, 16) });
+                }
+                if (title === 'Fecha de Fin' && oit.scheduledDate) {
+                    // Default duration 4 hours
+                    const end = new Date(new Date(oit.scheduledDate).getTime() + 4 * 60 * 60 * 1000);
+                    return Object.assign(Object.assign({}, step), { value: end.toISOString().slice(0, 16) });
+                }
+                if (title === 'Coordenadas de la Estación' && oit.location) {
+                    return Object.assign(Object.assign({}, step), { value: oit.location });
+                }
+                return step;
             });
             const proposal = {
                 templateIds: selectedTemplates.map(t => t.id),

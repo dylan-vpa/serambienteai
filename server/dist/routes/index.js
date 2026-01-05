@@ -14,6 +14,7 @@ const sampling_template_routes_1 = __importDefault(require("./sampling-template.
 const files_routes_1 = __importDefault(require("./files.routes"));
 const user_routes_1 = __importDefault(require("./user.routes"));
 const push_routes_1 = __importDefault(require("./push.routes"));
+const feedback_controller_1 = __importDefault(require("../controllers/feedback.controller"));
 const router = (0, express_1.Router)();
 router.use('/files', files_routes_1.default);
 router.use('/auth', auth_routes_1.default);
@@ -25,4 +26,5 @@ router.use('/notifications', notification_routes_1.default);
 router.use('/standards', standard_routes_1.default);
 router.use('/sampling-templates', sampling_template_routes_1.default);
 router.use('/push', push_routes_1.default);
+router.use('/feedback', feedback_controller_1.default);
 exports.default = router;

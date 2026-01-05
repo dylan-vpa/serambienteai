@@ -115,11 +115,27 @@ class ComplianceService {
      */
     extractQuotationContent(quotationFileUrl) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!quotationFileUrl || !fs.existsSync(quotationFileUrl)) {
+            console.log(`[Compliance] Received quotation path: ${quotationFileUrl}`);
+            if (!quotationFileUrl)
+                return '';
+            let filePath = quotationFileUrl;
+            // Fix: If path starts with slash but doesn't exist at root, assume relative to project root
+            // and strip the leading slash to make it relative to process.cwd()
+            if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+                filePath = filePath.substring(1); // Remove leading slash -> "uploads/file.pdf"
+            }
+            // Ensure absolute path resolution if needed or rely on cwd (server/)
+            if (!fs.existsSync(filePath)) {
+                // Try resolving relative to CWD
+                filePath = require('path').join(process.cwd(), filePath);
+            }
+            console.log(`[Compliance] Resolved path: ${filePath}`);
+            if (!fs.existsSync(filePath)) {
+                console.warn(`[Compliance] FINAL CHECK - File not found: ${filePath}`);
                 return '';
             }
             try {
-                return yield pdf_service_1.pdfService.extractText(quotationFileUrl);
+                return yield pdf_service_1.pdfService.extractText(filePath);
             }
             catch (error) {
                 console.error('Error extracting quotation:', error);
@@ -211,7 +227,7 @@ ${standardsContent}
 }
         `.trim();
             try {
-                const aiResponse = yield ai_service_1.aiService.chat(prompt, 'llama3.2:3b');
+                const aiResponse = yield ai_service_1.aiService.chat(prompt);
                 let result;
                 try {
                     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);

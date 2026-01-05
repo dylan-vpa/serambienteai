@@ -34,6 +34,8 @@ router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controll
 router.post('/:id/finalize-sampling', auth_middleware_1.authMiddleware, oit_controller_1.finalizeSampling);
 router.post('/:id/submit-sampling', auth_middleware_1.authMiddleware, oit_controller_1.submitSampling);
 router.get('/:id/sampling-report', auth_middleware_1.authMiddleware, oit_controller_1.generateSamplingReport);
+// Request redo of sampling steps (Admin only)
+router.post('/:id/request-redo', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.requestRedoSteps);
 router.delete('/:id', oit_controller_1.deleteOIT);
 // Engineer assignment endpoints
 router.post('/:id/assign-engineers', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.assignEngineers);

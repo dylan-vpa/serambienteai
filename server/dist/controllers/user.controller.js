@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createUser = exports.getProfile = exports.getEngineers = exports.updateUserRole = exports.getUserById = exports.getAllUsers = exports.ROLES = void 0;
+exports.updatePassword = exports.createUser = exports.getProfile = exports.getEngineers = exports.updateUserRole = exports.getUserById = exports.getAllUsers = exports.ROLES = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
@@ -206,3 +206,30 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.createUser = createUser;
+// Update user password (ADMIN/SUPER_ADMIN only)
+const updatePassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+        // Check if user exists
+        const user = yield prisma.user.findUnique({ where: { id } });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        // Hash new password
+        const hashedPassword = yield bcryptjs_1.default.hash(newPassword, 10);
+        yield prisma.user.update({
+            where: { id },
+            data: { password: hashedPassword }
+        });
+        res.json({ message: 'Contraseña actualizada exitosamente' });
+    }
+    catch (error) {
+        console.error('Error updating password:', error);
+        res.status(500).json({ error: 'Error al actualizar contraseña' });
+    }
+});
+exports.updatePassword = updatePassword;

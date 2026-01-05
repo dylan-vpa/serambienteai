@@ -92,16 +92,25 @@ class AIService {
         return __awaiter(this, void 0, void 0, function* () {
             const useModel = model || this.defaultModel;
             try {
+                console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
+                if (system)
+                    console.log(`[AI] System Prompt: ${system.substring(0, 100)}...`);
+                console.log(`[AI] User Prompt: ${message.substring(0, 200)}...`);
                 const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
                     model: useModel,
                     prompt: message,
                     system: system, // Pass system prompt
                     stream: false,
                 });
-                return response.data.response || 'No response from AI';
+                const reply = response.data.response || 'No response from AI';
+                console.log(`[AI] Response: ${reply.substring(0, 200)}...`);
+                return reply;
             }
             catch (error) {
                 console.error('AI Chat error:', error.message);
+                if (error.response) {
+                    console.error('AI Error Data:', error.response.data);
+                }
                 throw new Error('AI service unavailable. Please ensure Ollama is running.');
             }
         });
@@ -181,15 +190,53 @@ JSON:`;
                 return this.heuristicResourceRecommendation(documentText);
             }
             try {
-                const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental (Calidad de Aire, Agua, Suelo, Ruido). 
-Tu objetivo es identificar con precisión los recursos técnicos (equipos y personal) necesarios para ejecutar el trabajo descrito.
-Razona técnicamente: Si el monitoreo es isocinético, se requiere consola, sonda, caja fría, etc. Si es calidad de aire, se requieren muestreadores Hi-Vol o Low-Vol según el parámetro.
-Evita equipos genéricos irrelevantes. Sé específico.`;
-                const prompt = `Analiza el siguiente documento OIT/Cotización y extrae el listado de recursos únicos.
-Documento:
-${documentText}
+                // Fetch actual resources from database
+                const PrismaClient = require('@prisma/client').PrismaClient;
+                const prisma = new PrismaClient();
+                const dbResources = yield prisma.resource.findMany({
+                    where: { status: 'AVAILABLE' },
+                    select: { name: true, type: true }
+                });
+                yield prisma.$disconnect();
+                // Group resources by type for the prompt
+                const resourcesByType = {};
+                for (const r of dbResources) {
+                    const type = r.type || 'General';
+                    if (!resourcesByType[type])
+                        resourcesByType[type] = [];
+                    resourcesByType[type].push(r.name);
+                }
+                // Build inventory list
+                const inventoryList = Object.entries(resourcesByType)
+                    .map(([type, names]) => `- ${type}: ${names.slice(0, 10).join(', ')}`)
+                    .join('\n');
+                const systemPrompt = `Eres un Gerente de Operaciones experto en monitoreo ambiental en Colombia.
+Tu objetivo es PLANIFICAR COMPLETAMENTE los equipos necesarios para una jornada de muestreo en campo.
 
-Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses Markdown.`;
+INSTRUCCIONES CRÍTICAS (Estricto cumplimiento):
+1. Usa **ÚNICAMENTE** los nombres EXACTOS del inventario proporcionado abajo.
+2. ❌ NO inventes nombres compuestos (Ej: si el inventario dice "Multiparámetro", NO escribas "Multiparámetro de campo").
+3. ❌ NO agregues marcas ni modelos (Ej: si el inventario dice "GPS", NO escribas "GPS Garmin").
+4. Si un equipo necesario no está en la lista exacta, busca el más cercano o GENÉRICO disponible (ej: "Analizador SO2" en vez de "Monitor de gases").
+
+INVENTARIO DISPONIBLE (Copia estos nombres EXACTAMENTE):
+${inventoryList}
+
+Planifica una operación robusta (5-15 equipos).`;
+                const prompt = `Analiza esta cotización/OIT y lista los equipos necesarios usando SOLO el vocabulario del inventario.
+
+REGLAS:
+- Identifica el tipo de monitoreo (Agua, Aire, Ruido, etc.)
+- Selecciona TODOS los equipos necesarios de la lista.
+- Copia los nombres EXACTAMENTE como aparecen en el inventario.
+- Incluye siempre equipos base como GPS, Cámara Fotográfica si están en lista.
+
+Documento:
+${documentText.substring(0, 8000)}
+
+Responde con un JSON array de strings.
+Ejemplo CORRECTO: ["Multiparámetro", "GPS", "Botella Muestreo"]
+Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
                 const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
                     model: this.defaultModel,
                     prompt: prompt,
@@ -198,16 +245,64 @@ Responde SOLO con un JSON array de strings ej: ["Equipo 1", "Equipo 2"]. NO uses
                     format: 'json',
                 });
                 let responseText = response.data.response;
+                console.log('[AI] Raw resource response:', responseText.substring(0, 200));
                 responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonStart = responseText.indexOf('[');
-                const jsonEnd = responseText.lastIndexOf(']');
-                if (jsonStart !== -1 && jsonEnd !== -1) {
-                    responseText = responseText.substring(jsonStart, jsonEnd + 1);
+                // Try to extract JSON array or object
+                const jsonArrayStart = responseText.indexOf('[');
+                const jsonArrayEnd = responseText.lastIndexOf(']');
+                const jsonObjStart = responseText.indexOf('{');
+                const jsonObjEnd = responseText.lastIndexOf('}');
+                let parsed;
+                // First try to parse as array
+                if (jsonArrayStart !== -1 && jsonArrayEnd !== -1) {
+                    const arrayStr = responseText.substring(jsonArrayStart, jsonArrayEnd + 1);
+                    try {
+                        parsed = JSON.parse(arrayStr);
+                    }
+                    catch (e) { }
                 }
-                const parsed = JSON.parse(responseText);
-                return Array.isArray(parsed) ? parsed : [];
+                // If not an array, try to parse as object and extract keys
+                if (!parsed && jsonObjStart !== -1 && jsonObjEnd !== -1) {
+                    const objStr = responseText.substring(jsonObjStart, jsonObjEnd + 1);
+                    try {
+                        const obj = JSON.parse(objStr);
+                        // Extract keys as resource names
+                        parsed = Object.keys(obj);
+                        console.log('[AI] Extracted keys from object:', parsed);
+                    }
+                    catch (e) { }
+                }
+                if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                    // Post-processing: Validate against DB resources to ensure exact matches
+                    const validResources = [];
+                    const dbResourceNames = dbResources.map((r) => r.name); // dbResources is available in scope
+                    console.log('[AI] Validating AI response against DB inventory...');
+                    for (const aiName of parsed) {
+                        // 1. Check exact match
+                        if (dbResourceNames.includes(aiName)) {
+                            validResources.push(aiName);
+                            continue;
+                        }
+                        // 2. Find best partial match in DB inventory
+                        // (e.g. AI: "Multiparámetro de campo", DB: "Multiparámetro" -> Match)
+                        const bestMatch = dbResourceNames.find((dbName) => aiName.toLowerCase().includes(dbName.toLowerCase()) ||
+                            dbName.toLowerCase().includes(aiName.toLowerCase()));
+                        if (bestMatch) {
+                            console.log(`[AI] Corrected "${aiName}" -> "${bestMatch}"`);
+                            validResources.push(bestMatch);
+                        }
+                        else {
+                            console.log(`[AI] Dropped invalid resource "${aiName}"`);
+                        }
+                    }
+                    console.log('[AI] Final valid resource recommendations:', validResources);
+                    return validResources.length > 0 ? validResources : this.heuristicResourceRecommendation(documentText);
+                }
+                console.log('[AI] Failed to parse resources, falling back to heuristic');
+                return this.heuristicResourceRecommendation(documentText);
             }
             catch (error) {
+                console.error('[AI] Error in recommendResources:', error);
                 return this.heuristicResourceRecommendation(documentText);
             }
         });
