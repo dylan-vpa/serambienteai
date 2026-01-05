@@ -29,7 +29,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Search } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
-import { FeedbackModal, FeedbackButton, FeedbackCategory } from '@/components/feedback/FeedbackModal';
+import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
+import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 
 export default function OITDetailPage() {
