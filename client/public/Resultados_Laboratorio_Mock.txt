@@ -1,0 +1,36 @@
+REPORTE DE LABORATORIO AMBIENTAL
+No. Informe: LAB-2026-001
+Fecha: 04 de Enero de 2026
+
+CLIENTE: Industrias Solares S.A.
+PROYECTO: Monitoreo de Calidad de Aire y Ruido
+UBICACIÓN: Vía 40 # 73-20, Barranquilla, Atlántico
+
+1. RESULTADOS DE CALIDAD DE AIRE
+Estación: Norte-01
+Periodo: 24 Horas
+
+| Parámetro | Resultado | Unidad | Límite Normativo | Cumplimiento |
+|-----------|-----------|--------|------------------|--------------|
+| PM10      | 45.2      | ug/m3  | 75.0             | CUMPLE       |
+| PM2.5     | 12.8      | ug/m3  | 37.0             | CUMPLE       |
+| NO2       | 15.0      | ppb    | 100.0            | CUMPLE       |
+| SO2       | 5.4       | ppb    | 50.0             | CUMPLE       |
+
+2. RESULTADOS DE RUIDO AMBIENTAL
+Punto: Ruido-01 (Perímetro)
+
+| Horario | Leq (dB) | L90 (dB) | Lmax (dB) | Límite (dB) | Cumplimiento |
+|---------|----------|----------|-----------|-------------|--------------|
+| Diurno  | 62.5     | 58.0     | 70.2      | 65.0        | CUMPLE       |
+| Nocturno| 54.1     | 45.5     | 60.1      | 55.0        | CUMPLE       |
+
+3. CONCLUSIONES PRELIMINARES
+Los resultados obtenidos indican que la calidad del aire en la estación Norte-01 cumple con la normativa vigente. 
+En cuanto al ruido, se observan niveles dentro de los límites permisibles tanto en horario diurno como nocturno.
+Se recomienda continuar con el cronograma de monitoreo establecido.
+
+Firma:
+Ing. Juan Pérez
+Director Técnico
+Serambiente S.A.S.

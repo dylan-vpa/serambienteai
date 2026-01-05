@@ -337,8 +337,13 @@ async function internalGenerateFinalReport(id: string) {
                 console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
                 const { docxService } = require('../services/docx.service');
 
-                // Enhanced Data Mapping for Templates
+                // Semantic Text Splitting
+                // Split the full report into logical chunks to distribute across variables
                 const reportContent = reportMarkdown.replace(/[#*`]/g, '');
+                const sections = reportContent.split(/(?=\n#{1,3} )/g); // Split by headers
+                const introSection = sections.slice(0, 2).join('\n') || reportContent.substring(0, 500);
+                const bodySection = sections.slice(2, -2).join('\n') || reportContent.substring(500, 1500);
+                const conclusionSection = sections.slice(-2).join('\n') || reportContent.substring(1500);
 
                 const docxData = {
                     // Modern keys
@@ -352,7 +357,7 @@ async function internalGenerateFinalReport(id: string) {
 
                     // Legacy/Template specific keys (Snake Case)
                     cliente_1: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-                    nit_1: '800.123.456-7', // Placeholder/Mock for now or extract from description
+                    nit_1: '800.123.456-7',
                     direccion_1: oit.location || 'Dirección de Proyecto',
                     contacto_1: 'Ing. Responsable',
                     ciudad_1: 'Barranquilla',
@@ -360,27 +365,25 @@ async function internalGenerateFinalReport(id: string) {
                     fecha_1: date,
                     fecha_informe: date,
 
-                    // Common var_N placeholders often used in legacy templates for body text
+                    // Context Variables (Intro / Summary)
                     var_1: oit.oitNumber,
                     var_2: date,
                     var_3: oit.description || '',
                     var_4: oit.location || '',
-                    var_5: reportContent.substring(0, 500) + '...', // Intro
-                    var_6: reportContent, // Main body
-                    var_10: reportContent, // Analysis/Conclusions often here
-                    var_11: reportContent,
-                    var_12: reportContent,
-                    var_13: reportContent,
-                    var_14: reportContent,
-                    var_15: reportContent,
-                    var_16: reportContent.substring(0, 1000),
-                    var_17: 'Conforme', // Placeholder for compliance status
-                    var_18: 'N/A',
-                    var_19: 'N/A',
-                    var_20: 'N/A',
+                    var_5: introSection,
+                    var_6: introSection,
+                    var_7: introSection,
+                    var_8: introSection,
+                    var_9: introSection,
+                    // ... vars 10-20 Reserved for Context/Intro duplicates
+                    ...Array.from({ length: 11 }, (_, i) => ({ [`var_${i + 10}`]: introSection })).reduce((a, b) => ({ ...a, ...b }), {}),
 
-                    // Generic fill for remaining potential vars up to 200 to cover complex templates like Fuentes Fijas
-                    ...Array.from({ length: 180 }, (_, i) => ({ [`var_${i + 21}`]: reportContent.substring(0, 50) + '...' })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    // Body Variables (Methodology / Results)  - var_21 to var_100
+                    ...Array.from({ length: 80 }, (_, i) => ({ [`var_${i + 21}`]: bodySection })).reduce((a, b) => ({ ...a, ...b }), {}),
+
+                    // Conclusion Variables - var_101 to var_200
+                    ...Array.from({ length: 100 }, (_, i) => ({ [`var_${i + 101}`]: conclusionSection })).reduce((a, b) => ({ ...a, ...b }), {}),
+
 
                     // Descriptive Keys Mapping (Common patterns found in analysis)
                     // These often refer to Client, Context, or specific text blocks.
