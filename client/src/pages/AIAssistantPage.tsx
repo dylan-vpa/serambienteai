@@ -112,38 +112,37 @@ export default function AIAssistantPage() {
     };
 
     return (
-        <div className="p-6 h-[calc(100vh-64px)] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-white" />
+        <div className="p-4 h-[calc(100vh-80px)] flex flex-col">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Asistente IA</h1>
-                        <p className="text-sm text-slate-500">Pregunta sobre OITs, recursos, normas y más</p>
+                        <h1 className="text-lg font-bold text-slate-900">Asistente IA</h1>
                     </div>
                 </div>
 
-                {/* Context Badges */}
+                {/* Compact Context Badges */}
                 {context && (
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-2 py-0.5">
                             <Database className="h-3 w-3 mr-1" />
-                            {context.oitsCount} OITs
+                            {context.oitsCount}
                         </Badge>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-0.5">
                             <Beaker className="h-3 w-3 mr-1" />
-                            {context.resourcesCount} Recursos
+                            {context.resourcesCount}
                         </Badge>
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs px-2 py-0.5">
                             <FileText className="h-3 w-3 mr-1" />
-                            {context.standardsCount} Normas
+                            {context.standardsCount}
                         </Badge>
                         {context.pendingOits > 0 && (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs px-2 py-0.5">
                                 <AlertTriangle className="h-3 w-3 mr-1" />
-                                {context.pendingOits} pendientes
+                                {context.pendingOits}
                             </Badge>
                         )}
                     </div>
@@ -151,9 +150,9 @@ export default function AIAssistantPage() {
             </div>
 
             {/* Chat Container */}
-            <Card className="flex-1 flex flex-col border-slate-200 shadow-sm overflow-hidden">
+            <Card className="flex-1 flex flex-col border-slate-200 shadow-sm overflow-hidden min-h-0">
                 {/* Messages Area */}
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                <CardContent className="flex-1 overflow-y-auto p-3 space-y-3">
                     {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center">
                             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
