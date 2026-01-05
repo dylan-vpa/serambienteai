@@ -337,16 +337,25 @@ async function internalGenerateFinalReport(id: string) {
                 console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
                 const { docxService } = require('../services/docx.service');
 
-                // Semantic Text Splitting
-                // Split the full report into logical chunks to distribute across variables
+                // Semantic Text Splitting for AI-generated content
                 const reportContent = reportMarkdown.replace(/[#*`]/g, '');
-                const sections = reportContent.split(/(?=\n#{1,3} )/g); // Split by headers
-                const introSection = sections.slice(0, 2).join('\n') || reportContent.substring(0, 500);
-                const bodySection = sections.slice(2, -2).join('\n') || reportContent.substring(500, 1500);
-                const conclusionSection = sections.slice(-2).join('\n') || reportContent.substring(1500);
+                const sections = reportContent.split(/(?=\n#{1,3} )/g);
+                const introSection = sections.slice(0, 2).join('\n') || reportContent.substring(0, 800);
+                const methodologySection = sections.slice(2, 4).join('\n') || reportContent.substring(800, 1600);
+                const resultsSection = sections.slice(4, -2).join('\n') || reportContent.substring(1600, 3000);
+                const conclusionSection = sections.slice(-2).join('\n') || reportContent.substring(3000);
 
-                const docxData = {
-                    // Modern keys
+                // AI Section Map for config-driven population
+                const aiSections: Record<string, string> = {
+                    'intro': introSection,
+                    'methodology': methodologySection,
+                    'results': resultsSection,
+                    'conclusions': conclusionSection
+                };
+
+                // Build docxData with semantic mapping
+                const docxData: Record<string, any> = {
+                    // Core OIT Fields
                     oitNumber: oit.oitNumber,
                     description: oit.description || '',
                     location: oit.location || '',
@@ -355,7 +364,7 @@ async function internalGenerateFinalReport(id: string) {
                     narrative: reportMarkdown,
                     client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
 
-                    // Legacy/Template specific keys (Snake Case)
+                    // Legacy Snake Case Fields
                     cliente_1: oit.description?.split(':')[0]?.trim() || 'Cliente General',
                     nit_1: '800.123.456-7',
                     direccion_1: oit.location || 'Dirección de Proyecto',
@@ -365,29 +374,54 @@ async function internalGenerateFinalReport(id: string) {
                     fecha_1: date,
                     fecha_informe: date,
 
-                    // Context Variables (Intro / Summary)
-                    var_1: oit.oitNumber,
+                    // Semantic Variable Mapping by Section
+                    // Header/Context (var_1 to var_9)
+                    var_1: `Informe de Monitoreo Ambiental - ${oit.oitNumber}`,
                     var_2: date,
-                    var_3: oit.description || '',
-                    var_4: oit.location || '',
-                    var_5: introSection,
-                    var_6: introSection,
-                    var_7: introSection,
-                    var_8: introSection,
-                    var_9: introSection,
-                    // ... vars 10-20 Reserved for Context/Intro duplicates
-                    ...Array.from({ length: 11 }, (_, i) => ({ [`var_${i + 10}`]: introSection })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    var_3: oit.description?.split(':')[0]?.trim() || 'Cliente General',
+                    var_4: oit.location || 'Ubicación del Proyecto',
+                    var_5: introSection.substring(0, 500),
+                    var_6: introSection.substring(0, 500),
+                    var_7: introSection.substring(0, 500),
+                    var_8: introSection.substring(0, 500),
+                    var_9: introSection.substring(0, 500),
 
-                    // Body Variables (Methodology / Results)  - var_21 to var_100
-                    ...Array.from({ length: 80 }, (_, i) => ({ [`var_${i + 21}`]: bodySection })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    // Methodology/Equipment (var_10 to var_20)
+                    var_10: methodologySection.substring(0, 400),
+                    var_11: methodologySection.substring(0, 400),
+                    var_12: methodologySection.substring(0, 400),
+                    var_13: methodologySection.substring(0, 400),
+                    var_14: methodologySection.substring(0, 400),
+                    var_15: methodologySection.substring(0, 400),
+                    var_16: 'Estación de Monitoreo Norte',
+                    var_17: 'Estación de Monitoreo Sur',
+                    var_18: 'N/A',
+                    var_19: 'N/A',
+                    var_20: methodologySection.substring(0, 400),
 
-                    // Conclusion Variables - var_101 to var_200
-                    ...Array.from({ length: 100 }, (_, i) => ({ [`var_${i + 101}`]: conclusionSection })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    // Station/Point Details (var_21 to var_31)
+                    var_21: 'EST-01',
+                    var_22: 'Punto de muestreo representativo',
+                    var_23: '10.9878',
+                    var_24: '-74.7889',
+                    var_27: 'High Volume Sampler / Sonómetro Tipo 1',
+                    var_28: 'EPA CFR 40 / ISO 1996',
+                    var_31: '0 - 500 µg/m³ / 30 - 130 dB',
 
+                    // Results (var_32 to var_74)
+                    var_32: resultsSection.substring(0, 600),
+                    var_33: resultsSection.substring(0, 600),
+                    var_34: resultsSection.substring(0, 600),
+                    ...Array.from({ length: 40 }, (_, i) => ({ [`var_${i + 35}`]: resultsSection.substring(0, 300) })).reduce((a, b) => ({ ...a, ...b }), {}),
 
-                    // Descriptive Keys Mapping (Common patterns found in analysis)
-                    // These often refer to Client, Context, or specific text blocks.
-                    // Mapping them to safe defaults or OIT data.
+                    // Conclusions (var_51+, var_100+)
+                    var_51: conclusionSection.substring(0, 500),
+                    var_53: conclusionSection.substring(0, 500),
+                    var_54: conclusionSection.substring(0, 500),
+                    var_55: conclusionSection.substring(0, 500),
+                    ...Array.from({ length: 100 }, (_, i) => ({ [`var_${i + 101}`]: conclusionSection.substring(0, 300) })).reduce((a, b) => ({ ...a, ...b }), {}),
+
+                    // Descriptive Keys from Template Analysis
                     'la_organizacion_tiene_como_actividad_principal_1': 'Actividad Industrial General',
                     'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': oit.description || 'Monitoreo Ambiental',
                     'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': oit.description || 'Monitoreo Ambiental',
@@ -397,12 +431,20 @@ async function internalGenerateFinalReport(id: string) {
                     'fuente_serambiente_s_a_s_2': 'Serambiente S.A.S.',
                     'fuente_serambiente_s_a_s_3': 'Serambiente S.A.S.',
                     'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': 'Servicios de Ingeniería y Ambiente S.A.S.',
+                    'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': `Monitoreo ejecutado entre ${date}`,
+                    'el_presente_documento_de_caracter_tecnico_contiene_1': introSection.substring(0, 400),
+                    'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': methodologySection.substring(0, 400),
+                    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': 'Serambiente S.A.S. - Empresa Acreditada IDEAM',
+                    'determinar_los_niveles_de_inmision_de_los_contamin_1': resultsSection.substring(0, 400),
+                    'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': resultsSection.substring(0, 400),
+                    'de_lo_anterior_se_concluye_que_la_mayor_proporcion_1': conclusionSection.substring(0, 400),
+                    'realizo_la_evaluacion_de_la_calidad_del_aire_en_el_1': conclusionSection.substring(0, 400),
 
-                    // Specific compliance placeholders
+                    // Compliance Placeholders
                     'cumple_con_la_norma_1': 'CUMPLE',
                     'no_cumple_con_la_norma_1': 'NO CUMPLE',
 
-                    // Capitalized variations
+                    // Capitalized Variations
                     Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
                     Date: date,
                     Location: oit.location || '',
