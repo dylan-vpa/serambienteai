@@ -39,7 +39,16 @@ export const docxService = {
             paragraphLoop: true,
             linebreaks: true,
             delimiters: { start: '{', end: '}' },
-            modules: [inspectModule]
+            modules: [inspectModule],
+            nullGetter: (part) => {
+                if (!part.module) {
+                    return "---";
+                }
+                if (part.module === "rawxml") {
+                    return "";
+                }
+                return "";
+            }
         });
 
         // Debug: Print found placeholders

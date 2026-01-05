@@ -379,8 +379,8 @@ async function internalGenerateFinalReport(id: string) {
                     var_19: 'N/A',
                     var_20: 'N/A',
 
-                    // Generic fill for remaining potential vars up to 40 to prevent empty holes
-                    ...Array.from({ length: 20 }, (_, i) => ({ [`var_${i + 21}`]: 'N/A' })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    // Generic fill for remaining potential vars up to 100 to prevent empty holes
+                    ...Array.from({ length: 80 }, (_, i) => ({ [`var_${i + 21}`]: reportContent.substring(0, 50) + '...' })).reduce((a, b) => ({ ...a, ...b }), {}),
 
                     // Capitalized variations
                     Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
