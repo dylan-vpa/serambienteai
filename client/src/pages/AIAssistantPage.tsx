@@ -112,7 +112,7 @@ export default function AIAssistantPage() {
     };
 
     return (
-        <div className="p-4 h-[calc(100vh-80px)] flex flex-col">
+        <div className="p-4 h-[calc(100vh-100px)] flex flex-col overflow-hidden">
             {/* Compact Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
