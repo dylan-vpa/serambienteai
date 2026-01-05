@@ -284,7 +284,9 @@ IMPORTANTE: Analiza TODO el documento y selecciona TODAS las plantillas que apli
 NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
+        console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
         const docPreview = fullDocumentText ? fullDocumentText.substring(0, 12000) : '';
+        console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
         const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
 
