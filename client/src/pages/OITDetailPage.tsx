@@ -29,6 +29,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Search } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
+import { FeedbackModal, FeedbackButton, FeedbackCategory } from '@/components/feedback/FeedbackModal';
+
 
 export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -53,9 +55,23 @@ export default function OITDetailPage() {
     const [resourceSearch, setResourceSearch] = useState('');
     const [isSavingResources, setIsSavingResources] = useState(false);
 
+    // Feedback Modal State
+    const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('OIT_ANALYSIS');
+    const [feedbackAiOutput, setFeedbackAiOutput] = useState('');
+    const [feedbackTitle, setFeedbackTitle] = useState('');
+
     // Auth for permissions
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
+    // Open feedback modal helper
+    const openFeedbackModal = (category: FeedbackCategory, aiOutput: string, title: string) => {
+        setFeedbackCategory(category);
+        setFeedbackAiOutput(aiOutput);
+        setFeedbackTitle(title);
+        setFeedbackModalOpen(true);
+    };
 
     // Polling for status updates
     useEffect(() => {
@@ -622,6 +638,16 @@ export default function OITDetailPage() {
                                             <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${(isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING') ? 'animate-spin' : ''}`} />
                                             Reiniciar Análisis
                                         </Button>
+                                        {aiData && (
+                                            <FeedbackButton
+                                                onClick={() => openFeedbackModal(
+                                                    'OIT_ANALYSIS',
+                                                    JSON.stringify(aiData, null, 2),
+                                                    'Análisis de OIT'
+                                                )}
+                                                variant="icon"
+                                            />
+                                        )}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -1621,6 +1647,34 @@ export default function OITDetailPage() {
                         />
                     </TabsContent>
                 </Tabs>
+
+                {/* Feedback Modal */}
+                <FeedbackModal
+                    open={feedbackModalOpen}
+                    onOpenChange={setFeedbackModalOpen}
+                    oitId={id}
+                    category={feedbackCategory}
+                    aiOutput={feedbackAiOutput}
+                    title={feedbackTitle}
+                    fields={
+                        feedbackCategory === 'OIT_ANALYSIS' ? [
+                            { name: 'templateDetection', value: '', label: 'Detección de Plantilla' },
+                            { name: 'location', value: '', label: 'Ubicación' },
+                            { name: 'dates', value: '', label: 'Fechas' },
+                            { name: 'description', value: '', label: 'Descripción' }
+                        ] : feedbackCategory === 'PROPOSAL' ? [
+                            { name: 'resources', value: '', label: 'Recursos Seleccionados' },
+                            { name: 'engineers', value: '', label: 'Ingenieros Asignados' },
+                            { name: 'dates', value: '', label: 'Fechas Propuestas' },
+                            { name: 'steps', value: '', label: 'Pasos del Muestreo' }
+                        ] : [
+                            { name: 'introduction', value: '', label: 'Introducción' },
+                            { name: 'methodology', value: '', label: 'Metodología' },
+                            { name: 'results', value: '', label: 'Resultados' },
+                            { name: 'conclusions', value: '', label: 'Conclusiones' }
+                        ]
+                    }
+                />
             </div>
         </div >
     );

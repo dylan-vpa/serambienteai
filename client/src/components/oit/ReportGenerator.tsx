@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { FeedbackGrid } from '@/components/feedback/FeedbackGrid';
+import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -24,6 +24,8 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
     const [labResultsUrl, setLabResultsUrl] = useState<string | null>(null);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
     const [analysisData, setAnalysisData] = useState<any | null>(initialAnalysis || null);
+    const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+
 
     const { user } = useAuthStore();
     const canDownload = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -299,18 +301,13 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                                 </Button>
                             </div>
 
-                            {/* AI Feedback Grid */}
-                            <div className="mt-6 pt-6 border-t border-slate-200">
-                                <FeedbackGrid
-                                    oitId={oitId}
-                                    category="REPORT"
-                                    aiOutput={analysisData?.rawText || ''}
-                                    fields={[
-                                        { name: 'introduction', value: analysisData?.summary?.substring(0, 50) || '', label: 'Introducción' },
-                                        { name: 'methodology', value: analysisData?.methodology?.substring(0, 50) || '', label: 'Metodología' },
-                                        { name: 'results', value: analysisData?.results?.substring(0, 50) || '', label: 'Resultados' },
-                                        { name: 'conclusions', value: analysisData?.conclusions?.substring(0, 50) || '', label: 'Conclusiones' }
-                                    ]}
+                            {/* Feedback Button */}
+                            <div className="mt-4 pt-4 border-t border-slate-200">
+                                <FeedbackButton
+                                    onClick={() => setFeedbackModalOpen(true)}
+                                    variant="default"
+                                    label="¿Algo incorrecto? Dar feedback"
+                                    className="w-full"
                                 />
                             </div>
                         </div>
@@ -335,6 +332,23 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                     )}
                 </CardContent>
             </Card>
+
+            {/* Feedback Modal */}
+            <FeedbackModal
+                open={feedbackModalOpen}
+                onOpenChange={setFeedbackModalOpen}
+                oitId={oitId}
+                category="REPORT"
+                aiOutput={analysisData?.rawText || ''}
+                title="Feedback del Informe"
+                fields={[
+                    { name: 'introduction', value: '', label: 'Introducción' },
+                    { name: 'methodology', value: '', label: 'Metodología' },
+                    { name: 'results', value: '', label: 'Resultados' },
+                    { name: 'conclusions', value: '', label: 'Conclusiones' },
+                    { name: 'template', value: '', label: 'Formato/Plantilla' }
+                ]}
+            />
         </div>
     );
 }
