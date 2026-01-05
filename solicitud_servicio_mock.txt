@@ -1,0 +1,24 @@
+SOLICITUD DE SERVICIO DE MONITOREO AMBIENTAL
+
+FECHA: 2026-01-05
+CLIENTE: Industrias Solares S.A.
+NIT: 800.123.456-7
+DIRECCIÓN: CARRERA 41 # 73B – 72
+CONTACTO: Ing. Carlos Perez
+
+DETALLES DEL SERVICIO:
+Orden de Trabajo: OT-2026-001
+Fecha Programada: 2026-01-10
+Hora Inicio: 08:00 AM
+
+ALCANCE:
+1. Monitoreo de Ruido Ambiental (Diurno y Nocturno)
+2. Monitoreo de Calidad de Aire (PM10, PM2.5)
+
+UBICACIÓN DEL PROYECTO:
+Planta Principal - Zona Norte
+CARRERA 41 # 73B – 72, Barranquilla, Atlántico
+
+OBSERVACIONES:
+Requiere validación de coordenadas GPS al inicio.
+Personal debe contar con ARL vigente.

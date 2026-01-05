@@ -296,6 +296,7 @@ async function internalGenerateFinalReport(id: string) {
     const { validationService } = require('../services/validation.service');
     const marked = require('marked');
 
+    console.log(`[Report] Starting generation for OIT ${id}`);
     const oit = await prisma.oIT.findUnique({ where: { id } });
     if (!oit) throw new Error('OIT no encontrada');
 
@@ -303,20 +304,22 @@ async function internalGenerateFinalReport(id: string) {
     let labText = '';
     if (oit.labResultsUrl) {
         const uploadsRoot = path.join(__dirname, '../../');
-        const potentialPath = path.join(uploadsRoot, oit.labResultsUrl);
+        const potentialPath = oit.labResultsUrl.startsWith('/') ? oit.labResultsUrl : path.join(uploadsRoot, oit.labResultsUrl);
+        const potentialPath2 = path.join(uploadsRoot, 'uploads', path.basename(oit.labResultsUrl));
+
         if (fs.existsSync(potentialPath)) {
             labText = await pdfService.extractText(potentialPath);
-        } else {
-            const potentialPath2 = path.join(uploadsRoot, 'uploads', oit.labResultsUrl);
-            if (fs.existsSync(potentialPath2)) {
-                labText = await pdfService.extractText(potentialPath2);
-            }
+        } else if (fs.existsSync(potentialPath2)) {
+            labText = await pdfService.extractText(potentialPath2);
         }
     }
 
     // 2. AI Generation
-    const reportMarkdown = await validationService.generateFinalReportContent(oit, labText);
-    const date = new Date().toLocaleDateString('es-CO');
+    // Ensure we have some analysis text even if standard generation fails
+    let reportMarkdown = await validationService.generateFinalReportContent(oit, labText);
+    if (!reportMarkdown) reportMarkdown = "No se pudo generar el análisis automático.";
+
+    const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // 3. Try to generate Word report if template exists
     let generatedFileBuffer: Buffer | null = null;
@@ -331,27 +334,43 @@ async function internalGenerateFinalReport(id: string) {
             });
 
             if (template && template.reportTemplateFile) {
+                console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
                 const { docxService } = require('../services/docx.service');
+
+                // Enhanced Data Mapping for Templates
                 const docxData = {
                     oitNumber: oit.oitNumber,
                     description: oit.description || '',
                     location: oit.location || '',
                     date: date,
-                    analysis: reportMarkdown.replace(/[#*`]/g, ''),
+                    analysis: reportMarkdown.replace(/[#*`]/g, ''), // Clean text for simple placeholders
                     narrative: reportMarkdown,
-                    client: oit.description?.split(':')[0] || 'Cliente'
+                    client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
+                    // Add variations to cover different template styles
+                    Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
+                    Date: date,
+                    Location: oit.location || '',
+                    Address: oit.location || '',
+                    OIT: oit.oitNumber,
+                    Analysis: reportMarkdown.replace(/[#*`]/g, ''),
+                    // Dynamic fields from OIT description if possible or defaults
+                    Project: oit.description || 'Monitoreo Ambiental'
                 };
 
                 generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
                 generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
                 isDocx = true;
+                console.log(`[Report] Word document generated successfully: ${generatedFileName}`);
+            } else {
+                console.log('[Report] No template file configured for this template.');
             }
         }
     } catch (docxErr) {
-        console.error('Word generation error, falling back to PDF:', docxErr);
+        console.error('[Report] Word generation error, falling back to PDF:', docxErr);
     }
 
     if (!isDocx) {
+        console.log('[Report] Generating PDF fallback...');
         // Fallback: Convert to HTML & PDF 
         const htmlContent = `
             <!DOCTYPE html>
@@ -401,7 +420,11 @@ async function internalGenerateFinalReport(id: string) {
         const pdfPath = await pdfService.generatePDFFromHTML(htmlContent, generatedFileName);
         generatedFileBuffer = fs.readFileSync(pdfPath);
     } else {
-        const outputPath = path.join(__dirname, '../../uploads', generatedFileName);
+        // Ensure uploads directory exists
+        const uploadsDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+        const outputPath = path.join(uploadsDir, generatedFileName);
         fs.writeFileSync(outputPath, generatedFileBuffer!);
     }
 

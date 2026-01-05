@@ -42,12 +42,40 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
         }
     }, [initialReportUrl]);
 
-    // Update analysis data if prop changes (e.g. from polling)
+    // Update analysis data if prop changes
     useEffect(() => {
         if (initialAnalysis) {
             setAnalysisData(initialAnalysis);
         }
     }, [initialAnalysis]);
+
+    // Polling for Analysis
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout;
+
+        // If we have uploaded a file (labResultsUrl is set) but no analysis yet, poll!
+        // Or if we are explicitly in a "waiting" state.
+        // We check if we have a labResultsUrl (meaning file exists) but no analysisData.
+        if (labResultsUrl && !analysisData) {
+            intervalId = setInterval(async () => {
+                try {
+                    console.log('Polling for analysis...');
+                    const response = await api.get(`/oits/${oitId}`);
+                    if (response.data && response.data.labResultsAnalysis) {
+                        setAnalysisData(response.data.labResultsAnalysis);
+                        // Also update parent/context if possible, but local state is enough for display
+                        toast.success('¡Análisis IA Completado!');
+                    }
+                } catch (error) {
+                    console.error('Error polling OIT:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [oitId, labResultsUrl, analysisData]);
 
     const handleAnalysisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
