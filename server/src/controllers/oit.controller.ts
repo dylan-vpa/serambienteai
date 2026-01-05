@@ -379,8 +379,25 @@ async function internalGenerateFinalReport(id: string) {
                     var_19: 'N/A',
                     var_20: 'N/A',
 
-                    // Generic fill for remaining potential vars up to 100 to prevent empty holes
-                    ...Array.from({ length: 80 }, (_, i) => ({ [`var_${i + 21}`]: reportContent.substring(0, 50) + '...' })).reduce((a, b) => ({ ...a, ...b }), {}),
+                    // Generic fill for remaining potential vars up to 200 to cover complex templates like Fuentes Fijas
+                    ...Array.from({ length: 180 }, (_, i) => ({ [`var_${i + 21}`]: reportContent.substring(0, 50) + '...' })).reduce((a, b) => ({ ...a, ...b }), {}),
+
+                    // Descriptive Keys Mapping (Common patterns found in analysis)
+                    // These often refer to Client, Context, or specific text blocks.
+                    // Mapping them to safe defaults or OIT data.
+                    'la_organizacion_tiene_como_actividad_principal_1': 'Actividad Industrial General',
+                    'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': oit.description || 'Monitoreo Ambiental',
+                    'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': oit.description || 'Monitoreo Ambiental',
+                    'en_las_instalaciones_de_1': oit.location || 'Sitio del Cliente',
+                    'localizado_en_1': oit.location || 'Ubicación General',
+                    'fuente_serambiente_s_a_s_1': 'Serambiente S.A.S.',
+                    'fuente_serambiente_s_a_s_2': 'Serambiente S.A.S.',
+                    'fuente_serambiente_s_a_s_3': 'Serambiente S.A.S.',
+                    'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': 'Servicios de Ingeniería y Ambiente S.A.S.',
+
+                    // Specific compliance placeholders
+                    'cumple_con_la_norma_1': 'CUMPLE',
+                    'no_cumple_con_la_norma_1': 'NO CUMPLE',
 
                     // Capitalized variations
                     Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
