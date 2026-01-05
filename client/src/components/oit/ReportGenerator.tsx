@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import ReactMarkdown from 'react-markdown';
@@ -99,10 +99,10 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                 setAnalysisData(response.data.labResultsAnalysis);
             }
 
-            toast.success('Resultados de laboratorio cargados. Analizando...');
+            notify.success('Resultados de laboratorio cargados. Analizando...');
         } catch (error) {
             console.error('Error uploading lab results:', error);
-            toast.error('Error al cargar resultados');
+            notify.error('Error al cargar resultados');
         } finally {
             setIsUploading(false);
         }
@@ -110,7 +110,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
 
     const handleGenerateReport = async () => {
         if (!analysisFile && !finalReportUrl) {
-            toast.error('Sube los resultados de laboratorio primero');
+            notify.error('Sube los resultados de laboratorio primero');
             return;
         }
 
@@ -123,10 +123,10 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
             const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
             setFinalReportUrl(url);
             setReportGenerated(true);
-            toast.success('Informe final generado exitosamente');
+            notify.success('Informe final generado exitosamente');
         } catch (error) {
             console.error('Error generating report:', error);
-            toast.error('Error al generar informe');
+            notify.error('Error al generar informe');
         } finally {
             setIsGenerating(false);
         }
