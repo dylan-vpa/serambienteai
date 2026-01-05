@@ -1,0 +1,1115 @@
+{
+  "e_por_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">>INFORME TÉCNICO DE ESTUDIO DE CALIDAD DE AIR >> >>E >> >> >> >>POR >> >> >> >>",
+        "after": ">> >>{var_1} >> >> >> >> >> >>"
+      }
+    ]
+  },
+  "var_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "CO DE ESTUDIO DE CALIDAD DE AIR >> >>E >> >> >> >>POR >> >> >> >>{e_por_1} >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_2}"
+      }
+    ]
+  },
+  "var_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >> >>E >> >> >> >>POR >> >> >> >>{e_por_1} >> >>{var_1} >> >> >> >> >> >> >> >>",
+        "after": ">> >>PROYECTO >> >> >> >> >>Mo"
+      }
+    ]
+  },
+  "monitoreo_de_calidad_del_aire_ejecutado_entre_el_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >>Monitoreo de calidad del aire >> >>ejecutado >> >> >> >>entre el >> >> >> >>",
+        "after": ">> >>, >> >>en las siguientes "
+      }
+    ]
+  },
+  "var_3": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "d_del_aire_ejecutado_entre_el_1} >> >>, >> >>en las siguientes estaciones: >> >>",
+        "after": ">> >>{var_4} >> >>TABLA DE >> "
+      }
+    ]
+  },
+  "var_4": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ecutado_entre_el_1} >> >>, >> >>en las siguientes estaciones: >> >>{var_3} >> >>",
+        "after": ">> >>TABLA DE >> >>CONTENIDO >"
+      }
+    ]
+  },
+  "contrato_los_servicios_de_serambiente_s_a_s_para_r_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "grafía 1. Estación x >> >> PAGEREF _Toc209264550 \\h >>14 >> >>INTRODUCCIÓN >> >>",
+        "after": ">> >> contrató los servicios d"
+      }
+    ]
+  },
+  "contrato_los_servicios_de_serambiente_s_a_s_para_r_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >> >>el monitoreo de calidad de aire en el área de estudio >> >>del >> >> >> >>",
+        "after": ">> >> localizado en >> >>{del_"
+      }
+    ]
+  },
+  "del_localizado_en_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "{contrato_los_servicios_de_serambiente_s_a_s_para_r_2} >> >> localizado en >> >>",
+        "after": ">> >> departamento de >> >>{lo"
+      }
+    ]
+  },
+  "localizado_en_departamento_de_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_r_2} >> >> localizado en >> >>{del_localizado_en_1} >> >> departamento de >> >>",
+        "after": ">> >> >> >>a fin de dar cumpli"
+      }
+    ]
+  },
+  "a_fin_de_dar_cumplimiento_a_los_requerimientos_de__1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "iental >> >>. >> >>Para la ejecución del monitoreo, se seleccionaron >> >> >> >>",
+        "after": ">> >> >> >>estaciones en sitio"
+      }
+    ]
+  },
+  "estaciones_en_sitios_representativos_de_la_direcci_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ón predominante del viento, en cada una se >> >> >> >>ubicó un muestreador >> >>",
+        "after": ">> >>(Nombres de las estacione"
+      }
+    ]
+  },
+  "el_presente_documento_de_caracter_tecnico_contiene_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "efectuadas >> >> >> >>durante el periodo de monitoreo comprendido entre el >> >>",
+        "after": ">> >> y la comparación de esto"
+      }
+    ]
+  },
+  "de_noviembre_de_2017_del_ministerio_de_ambiente_y__1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "mbiente y Desarrollo Sostenible, MADS, que lo >> >> >> >>reglamenta. >> >> >> >>",
+        "after": ">> >>OBJETIVOS >> >>Objetivo >"
+      }
+    ]
+  },
+  "realizar_la_evaluacion_de_la_calidad_de_aire_en_1": {
+    "occurrences": 2,
+    "contexts": [
+      {
+        "before": ">>g >> >>eneral >> >>Realizar la evaluación de la calidad de aire >> >> en >> >>",
+        "after": ">> >> >> >>estaciones >> >> >>"
+      },
+      {
+        "before": " Aire (ICA) en la zona de estudio considerada, específicamente en >> >>las >> >>",
+        "after": ">> >> estaciones de monitoreo,"
+      }
+    ]
+  },
+  "estaciones_ubicadas_en_el_area_de_estudio_del_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_en_1} >> >> >> >>estaciones >> >> >> >>ubicadas en el área de estudio del >> >>",
+        "after": ">> >>, localizado en el >> >>{"
+      }
+    ]
+  },
+  "estaciones_ubicadas_en_el_area_de_estudio_del_loca_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">{estaciones_ubicadas_en_el_area_de_estudio_del_1} >> >>, localizado en el >> >>",
+        "after": ">> >>, >> >> medio de la compa"
+      }
+    ]
+  },
+  "determinar_los_niveles_de_inmision_de_los_contamin_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >>specíficos >> >>Determinar los niveles de inmisión de los contaminantes >> >>",
+        "after": ">> >>Realizar >> >>declaración"
+      }
+    ]
+  },
+  "las_mediciones_toma_de_muestra_y_analisis_de_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "nsable del >> >>estudio >> >>Las mediciones, toma de muestra y análisis de >> >>",
+        "after": ">> >> fue realizada por Servic"
+      }
+    ]
+  },
+  "fue_realizada_por_servicios_de_ingenieria_y_ambien_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "a, Meteorología y Estudios Ambientales de Colombia (IDEAM), a través de la >> >>",
+        "after": ">> >> para producir informació"
+      }
+    ]
+  },
+  "para_determinar_los_niveles_de_calidad_de_aire_de_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "del aire >> >>Para determinar los niveles de calidad de aire >> >> >> >>de >> >>",
+        "after": ">> >> >> >>de monitoreo, ubica"
+      }
+    ]
+  },
+  "de_de_monitoreo_ubicadas_en_el_area_de_estudio_del_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_de_aire_de_1} >> >> >> >>de monitoreo, ubicadas en el área de estudio del >> >>",
+        "after": ">> >> >> >>se realizó el monit"
+      }
+    ]
+  },
+  "se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " Título 40, Parte 50, Capítulo I, Subcapítulo C, Apéndice J: Alto Volumen. >> >>",
+        "after": ">> >>{se_determino_pm10_median"
+      }
+    ]
+  },
+  "se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " Alto Volumen. >> >>{se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1} >> >>",
+        "after": ">> >>. >> >>Se determinó PM2.5"
+      }
+    ]
+  },
+  "se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1": {
+    "occurrences": 5,
+    "contexts": [
+      {
+        "before": "Título 40 Parte 50. Apéndice L. Bajo Volumen. Método de referencia manual: >> >>",
+        "after": ">> >>. >> >>Se determinó en lí"
+      },
+      {
+        "before": "péndice A-1. Fluorescencia Ultravioleta. Métodos de referencia automático: >> >>",
+        "after": ">> >>. >> >>Se determinó en lí"
+      },
+      {
+        "before": "ice F. Quimioluminiscencia Fase Gaseosa. Métodos de referencia automático: >> >>",
+        "after": ">> >>. >> >>Se determinó en lí"
+      }
+    ]
+  },
+  "var_16": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "s detalles relativos al muestreo >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_17": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >> >> >> >> >> >> >> >> >> >> >> >> >>{var_16} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_18": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ar_16} >> >> >> >> >> >> >> >> >> >> >>{var_17} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_19": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ar_17} >> >> >> >> >> >> >> >> >> >> >>{var_18} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_20": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ar_18} >> >> >> >> >> >> >> >> >> >> >>{var_19} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>Fuente: SE"
+      }
+    ]
+  },
+  "las_evaluaciones_de_la_calidad_del_aire_se_efectua_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " de muestreo >> >>Las evaluaciones de la calidad del aire se efectuaron en >> >>",
+        "after": ">> >> de monitoreo evaluadas d"
+      }
+    ]
+  },
+  "las_evaluaciones_de_la_calidad_del_aire_se_efectua_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ua_1} >> >> de monitoreo evaluadas durante el periodo comprendido entre el >> >>",
+        "after": ">> >> recolectando muestras di"
+      }
+    ]
+  },
+  "de_monitoreo_evaluadas_durante_el_periodo_comprend_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_2} >> >> recolectando muestras diarias para los siguientes contaminantes: >> >>",
+        "after": ">> >> >> >>Para el caso de >> "
+      }
+    ]
+  },
+  "el_presente_monitoreo_se_efectuo_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ación de las estaciones de monitoreo >> >>El presente monitoreo se efectuó >> >>",
+        "after": ">> >>, >> >>en >> >>el >> >>ár"
+      }
+    ]
+  },
+  "en_el_area_de_estudio_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "esente_monitoreo_se_efectuo_1} >> >>, >> >>en >> >>el >> >>área de estudio >> >>",
+        "after": ">> >>Para el desarrollo de est"
+      }
+    ]
+  },
+  "para_el_desarrollo_de_este_estudio_en_particular_f_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "e_estudio_1} >> >>Para el desarrollo de este estudio en particular, fueron >> >>",
+        "after": ">> >> de monitoreo, las cuales"
+      }
+    ]
+  },
+  "var_21": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": ">> >> >> >> >>Norte >> >>(m) >> >> >> >> >>Este >> >>(m) >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_22} >> >> >"
+      },
+      {
+        "before": ">>{var_23} >> >> >> >> >>{var_24} >> >> >> >> >>{var_24} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_22} >> >> >"
+      },
+      {
+        "before": ">>{var_23} >> >> >> >> >>{var_24} >> >> >> >> >>{var_24} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_22} >> >> >"
+      }
+    ]
+  },
+  "var_22": {
+    "occurrences": 24,
+    "contexts": [
+      {
+        "before": ">>(m) >> >> >> >> >>Este >> >>(m) >> >> >> >> >> >> >> >>{var_21} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_23} >> >> >"
+      },
+      {
+        "before": ">>{var_24} >> >> >> >> >>{var_24} >> >> >> >> >> >> >> >>{var_21} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_23} >> >> >"
+      },
+      {
+        "before": ">>{var_24} >> >> >> >> >>{var_24} >> >> >> >> >> >> >> >>{var_21} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_23} >> >> >"
+      }
+    ]
+  },
+  "var_23": {
+    "occurrences": 6,
+    "contexts": [
+      {
+        "before": "e >> >>(m) >> >> >> >> >> >> >> >>{var_21} >> >> >> >> >>{var_22} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_23} >> >> >"
+      },
+      {
+        "before": ">> >> >> >>{var_21} >> >> >> >> >>{var_22} >> >> >> >> >>{var_23} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_24} >> >> >"
+      },
+      {
+        "before": ">>{var_24} >> >> >> >> >> >> >> >>{var_21} >> >> >> >> >>{var_22} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_23} >> >> >"
+      }
+    ]
+  },
+  "var_24": {
+    "occurrences": 8,
+    "contexts": [
+      {
+        "before": ">> >> >> >>{var_22} >> >> >> >> >>{var_23} >> >> >> >> >>{var_23} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_24} >> >> >"
+      },
+      {
+        "before": ">> >> >> >>{var_23} >> >> >> >> >>{var_23} >> >> >> >> >>{var_24} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_21"
+      },
+      {
+        "before": ">> >> >> >>{var_22} >> >> >> >> >>{var_23} >> >> >> >> >>{var_23} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_24} >> >> >"
+      }
+    ]
+  },
+  "3_ficha_tecnica_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "itoreo. >> >>Tabla >> SEQ Tabla \\* ARABIC >>3 >> >>. Ficha técnica >> >> – >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_27": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >>{3_ficha_tecnica_1} >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >>I"
+      }
+    ]
+  },
+  "var_28": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >> >>Distancia energía >> >> >> >> >>{var_22} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >>O"
+      }
+    ]
+  },
+  "var_31": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">> >>{var_28} >> >> >> >> >> >> >> >> >> >>Observaciones >> >> >> >> >> >> >> >>",
+        "after": ">> >>Fuente: SERAMBIENTE S.A.S"
+      }
+    ]
+  },
+  "tabla_4_contiene_los_numeros_de_identificacion_asi_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "s por el laboratorio de SERAMBIENTE S.A.S., y los contaminantes evaluados. >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      }
+    ]
+  },
+  "var_32": {
+    "occurrences": 18,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >>Estación >> >> >> >> >> >> >>ID >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_51} >"
+      },
+      {
+        "before": "> >> >> >> >>{var_51} >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      },
+      {
+        "before": "ar_34} >> >> >> >> >> >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_51": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >>ID >> >> >> >> >> >> >> >> >> >>{var_32} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_34} >"
+      },
+      {
+        "before": "} >> >> >> >> >> >> >>{var_51} >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_34} >"
+      },
+      {
+        "before": "} >> >> >> >> >> >> >>{var_51} >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_34} >"
+      }
+    ]
+  },
+  "var_34": {
+    "occurrences": 54,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >>{var_32} >> >> >> >> >> >> >>{var_51} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_51} >"
+      },
+      {
+        "before": "} >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >>{var_51} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >>{var_51} >"
+      },
+      {
+        "before": "} >> >> >> >> >> >> >>{var_34} >> >> >> >> >> >> >>{var_51} >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >>{"
+      }
+    ]
+  },
+  "en_el_area_de_estudio_del_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ncipales f >> >>uentes de emisión >> >>En el >> >>área de estudio >> >>del >> >>",
+        "after": ">> >>; existen diferentes fuen"
+      }
+    ]
+  },
+  "var_5": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "anera se destacan algunas, como las que se describen a continuación >> >>: >> >>",
+        "after": ">> >>{var_6} >> >>{var_7} >> >"
+      }
+    ]
+  },
+  "var_6": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "acan algunas, como las que se describen a continuación >> >>: >> >>{var_5} >> >>",
+        "after": ">> >>{var_7} >> >>{var_8} >> >"
+      }
+    ]
+  },
+  "var_7": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " como las que se describen a continuación >> >>: >> >>{var_5} >> >>{var_6} >> >>",
+        "after": ">> >>{var_8} >> >>En >> >>la >"
+      }
+    ]
+  },
+  "var_8": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " se describen a continuación >> >>: >> >>{var_5} >> >>{var_6} >> >>{var_7} >> >>",
+        "after": ">> >>En >> >>la >> >> >> REF _"
+      }
+    ]
+  },
+  "las_normas_de_calidad_del_aire_para_todo_el_territ_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "e de 2017 del Ministerio de Ambiente y Desarrollo Sostenible (MADS). >> >> >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      }
+    ]
+  },
+  "var_55": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "e (µg/m >> >>3 >> >>) >> >> >> >> >>Tiempo de exposición >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_53} >> >> >"
+      }
+    ]
+  },
+  "var_53": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "> >> >> >> >>Tiempo de exposición >> >> >> >> >> >> >> >>{var_55} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_54} >> >> >"
+      },
+      {
+        "before": "} >> >> >> >> >>{var_59} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_57} >> >> >"
+      },
+      {
+        "before": ">>{var_53} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >>{var_62} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_57} >> >> >"
+      }
+    ]
+  },
+  "var_54": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "exposición >> >> >> >> >> >> >> >>{var_55} >> >> >> >> >>{var_53} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      },
+      {
+        "before": ">>{var_57} >> >> >> >> >> >> >> >>{var_60} >> >> >> >> >>{var_59} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      },
+      {
+        "before": ">>{var_63} >> >> >> >> >> >> >> >>{var_66} >> >> >> >> >>{var_65} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_56": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "} >> >> >> >> >>{var_53} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_57} >> >> >"
+      },
+      {
+        "before": "} >> >> >> >> >>{var_53} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_63} >> >> >"
+      },
+      {
+        "before": ">>{var_67} >> >> >> >> >>{var_63} >> >> >> >> >> >> >> >>{var_68} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_69} >> >> >"
+      }
+    ]
+  },
+  "var_57": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>{var_56} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_60"
+      },
+      {
+        "before": "} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>{var_53} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_62"
+      },
+      {
+        "before": ">>{var_57} >> >> >> >> >> >> >> >>{var_62} >> >> >> >> >>{var_53} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_60": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >> >>{var_56} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_59} >> >> >"
+      }
+    ]
+  },
+  "var_59": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">>{var_56} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >>{var_60} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_54} >> >> >"
+      }
+    ]
+  },
+  "var_62": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >> >>{var_53} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_53} >> >> >"
+      }
+    ]
+  },
+  "var_63": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "} >> >> >> >> >>{var_57} >> >> >> >> >> >> >> >> >> >> >>{var_56} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_66"
+      },
+      {
+        "before": "} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>{var_67} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_68"
+      },
+      {
+        "before": "} >> >> >> >> >>{var_69} >> >> >> >> >> >> >> >> >> >> >>{var_73} >> >> >> >> >>",
+        "after": ">> >>Fuente: Resolución 2254 d"
+      }
+    ]
+  },
+  "var_66": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >> >>{var_56} >> >> >> >> >>{var_63} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_65} >> >> >"
+      }
+    ]
+  },
+  "var_65": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">>{var_56} >> >> >> >> >>{var_63} >> >> >> >> >> >> >> >>{var_66} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_54} >> >> >"
+      }
+    ]
+  },
+  "var_67": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "} >> >> >> >> >>{var_65} >> >> >> >> >>{var_54} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_63} >> >> >"
+      }
+    ]
+  },
+  "var_68": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "> >> >> >> >> >> >> >> >>{var_67} >> >> >> >> >>{var_63} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_56} >> >> >"
+      }
+    ]
+  },
+  "var_69": {
+    "occurrences": 2,
+    "contexts": [
+      {
+        "before": ">>{var_63} >> >> >> >> >> >> >> >>{var_68} >> >> >> >> >>{var_56} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>{var_72"
+      },
+      {
+        "before": ">>{var_69} >> >> >> >> >> >> >> >>{var_72} >> >> >> >> >>{var_71} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >> >> >> "
+      }
+    ]
+  },
+  "var_72": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">>{var_68} >> >> >> >> >>{var_56} >> >> >> >> >>{var_69} >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_71} >> >> >"
+      }
+    ]
+  },
+  "var_71": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ">>{var_56} >> >> >> >> >>{var_69} >> >> >> >> >> >> >> >>{var_72} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_69} >> >> >"
+      }
+    ]
+  },
+  "var_73": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "} >> >> >> >> >>{var_71} >> >> >> >> >>{var_69} >> >> >> >> >> >> >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_63} >> >>Fu"
+      }
+    ]
+  },
+  "var_9": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >> >> >> >> >>{var_63} >> >>Fuente: Resolución 2254 del MADS, 2017. >> >> >> >>",
+        "after": ">> >> >> >>METODOLOGÍAS DE MUE"
+      }
+    ]
+  },
+  "se_presentan_las_incertidumbres_de_los_resultados__1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " los resultados asociados a cada parámetro y >> >>estación evaluada >> >>, >> >>",
+        "after": ">> >>{las_incertidumbres_de_lo"
+      }
+    ]
+  },
+  "las_incertidumbres_de_los_resultados_asociados_a_c_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "valuada >> >>, >> >>{se_presentan_las_incertidumbres_de_los_resultados__1} >> >>",
+        "after": ">> >>. >> >>DATOS Y RESULTADOS"
+      }
+    ]
+  },
+  "en_las_siguientes_secciones_se_presentan_las_conce_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "por la Resolución 2254 de 2017 del MADS (25°C y 760 mm Hg), obtenidas para >> >>",
+        "after": ">> >> >> >>encontrados en el á"
+      }
+    ]
+  },
+  "en_las_siguientes_secciones_se_presentan_las_conce_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_presentan_las_conce_1} >> >> >> >>encontrados en el área de estudio de la >> >>",
+        "after": ">> >>Partículas Menores a 10 m"
+      }
+    ]
+  },
+  "los_resultados_de_las_1": {
+    "occurrences": 10,
+    "contexts": [
+      {
+        "before": "e_2} >> >>Partículas Menores a 10 micras (PM10) >> >>Los resultados de las >> >>",
+        "after": ">> >> >> >>estaciones se resum"
+      },
+      {
+        "before": " se puede evidenciar que los resultados máximos diarios y promedios en las >> >>",
+        "after": ">> >> >> >>estaciones de monit"
+      },
+      {
+        "before": ">se presentan los datos individuales por día, obtenidos en cada una de las >> >>",
+        "after": ">> >> >> >>estaciones de monit"
+      }
+    ]
+  },
+  "var_33": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": "as (PM10) >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >> >>Fecha >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_33} >> >> >"
+      },
+      {
+        "before": "> >> >> >> >> >> >> >> >> >> >> >> >>Fecha >> >> >> >> >>{var_33} >> >> >> >> >>",
+        "after": ">> >> >> >> >>{var_33} >> >> >"
+      },
+      {
+        "before": ">> >> >> >> >>Fecha >> >> >> >> >>{var_33} >> >> >> >> >>{var_33} >> >> >> >> >>",
+        "after": ">> >> >> >> >> >> >> >>DD/MM/A"
+      }
+    ]
+  },
+  "fuente_serambiente_s_a_s_1": {
+    "occurrences": 3,
+    "contexts": [
+      {
+        "before": " >> >> >>Rango >> >> >> >> >> >> >> >> >> >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>. >> >>En la >> >> >> REF"
+      },
+      {
+        "before": "dices de calidad de aire SO >> >>2 >> >>. >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>. >> >>Dióxido >> >>de >>"
+      },
+      {
+        "before": "dices de calidad de aire NO >> >>2 >> >>. >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>. >> >>Monóxido de Carbon"
+      }
+    ]
+  },
+  "16_la_realizada_con_el_limite_permisible_para_tiem_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ma indicativa, puesto que la campaña de monitoreo corresponde únicamente a >> >>",
+        "after": ">> >> días de monitoreo. >> >>"
+      }
+    ]
+  },
+  "var_10": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "a_realizada_con_el_limite_permisible_para_tiem_1} >> >> días de monitoreo. >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      }
+    ]
+  },
+  "fuente_serambiente_s_a_s_2": {
+    "occurrences": 21,
+    "contexts": [
+      {
+        "before": "> >> >> >>{var_22} >> >> >> >> >>{var_22} >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      },
+      {
+        "before": "> >> >> >>{var_22} >> >> >> >> >>{var_22} >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>En la >> REF _Ref14421103"
+      },
+      {
+        "before": "y comparación con la norma diaria y anual >> >>Fuente: SERAMBIENTE S.A.S., >> >>",
+        "after": ">> >>En la >> >> >> REF _Ref14"
+      }
+    ]
+  },
+  "fuente_serambiente_s_a_s_3": {
+    "occurrences": 6,
+    "contexts": [
+      {
+        "before": "re para PM10 >> >>-Resolución 2254 de 2017. >> >>Fuente: SERAMBIENTE S.A.S >> >>",
+        "after": ">> >>Gráfica >> SEQ Gráfica \\*"
+      },
+      {
+        "before": "para_los_datos_de_pm10__1} >> >> estaciones >> >>Fuente: SERAMBIENTE S.A.S >> >>",
+        "after": ">> >>En la >> REF _Ref14421141"
+      },
+      {
+        "before": ". Memorias de cálculo de >> >>datos >> >>). >> >>Fuente: SERAMBIENTE S.A.S >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      }
+    ]
+  },
+  "realizando_un_analisis_estadistico_el_promedio_glo_1": {
+    "occurrences": 5,
+    "contexts": [
+      {
+        "before": "nitoreo de las >> >>{los_resultados_de_las_1} >> >> >> >>estaciones fue de >> >>",
+        "after": ">> >> µg/m >> >>3 >> >> con va"
+      },
+      {
+        "before": "estadistico_el_promedio_glo_1} >> >> µg/m >> >>3 >> >> con valor máximo de >> >>",
+        "after": ">> >> µg/m >> >>3 >> >> report"
+      },
+      {
+        "before": "eportado >> >>{con_valor_maximo_de_g_m3_reportado_1} >> >>, y un mínimo de >> >>",
+        "after": ">> >> µg/m >> >>3 >> >> report"
+      }
+    ]
+  },
+  "con_valor_maximo_de_g_m3_reportado_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_analisis_estadistico_el_promedio_glo_1} >> >> µg/m >> >>3 >> >> reportado >> >>",
+        "after": ">> >>, y un mínimo de >> >>{re"
+      }
+    ]
+  },
+  "y_un_minimo_de_g_m3_reportado_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "_analisis_estadistico_el_promedio_glo_1} >> >> µg/m >> >>3 >> >> reportado >> >>",
+        "after": ">> >>. Adicionalmente, las >> "
+      }
+    ]
+  },
+  "17_tratamiento_estadistico_para_los_datos_de_pm10__1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "C >>17 >> >>. >> >>Tratamiento estadístico para los datos de PM10 para las >> >>",
+        "after": ">> >> estaciones >> >>Fuente: "
+      }
+    ]
+  },
+  "de_lo_anterior_se_concluye_que_la_mayor_proporcion_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "os tomados a partir de las muestras recuperadas y analizadas de las >> >>( >> >>",
+        "after": ">> >> >> >>estaciones se encue"
+      }
+    ]
+  },
+  "de_lo_anterior_se_concluye_que_la_mayor_proporcion_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "rcion_1} >> >> >> >>estaciones se encuentran distribuidos en los rangos de >> >>",
+        "after": ">> >> >> >>µg/m >> >>3 >> >>lo"
+      }
+    ]
+  },
+  "los_resultados_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " >> >>) >> >>Monóxido de >> >>Carbono >> >> (CO) >> >>Los resultados >> >> >> >>",
+        "after": ">> >> de las >> >>{los_resulta"
+      }
+    ]
+  },
+  "nota_los_resultados_corresponden_al_1": {
+    "occurrences": 2,
+    "contexts": [
+      {
+        "before": "os de exposición de 1 hora) >> >>Nota: >> >>Los resultados corresponden al >> >>",
+        "after": ">> >> por día a partir de los "
+      },
+      {
+        "before": "s de exposición de 8 horas) >> >>Nota: >> >>Los resultados corresponden al >> >>",
+        "after": ">> >> por día a partir de los "
+      }
+    ]
+  },
+  "var_11": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "datos). >> >>Fuente: SERAMBIENTE S.A.S., >> >>{fuente_serambiente_s_a_s_2} >> >>",
+        "after": ">> >> >> >>{var_12} >> >>{var_"
+      }
+    ]
+  },
+  "var_12": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": " SERAMBIENTE S.A.S., >> >>{fuente_serambiente_s_a_s_2} >> >>{var_11} >> >> >> >>",
+        "after": ">> >>{var_13} >> >> >> >>A con"
+      }
+    ]
+  },
+  "var_13": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": ".A.S., >> >>{fuente_serambiente_s_a_s_2} >> >>{var_11} >> >> >> >>{var_12} >> >>",
+        "after": ">> >> >> >>A continuación, de "
+      }
+    ]
+  },
+  "6_a_la_grafica_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "f144213203 \\h \\* MERGEFORMAT >>Gráfica >> >>6 >> >> >> >>a la >> >>Gráfica >> >>",
+        "after": ">> >> presentan los datos repo"
+      }
+    ]
+  },
+  "anexo_4_memorias_de_calculo_de_datos_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "forma en la carpeta de anexos: >> >>Anexo 4. Memorias de cálculo de datos/ >> >>",
+        "after": ">> >>Gráfica >> SEQ Gráfica \\*"
+      }
+    ]
+  },
+  "6_comparacion_promedios_1_hora_de_co_vs_norma_1_ho_1": {
+    "occurrences": 2,
+    "contexts": [
+      {
+        "before": "\\* ARABIC >>6 >> >>. Comparación promedios 1 hora de CO vs norma 1 hora. – >> >>",
+        "after": ">> >>Fuente: SERAMBIENTE S.A.S"
+      },
+      {
+        "before": "ABIC >>7 >> >>. Comparación medias móviles 8 horas de CO vs norma 8 Horas. >> >>",
+        "after": ">> >>Fuente: SERAMBIENTE S.A.S"
+      }
+    ]
+  },
+  "las_condiciones_atmosfericas_reportadas_fueron_reg_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "as condiciones atmosféricas reportadas fueron registradas por una estación >> >>",
+        "after": ">> >>{var_14} >> >>Figura >> S"
+      }
+    ]
+  },
+  "var_14": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "r una estación >> >>{las_condiciones_atmosfericas_reportadas_fueron_reg_1} >> >>",
+        "after": ">> >>Figura >> SEQ Figura \\* A"
+      }
+    ]
+  },
+  "var_15": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "fueron_reg_1} >> >>{var_14} >> >>Figura >> SEQ Figura \\* ARABIC >>9 >> >>. >> >>",
+        "after": ">> >>Fuente: SERAMBIENTE S.A.S"
+      }
+    ]
+  },
+  "tabla_39_se_presenta_los_promedios_de_las_variable_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "as por la estación meteorológica ubicada en la estación de calidad de aire >> >>",
+        "after": ">> >> >> >>que registr >> >>ó "
+      }
+    ]
+  },
+  "que_registro_los_datos_en_el_periodo_del_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ariable_1} >> >> >> >>que registr >> >>ó >> >> los datos en el periodo del >> >>",
+        "after": ">> >>Tabla >> SEQ Tabla \\* ARA"
+      }
+    ]
+  },
+  "realizo_la_evaluacion_de_la_calidad_del_aire_en_el_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "View - Freeware >> >>, >> >>{fuente_serambiente_s_a_s_2} >> >>CONCLUSIONES >> >>",
+        "after": ">> >> >> >>realizó la evaluaci"
+      }
+    ]
+  },
+  "realizo_la_evaluacion_de_la_calidad_del_aire_en_el_2": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "ación de la calidad del aire >> >>en el área de estudio del proyecto >> >> >> >>",
+        "after": ">> >> a través del monitoreo r"
+      }
+    ]
+  },
+  "a_traves_del_monitoreo_realizado_del_1": {
+    "occurrences": 1,
+    "contexts": [
+      {
+        "before": "de_la_calidad_del_aire_en_el_2} >> >> a través del monitoreo realizado del >> >>",
+        "after": ">> >>, de la cual se permite c"
+      }
+    ]
+  }
+}
