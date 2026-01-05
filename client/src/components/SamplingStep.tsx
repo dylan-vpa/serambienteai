@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Lock, AlertCircle, Loader2, Camera, Upload, Sparkles, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Lock, Loader2, Camera, Upload, Sparkles, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TemplateStep } from '@/types/sampling';
 import { cn } from '@/lib/utils'; // Assuming this utility exists, if not I will use inline or template literals but standard shadcn uses it
