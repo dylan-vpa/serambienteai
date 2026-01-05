@@ -9,6 +9,7 @@ import samplingTemplateRoutes from './sampling-template.routes';
 import filesRoutes from './files.routes';
 import userRoutes from './user.routes';
 import pushRoutes from './push.routes';
+import feedbackRoutes from '../controllers/feedback.controller';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/standards', standardRoutes);
 router.use('/sampling-templates', samplingTemplateRoutes);
 router.use('/push', pushRoutes);
+router.use('/feedback', feedbackRoutes);
 
 export default router;
 

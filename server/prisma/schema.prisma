@@ -120,3 +120,20 @@ model SamplingTemplate {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
+
+// AI Feedback System - stores user corrections to improve AI outputs
+model AIFeedback {
+  id              String   @id @default(uuid())
+  oitId           String?  // Related OIT if applicable
+  category        String   // OIT_ANALYSIS, PROPOSAL, REPORT, TEMPLATE_MAPPING
+  aiOutput        String   // Original AI-generated content
+  userCorrection  String?  // User's corrected version
+  rating          Int      @default(0) // 1-5 stars
+  feedbackType    String   // CORRECT, PARTIAL, WRONG
+  fieldName       String?  // Specific field that was wrong (e.g., "var_34")
+  correctValue    String?  // What the correct value should be
+  notes           String?  // Additional user notes
+  applied         Boolean  @default(false) // Whether feedback was used to improve
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { FeedbackGrid } from '@/components/feedback/FeedbackGrid';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -296,6 +297,21 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                                 <Button variant="ghost" className="w-full text-slate-500 hover:text-slate-900" onClick={() => setReportGenerated(false)}>
                                     Generar Nuevo
                                 </Button>
+                            </div>
+
+                            {/* AI Feedback Grid */}
+                            <div className="mt-6 pt-6 border-t border-slate-200">
+                                <FeedbackGrid
+                                    oitId={oitId}
+                                    category="REPORT"
+                                    aiOutput={analysisData?.rawText || ''}
+                                    fields={[
+                                        { name: 'introduction', value: analysisData?.summary?.substring(0, 50) || '', label: 'Introducción' },
+                                        { name: 'methodology', value: analysisData?.methodology?.substring(0, 50) || '', label: 'Metodología' },
+                                        { name: 'results', value: analysisData?.results?.substring(0, 50) || '', label: 'Resultados' },
+                                        { name: 'conclusions', value: analysisData?.conclusions?.substring(0, 50) || '', label: 'Conclusiones' }
+                                    ]}
+                                />
                             </div>
                         </div>
                     ) : (
