@@ -51,7 +51,7 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
 
     // Polling for Analysis
     useEffect(() => {
-        let intervalId: NodeJS.Timeout;
+        let intervalId: any;
 
         // If we have uploaded a file (labResultsUrl is set) but no analysis yet, poll!
         // Or if we are explicitly in a "waiting" state.
