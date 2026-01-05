@@ -337,122 +337,21 @@ async function internalGenerateFinalReport(id: string) {
                 console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
                 const { docxService } = require('../services/docx.service');
 
-                // Semantic Text Splitting for AI-generated content
-                const reportContent = reportMarkdown.replace(/[#*`]/g, '');
-                const sections = reportContent.split(/(?=\n#{1,3} )/g);
-                const introSection = sections.slice(0, 2).join('\n') || reportContent.substring(0, 800);
-                const methodologySection = sections.slice(2, 4).join('\n') || reportContent.substring(800, 1600);
-                const resultsSection = sections.slice(4, -2).join('\n') || reportContent.substring(1600, 3000);
-                const conclusionSection = sections.slice(-2).join('\n') || reportContent.substring(3000);
+                // Use intelligent template-aware data mapper
+                const { TemplateDataMapper } = require('../config/templateDataMapper');
 
-                // AI Section Map for config-driven population
-                const aiSections: Record<string, string> = {
-                    'intro': introSection,
-                    'methodology': methodologySection,
-                    'results': resultsSection,
-                    'conclusions': conclusionSection
-                };
+                const mapper = new TemplateDataMapper(
+                    template.reportTemplateFile,
+                    {
+                        oitNumber: oit.oitNumber,
+                        description: oit.description,
+                        location: oit.location,
+                        scheduledDate: oit.scheduledDate
+                    },
+                    reportMarkdown
+                );
 
-                // Build docxData with semantic mapping
-                const docxData: Record<string, any> = {
-                    // Core OIT Fields
-                    oitNumber: oit.oitNumber,
-                    description: oit.description || '',
-                    location: oit.location || '',
-                    date: date,
-                    analysis: reportContent,
-                    narrative: reportMarkdown,
-                    client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-
-                    // Legacy Snake Case Fields
-                    cliente_1: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-                    nit_1: '800.123.456-7',
-                    direccion_1: oit.location || 'Dirección de Proyecto',
-                    contacto_1: 'Ing. Responsable',
-                    ciudad_1: 'Barranquilla',
-                    departamento_1: 'Atlántico',
-                    fecha_1: date,
-                    fecha_informe: date,
-
-                    // Semantic Variable Mapping by Section
-                    // Header/Context (var_1 to var_9)
-                    var_1: `Informe de Monitoreo Ambiental - ${oit.oitNumber}`,
-                    var_2: date,
-                    var_3: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-                    var_4: oit.location || 'Ubicación del Proyecto',
-                    var_5: introSection.substring(0, 500),
-                    var_6: introSection.substring(0, 500),
-                    var_7: introSection.substring(0, 500),
-                    var_8: introSection.substring(0, 500),
-                    var_9: introSection.substring(0, 500),
-
-                    // Methodology/Equipment (var_10 to var_20)
-                    var_10: methodologySection.substring(0, 400),
-                    var_11: methodologySection.substring(0, 400),
-                    var_12: methodologySection.substring(0, 400),
-                    var_13: methodologySection.substring(0, 400),
-                    var_14: methodologySection.substring(0, 400),
-                    var_15: methodologySection.substring(0, 400),
-                    var_16: 'Estación de Monitoreo Norte',
-                    var_17: 'Estación de Monitoreo Sur',
-                    var_18: 'N/A',
-                    var_19: 'N/A',
-                    var_20: methodologySection.substring(0, 400),
-
-                    // Station/Point Details (var_21 to var_31)
-                    var_21: 'EST-01',
-                    var_22: 'Punto de muestreo representativo',
-                    var_23: '10.9878',
-                    var_24: '-74.7889',
-                    var_27: 'High Volume Sampler / Sonómetro Tipo 1',
-                    var_28: 'EPA CFR 40 / ISO 1996',
-                    var_31: '0 - 500 µg/m³ / 30 - 130 dB',
-
-                    // Results (var_32 to var_74)
-                    var_32: resultsSection.substring(0, 600),
-                    var_33: resultsSection.substring(0, 600),
-                    var_34: resultsSection.substring(0, 600),
-                    ...Array.from({ length: 40 }, (_, i) => ({ [`var_${i + 35}`]: resultsSection.substring(0, 300) })).reduce((a, b) => ({ ...a, ...b }), {}),
-
-                    // Conclusions (var_51+, var_100+)
-                    var_51: conclusionSection.substring(0, 500),
-                    var_53: conclusionSection.substring(0, 500),
-                    var_54: conclusionSection.substring(0, 500),
-                    var_55: conclusionSection.substring(0, 500),
-                    ...Array.from({ length: 100 }, (_, i) => ({ [`var_${i + 101}`]: conclusionSection.substring(0, 300) })).reduce((a, b) => ({ ...a, ...b }), {}),
-
-                    // Descriptive Keys from Template Analysis
-                    'la_organizacion_tiene_como_actividad_principal_1': 'Actividad Industrial General',
-                    'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': oit.description || 'Monitoreo Ambiental',
-                    'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': oit.description || 'Monitoreo Ambiental',
-                    'en_las_instalaciones_de_1': oit.location || 'Sitio del Cliente',
-                    'localizado_en_1': oit.location || 'Ubicación General',
-                    'fuente_serambiente_s_a_s_1': 'Serambiente S.A.S.',
-                    'fuente_serambiente_s_a_s_2': 'Serambiente S.A.S.',
-                    'fuente_serambiente_s_a_s_3': 'Serambiente S.A.S.',
-                    'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': 'Servicios de Ingeniería y Ambiente S.A.S.',
-                    'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': `Monitoreo ejecutado entre ${date}`,
-                    'el_presente_documento_de_caracter_tecnico_contiene_1': introSection.substring(0, 400),
-                    'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': methodologySection.substring(0, 400),
-                    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': 'Serambiente S.A.S. - Empresa Acreditada IDEAM',
-                    'determinar_los_niveles_de_inmision_de_los_contamin_1': resultsSection.substring(0, 400),
-                    'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': resultsSection.substring(0, 400),
-                    'de_lo_anterior_se_concluye_que_la_mayor_proporcion_1': conclusionSection.substring(0, 400),
-                    'realizo_la_evaluacion_de_la_calidad_del_aire_en_el_1': conclusionSection.substring(0, 400),
-
-                    // Compliance Placeholders
-                    'cumple_con_la_norma_1': 'CUMPLE',
-                    'no_cumple_con_la_norma_1': 'NO CUMPLE',
-
-                    // Capitalized Variations
-                    Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-                    Date: date,
-                    Location: oit.location || '',
-                    Address: oit.location || '',
-                    OIT: oit.oitNumber,
-                    Analysis: reportContent,
-                    Project: oit.description || 'Monitoreo Ambiental'
-                };
+                const docxData = mapper.generateData();
 
                 generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
                 generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
