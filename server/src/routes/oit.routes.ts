@@ -20,7 +20,8 @@ import {
     assignEngineers,
     getAssignedEngineers,
     submitSampling,
-    updatePlanningResources
+    updatePlanningResources,
+    requestRedoSteps
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
@@ -69,6 +70,9 @@ router.post('/:id/finalize-sampling', authMiddleware, finalizeSampling);
 router.post('/:id/submit-sampling', authMiddleware, submitSampling);
 router.get('/:id/sampling-report', authMiddleware, generateSamplingReport);
 
+// Request redo of sampling steps (Admin only)
+router.post('/:id/request-redo', authMiddleware, requireAdmin, requestRedoSteps);
+
 router.delete('/:id', deleteOIT);
 
 // Engineer assignment endpoints
@@ -79,3 +83,4 @@ router.get('/:id/engineers', authMiddleware, getAssignedEngineers);
 router.put('/:id/resources', authMiddleware, updatePlanningResources);
 
 export default router;
+

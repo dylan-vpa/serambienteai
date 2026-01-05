@@ -15,7 +15,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, Shield, Loader2, UserCog, Plus, UserPlus } from 'lucide-react';
+import { Users, Shield, Loader2, UserCog, Plus, UserPlus, Key } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import { canManageUsers } from '@/types/auth';
@@ -49,6 +49,13 @@ export default function UsersPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+
+    // Password change state
+    const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -124,6 +131,36 @@ export default function UsersPage() {
             toast.error(error.response?.data?.error || 'Error al crear usuario');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const openPasswordModal = (userId: string) => {
+        setSelectedUserId(userId);
+        setNewPassword('');
+        setConfirmPassword('');
+        setIsPasswordOpen(true);
+    };
+
+    const handlePasswordChange = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            toast.error('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error('Las contraseñas no coinciden');
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            await api.put(`/users/${selectedUserId}/password`, { newPassword });
+            toast.success('Contraseña actualizada correctamente');
+            setIsPasswordOpen(false);
+        } catch (error: any) {
+            console.error('Error changing password:', error);
+            toast.error(error.response?.data?.error || 'Error al cambiar contraseña');
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -271,6 +308,7 @@ export default function UsersPage() {
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Rol Actual</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Cambiar Rol</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -320,6 +358,17 @@ export default function UsersPage() {
                                             </Select>
                                         )}
                                     </td>
+                                    <td className="p-4">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => openPasswordModal(user.id)}
+                                            className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                                        >
+                                            <Key className="h-4 w-4 mr-1" />
+                                            Cambiar Clave
+                                        </Button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -356,6 +405,67 @@ export default function UsersPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Password Change Modal */}
+            <Dialog open={isPasswordOpen} onOpenChange={setIsPasswordOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Key className="h-5 w-5 text-amber-600" />
+                            Cambiar Contraseña
+                        </DialogTitle>
+                        <DialogDescription>
+                            Ingresa una nueva contraseña para este usuario.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                            <Input
+                                id="newPassword"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="••••••••"
+                                minLength={6}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                            <Input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsPasswordOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handlePasswordChange}
+                            disabled={isChangingPassword}
+                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                            {isChangingPassword ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Cambiando...
+                                </>
+                            ) : (
+                                <>
+                                    <Key className="mr-2 h-4 w-4" />
+                                    Cambiar Contraseña
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

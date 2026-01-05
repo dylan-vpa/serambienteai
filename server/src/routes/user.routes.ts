@@ -5,7 +5,8 @@ import {
     updateUserRole,
     getEngineers,
     getProfile,
-    createUser
+    createUser,
+    updatePassword
 } from '../controllers/user.controller';
 import { authMiddleware, requireSuperAdmin, requireAdmin } from '../middleware/auth.middleware';
 
@@ -31,5 +32,8 @@ router.get('/:id', requireSuperAdmin, getUserById);
 
 // Update user role - requires SUPER_ADMIN
 router.put('/:id/role', requireSuperAdmin, updateUserRole);
+
+// Update user password - requires ADMIN+
+router.put('/:id/password', requireAdmin, updatePassword);
 
 export default router;

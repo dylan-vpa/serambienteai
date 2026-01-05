@@ -201,3 +201,34 @@ export const createUser = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al crear usuario' });
     }
 };
+
+// Update user password (ADMIN/SUPER_ADMIN only)
+export const updatePassword = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+
+        // Check if user exists
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { id },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: 'Contraseña actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error updating password:', error);
+        res.status(500).json({ error: 'Error al actualizar contraseña' });
+    }
+};

@@ -1277,3 +1277,106 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al actualizar recursos' });
     }
 };
+
+// Request Redo of Sampling Steps (Admin Only)
+export const requestRedoSteps = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { stepIndices, redoAll, reason } = req.body;
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) {
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        }
+
+        // Parse existing data
+        let samplingProgress = oit.samplingProgress ? JSON.parse(oit.samplingProgress) : { currentStep: 0, completedSteps: [], redoRequests: [] };
+        let stepValidations = oit.stepValidations ? JSON.parse(oit.stepValidations) : {};
+
+        // Initialize redoRequests array if not present
+        if (!samplingProgress.redoRequests) {
+            samplingProgress.redoRequests = [];
+        }
+
+        if (redoAll) {
+            // Mark all steps for redo
+            samplingProgress.redoRequests = samplingProgress.completedSteps.map((idx: number) => ({
+                stepIndex: idx,
+                reason: reason || 'Solicitado por administrador',
+                requestedAt: new Date().toISOString(),
+                status: 'PENDING'
+            }));
+            // Reset completed steps
+            samplingProgress.completedSteps = [];
+            samplingProgress.currentStep = 0;
+            // Mark all validations as requiring redo
+            Object.keys(stepValidations).forEach(key => {
+                stepValidations[key].redoRequired = true;
+                stepValidations[key].redoReason = reason || 'Solicitado por administrador';
+            });
+        } else if (stepIndices && Array.isArray(stepIndices)) {
+            // Mark specific steps for redo
+            stepIndices.forEach((stepIndex: number) => {
+                // Add to redo requests
+                samplingProgress.redoRequests.push({
+                    stepIndex,
+                    reason: reason || 'Solicitado por administrador',
+                    requestedAt: new Date().toISOString(),
+                    status: 'PENDING'
+                });
+                // Remove from completed if present
+                samplingProgress.completedSteps = samplingProgress.completedSteps.filter((idx: number) => idx !== stepIndex);
+                // Mark the validation as needing redo
+                if (stepValidations[stepIndex]) {
+                    stepValidations[stepIndex].redoRequired = true;
+                    stepValidations[stepIndex].redoReason = reason || 'Solicitado por administrador';
+                }
+            });
+            // Adjust current step if needed
+            const minRedoStep = Math.min(...stepIndices);
+            if (samplingProgress.currentStep > minRedoStep) {
+                samplingProgress.currentStep = minRedoStep;
+            }
+        }
+
+        // Update OIT
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingProgress: JSON.stringify(samplingProgress),
+                stepValidations: JSON.stringify(stepValidations),
+                status: 'REDO_REQUIRED' // New status to indicate redo needed
+            }
+        });
+
+        // Create notification for assigned engineers
+        const assignedEngineers = await prisma.oITAssignment.findMany({
+            where: { oitId: id },
+            include: { user: true }
+        });
+
+        for (const eng of assignedEngineers) {
+            const notifMessage = redoAll
+                ? `La OIT #${oit.oitNumber} requiere rehacer todos los pasos de muestreo. Razón: ${reason || 'Solicitado por admin'}`
+                : `La OIT #${oit.oitNumber} requiere rehacer ${stepIndices?.length} paso(s). Razón: ${reason || 'Solicitado por admin'}`;
+
+            await createNotification(
+                eng.userId,
+                'Pasos de muestreo requieren corrección',
+                notifMessage,
+                'WARNING',
+                id
+            );
+        }
+
+
+        res.json({
+            success: true,
+            message: redoAll ? 'Todos los pasos marcados para rehacer' : `${stepIndices?.length} paso(s) marcado(s) para rehacer`,
+            samplingProgress
+        });
+    } catch (error) {
+        console.error('Error requesting redo:', error);
+        res.status(500).json({ error: 'Error al solicitar corrección' });
+    }
+};
