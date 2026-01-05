@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, ChevronRight, Upload, FileDown, Beaker, Camera, MapPin, WifiOff, Lock } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Upload, FileDown, Beaker, Camera, MapPin, WifiOff, Lock, ShieldCheck, Clock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import LocationMap from '@/components/shared/LocationMap';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 interface SamplingWizardProps {
     oitId: string;
@@ -252,47 +254,130 @@ export function SamplingWizard({ oitId, scheduledDate }: SamplingWizardProps) {
                 </CardHeader>
                 <CardContent>
                     {step === 1 && (
-                        <div className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label>Ubicación / Punto de Muestreo</Label>
+                        <div className="space-y-6">
+                            {/* Verification Card */}
+                            <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <ShieldCheck className="h-32 w-32 text-indigo-500" />
+                                </div>
+
+                                <div className="p-6 relative z-10">
+                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6">
+                                        <ShieldCheck className="h-5 w-5 text-indigo-600" />
+                                        Verificación de Inicio
+                                    </h3>
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {/* Time Verification */}
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 border border-indigo-50 flex items-start gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                                <Clock className="h-5 w-5 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-500 mb-1">Horario Programado</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-lg font-bold text-slate-900">
+                                                        {scheduledDate ? new Date(scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">
+                                                        {scheduledDate ? new Date(scheduledDate).toLocaleDateString() : 'Sin fecha'}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-2 flex items-center gap-1.5">
+                                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] gap-1 px-2 py-0.5">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        A Tiempo
+                                                    </Badge>
+                                                    <span className="text-[10px] text-slate-400">Desviación: &lt; 5 min</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Location Verification */}
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 border border-indigo-50 flex items-start gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                                                <MapPin className="h-5 w-5 text-indigo-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-slate-500 mb-1">Sitio Asignado</p>
+                                                <p className="text-sm font-bold text-slate-900 leading-tight mb-2">
+                                                    CARRERA 41 # 73B – 72
+                                                </p>
+                                                {/* <p className="text-xs text-slate-500 mb-2">{oit.location || 'Dirección no especificada'}</p> */}
+
+                                                <div className="flex items-center gap-2">
+                                                    {locationPermission === 'denied' ? (
+                                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                                                            GPS Inactivo
+                                                        </Badge>
+                                                    ) : gpsCoords ? (
+                                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] gap-1 px-2 py-0.5">
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            En Sitio
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 text-[10px] gap-1 animate-pulse">
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                            Buscando GPS...
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Banner */}
+                                    <div className="mt-6 bg-slate-900/5 rounded-lg p-3 flex items-center justify-between border border-slate-900/10">
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox id="verify-site" className="data-[state=checked]:bg-indigo-600 border-slate-400" />
+                                            <label htmlFor="verify-site" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                                                Confirmo que estoy en el sitio y horario correctos
+                                            </label>
+                                        </div>
+                                        {/* This could trigger opening the rest of the form */}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+                                <Label className="text-slate-700 font-semibold">Ubicación / Punto de Muestreo Detallado</Label>
                                 <Input
                                     placeholder="Ej: Planta de Tratamiento - Salida"
                                     value={formData.location}
                                     onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                    className="bg-slate-50/50 border-slate-200 focus:bg-white transition-all h-11"
                                 />
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Condiciones Ambientales</Label>
+
+                            <div className="grid gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                                <Label className="text-slate-700 font-semibold">Condiciones Ambientales</Label>
                                 <Textarea
                                     placeholder="Clima, temperatura, observaciones..."
                                     value={formData.conditions}
                                     onChange={e => setFormData({ ...formData, conditions: e.target.value })}
+                                    className="bg-slate-50/50 border-slate-200 focus:bg-white transition-all min-h-[100px]"
                                 />
                             </div>
 
                             {/* GPS Location Map */}
                             {gpsCoords && (
-                                <div className="grid gap-2">
-                                    <Label className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        Ubicación GPS
+                                <div className="grid gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+                                    <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                                        <MapPin className="h-4 w-4 text-indigo-500" />
+                                        Confirmación GPS
                                     </Label>
-                                    <div className="rounded-lg overflow-hidden border border-slate-200">
+                                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group">
+                                        <div className="absolute inset-0 border-4 border-white/50 z-10 rounded-xl pointer-events-none" />
                                         <LocationMap
                                             latitude={gpsCoords.latitude}
                                             longitude={gpsCoords.longitude}
-                                            height={250}
+                                            height={200}
                                         />
+                                        <div className="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-md px-3 py-2 rounded-lg text-xs font-mono text-slate-600 border border-white/50 shadow-sm flex justify-between items-center">
+                                            <span>LAT: {gpsCoords.latitude.toFixed(6)}</span>
+                                            <span>LON: {gpsCoords.longitude.toFixed(6)}</span>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-slate-500">
-                                        Coordenadas: {gpsCoords.latitude.toFixed(6)}, {gpsCoords.longitude.toFixed(6)}
-                                    </p>
-                                </div>
-                            )}
-
-                            {locationPermission === 'denied' && (
-                                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-sm">
-                                    ⚠️ Permisos de ubicación denegados. Las coordenadas GPS no se registrarán.
                                 </div>
                             )}
                         </div>

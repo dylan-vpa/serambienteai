@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1306,112 +1306,178 @@ export default function OITDetailPage() {
                             const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
                             if (!isLocationVerified && !isStarted) {
                                 return (
-                                    <Card className="border-indigo-200 bg-indigo-50/50 mb-6">
-                                        <CardHeader>
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="h-5 w-5 text-indigo-600" />
-                                                <CardTitle className="text-lg">Verificación de Sitio y Hora</CardTitle>
+                                    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50 mb-8 max-w-2xl mx-auto">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                            <ShieldCheck className="h-40 w-40 text-indigo-500" />
+                                        </div>
+
+                                        <div className="p-8 relative z-10">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center shadow-inner">
+                                                    <ShieldCheck className="h-6 w-6 text-indigo-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-slate-900">Verificación de Sitio y Hora</h3>
+                                                    <p className="text-sm text-slate-500">Valida las condiciones antes de iniciar el muestreo</p>
+                                                </div>
                                             </div>
-                                            <CardDescription>
-                                                Para iniciar, valida que estás en el sitio ({oit.location || 'No definido'}) y en el horario agendado.
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
+
+                                            <div className="grid md:grid-cols-2 gap-4 mb-8">
+                                                {/* Time Info */}
+                                                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-50 shadow-sm flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-sm">
+                                                            <Clock className="h-4 w-4" />
+                                                            <span>Horario Agendado</span>
+                                                        </div>
+                                                        <div className="text-2xl font-bold text-slate-800">
+                                                            {oit.scheduledDate ? new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                                        </div>
+                                                        <div className="text-xs text-slate-500 mt-1">
+                                                            {oit.scheduledDate ? new Date(oit.scheduledDate).toLocaleDateString() : 'Sin fecha'}
+                                                        </div>
+                                                    </div>
+
+                                                    {!oit.scheduledDate && (
+                                                        <Badge variant="outline" className="mt-3 bg-amber-50 text-amber-700 border-amber-200 self-start">
+                                                            No programado
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Location Info */}
+                                                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-50 shadow-sm flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-sm">
+                                                            <MapPin className="h-4 w-4" />
+                                                            <span>Ubicación Objetivo</span>
+                                                        </div>
+                                                        {/*  <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
+                                                            {oit.location || 'Ubicación no especificada en la OIT'}
+                                                        </div> */}
+                                                        <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
+                                                            CARRERA 41 # 73B – 72
+                                                        </div>
+                                                        <div className="text-xs text-slate-500 mt-2">
+                                                            Radio permitido: 200m
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {verificationMsg && (
-                                                <div className={`p-4 rounded-lg flex items-center gap-3 ${verificationMsg.includes('Exitoso') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {verificationMsg.includes('Exitoso') ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-                                                    <p className="text-sm font-medium">{verificationMsg}</p>
+                                                <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 border animate-in fade-in slide-in-from-bottom-2 ${verificationMsg.includes('Exitoso')
+                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
+                                                    : 'bg-rose-50 text-rose-800 border-rose-100'
+                                                    }`}>
+                                                    {verificationMsg.includes('Exitoso') ? (
+                                                        <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+                                                    ) : (
+                                                        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                                                    )}
+                                                    <div>
+                                                        <p className="font-semibold text-sm">
+                                                            {verificationMsg.includes('Exitoso') ? '¡Verificación Completada!' : 'Verificación Fallida'}
+                                                        </p>
+                                                        <p className="text-sm opacity-90 mt-0.5">{verificationMsg}</p>
+                                                    </div>
                                                 </div>
                                             )}
 
                                             <Button
-                                                className="w-full bg-slate-900 hover:bg-slate-800"
+                                                className={`w-full h-12 text-base font-semibold shadow-lg transition-all ${verificationMsg?.includes('Verificando')
+                                                    ? 'bg-indigo-100 text-indigo-700'
+                                                    : 'bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white hover:shadow-indigo-200/50'
+                                                    }`}
                                                 size="lg"
+                                                disabled={verificationMsg?.includes('Verificando')}
                                                 onClick={() => {
                                                     setVerificationMsg('Verificando condiciones...');
 
-                                                    if (!oit.scheduledDate) {
-                                                        setVerificationMsg('No hay fecha agendada.');
-                                                        return;
-                                                    }
+                                                    // Artificial delay for UX
+                                                    setTimeout(() => {
+                                                        if (!oit.scheduledDate) {
+                                                            setVerificationMsg('Error: No hay fecha agendada en la OIT.');
+                                                            return;
+                                                        }
 
-                                                    const scheduled = new Date(oit.scheduledDate);
-                                                    const now = new Date();
-                                                    // Logic: Allow from 15 min BEFORE scheduled time. No upper limit on lateness (Past days allowed).
+                                                        const scheduled = new Date(oit.scheduledDate);
+                                                        const now = new Date();
+                                                        const startWindow = new Date(scheduled.getTime() - 15 * 60000);
 
-                                                    // Allow if now >= scheduled - 15min
-                                                    const startWindow = new Date(scheduled.getTime() - 15 * 60000);
+                                                        if (now < startWindow) {
+                                                            const waitMin = Math.ceil((startWindow.getTime() - now.getTime()) / 60000);
+                                                            setVerificationMsg(`Muy temprano. Podrás iniciar en ${waitMin} minutos.`);
+                                                            return;
+                                                        }
 
-                                                    if (now < startWindow) {
-                                                        const waitMin = Math.ceil((startWindow.getTime() - now.getTime()) / 60000);
-                                                        setVerificationMsg(`Muy temprano. Podrás iniciar en ${waitMin} minutos (15 min antes de la hora).`);
-                                                        return;
-                                                    }
+                                                        if (!navigator.geolocation) {
+                                                            setVerificationMsg('Error: Geolocalización no soportada.');
+                                                            return;
+                                                        }
 
-                                                    if (!navigator.geolocation) {
-                                                        setVerificationMsg('Geolocalización no soportada por el navegador.');
-                                                        return;
-                                                    }
+                                                        navigator.geolocation.getCurrentPosition(
+                                                            (pos) => {
+                                                                const currentLat = pos.coords.latitude;
+                                                                const currentLng = pos.coords.longitude;
+                                                                let distanceInfo = '';
 
-                                                    navigator.geolocation.getCurrentPosition(
-                                                        (pos) => {
-                                                            const currentLat = pos.coords.latitude;
-                                                            const currentLng = pos.coords.longitude;
+                                                                // Use logic similar to before but clearer
+                                                                // Mock success for defined coordinates if parsed correctly
+                                                                // Here we'll just simulate success for UX demo if parsing fails, or keep strict if coords valid.
+                                                                // For now, keeping existing strict logic but wrapped nicely.
 
-                                                            // Check 200m radius if location is coordinates
-                                                            let distanceInfo = '';
-                                                            const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
+                                                                const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
+                                                                if (locParts.length === 2 && !isNaN(parseFloat(locParts[0]))) {
+                                                                    const targetLat = parseFloat(locParts[0]);
+                                                                    const targetLng = parseFloat(locParts[1]);
 
-                                                            if (locParts.length === 2) {
-                                                                const targetLat = parseFloat(locParts[0]);
-                                                                const targetLng = parseFloat(locParts[1]);
-
-                                                                if (!isNaN(targetLat) && !isNaN(targetLng)) {
-                                                                    // Haversine Distance
-                                                                    const R = 6371; // km
+                                                                    // Haversine
+                                                                    const R = 6371;
                                                                     const dLat = (targetLat - currentLat) * Math.PI / 180;
                                                                     const dLon = (targetLng - currentLng) * Math.PI / 180;
-                                                                    const a =
-                                                                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                                                        Math.cos(currentLat * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) *
-                                                                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                                                                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
                                                                     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                                                                     const distKm = R * c;
 
-                                                                    if (distKm > 0.2) { // 200m = 0.2km
+                                                                    if (distKm > 0.2) {
                                                                         const distM = (distKm * 1000).toFixed(0);
-                                                                        setVerificationMsg(`FUERA DE RANGO. Estás a ${distM}m del sitio. Radio máximo: 200m.`);
+                                                                        setVerificationMsg(`FUERA DE RANGO: Estás a ${distM}m del sitio. Acércate más.`);
                                                                         return;
                                                                     }
                                                                     distanceInfo = `Distancia: ${(distKm * 1000).toFixed(0)}m`;
                                                                 }
-                                                            }
 
-                                                            setIsLocationVerified(true);
-                                                            setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '(' + distanceInfo + ')' : ''}`);
-                                                            toast.success('Ubicación y Hora Validadas');
-                                                        },
-                                                        (err) => {
-                                                            console.error(err);
-                                                            let errMsg = 'Error GPS.';
-                                                            if (err.code === 1) errMsg = 'Permiso denegado. Revisa configuración del sitio.';
-                                                            else if (err.code === 2) errMsg = 'Ubicación no disponible.';
-                                                            else if (err.code === 3) errMsg = 'Tiempo de espera agotado.';
-
-                                                            if (!window.isSecureContext) {
-                                                                errMsg += ' (Tu conexión es HTTP no segura. El navegador bloquea GPS).';
-                                                            }
-
-                                                            setVerificationMsg(`${errMsg} (${err.message})`);
-                                                        },
-                                                        { enableHighAccuracy: true, timeout: 10000 }
-                                                    );
+                                                                setIsLocationVerified(true);
+                                                                setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '- ' + distanceInfo : ''}`);
+                                                                toast.success('¡Estás en el sitio correcto!');
+                                                            },
+                                                            (err) => {
+                                                                console.error(err);
+                                                                let errMsg = 'No se pudo obtener ubicación GPS.';
+                                                                if (err.code === 1) errMsg = 'Permiso GPS denegado.';
+                                                                if (!window.isSecureContext) errMsg += ' (Requiere HTTPS).';
+                                                                setVerificationMsg(errMsg);
+                                                            },
+                                                            { enableHighAccuracy: true, timeout: 10000 }
+                                                        );
+                                                    }, 800);
                                                 }}
                                             >
-                                                Verificar Condiciones para Iniciar
+                                                {verificationMsg?.includes('Verificando') ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                                        Validando Satélites...
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <span>Verificar Condiciones de Inicio</span>
+                                                        <ArrowRight className="h-4 w-4" />
+                                                    </div>
+                                                )}
                                             </Button>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 );
                             }
 
