@@ -338,22 +338,49 @@ async function internalGenerateFinalReport(id: string) {
                 const { docxService } = require('../services/docx.service');
 
                 // Enhanced Data Mapping for Templates
+                const reportContent = reportMarkdown.replace(/[#*`]/g, '');
+
                 const docxData = {
+                    // Modern keys
                     oitNumber: oit.oitNumber,
                     description: oit.description || '',
                     location: oit.location || '',
                     date: date,
-                    analysis: reportMarkdown.replace(/[#*`]/g, ''), // Clean text for simple placeholders
+                    analysis: reportContent,
                     narrative: reportMarkdown,
                     client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
-                    // Add variations to cover different template styles
+
+                    // Legacy/Template specific keys (Snake Case)
+                    cliente_1: oit.description?.split(':')[0]?.trim() || 'Cliente General',
+                    nit_1: '800.123.456-7', // Placeholder/Mock for now or extract from description
+                    direccion_1: oit.location || 'Dirección de Proyecto',
+                    contacto_1: 'Ing. Responsable',
+                    ciudad_1: 'Barranquilla',
+                    departamento_1: 'Atlántico',
+                    fecha_1: date,
+                    fecha_informe: date,
+
+                    // Common var_N placeholders often used in legacy templates for body text
+                    var_1: oit.oitNumber,
+                    var_2: date,
+                    var_3: oit.description || '',
+                    var_4: oit.location || '',
+                    var_5: reportContent.substring(0, 500) + '...', // Intro
+                    var_6: reportContent, // Main body
+                    var_10: reportContent, // Analysis/Conclusions often here
+                    var_11: reportContent,
+                    var_12: reportContent,
+                    var_13: reportContent,
+                    var_14: reportContent,
+                    var_15: reportContent,
+
+                    // Capitalized variations
                     Client: oit.description?.split(':')[0]?.trim() || 'Cliente General',
                     Date: date,
                     Location: oit.location || '',
                     Address: oit.location || '',
                     OIT: oit.oitNumber,
-                    Analysis: reportMarkdown.replace(/[#*`]/g, ''),
-                    // Dynamic fields from OIT description if possible or defaults
+                    Analysis: reportContent,
                     Project: oit.description || 'Monitoreo Ambiental'
                 };
 

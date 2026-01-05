@@ -1,0 +1,1 @@
+UPDATE OIT SET selectedTemplateIds = '["f3776934-8389-4171-9ecd-6992166a2512", "5f9b55da-7143-439e-a2a9-65a8ff3cf5e0"]' WHERE id = '1996a1a9-e346-4378-add2-06f880b4de62';
