@@ -7,9 +7,11 @@ node_modules/
 /coverage
 
 # Production
-/build
-/dist
-/temp
+build/
+dist/
+server/dist/
+client/dist/
+temp/
 # Misc
 .DS_Store
 .env
