@@ -24,7 +24,8 @@ import {
     DialogContent,
     DialogDescription,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
+    DialogTrigger
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Search } from 'lucide-react';
@@ -32,6 +33,8 @@ import { useAuthStore } from '@/features/auth/authStore';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
+
+import { QuotationLinker } from '@/components/oit/QuotationLinker';
 
 export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -565,14 +568,14 @@ export default function OITDetailPage() {
                                                 </DropdownMenu>
                                             )}
                                         </div>
-                                        <div className="flex-1 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between group hover:border-slate-300 transition-colors">
-                                            <div>
-                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
-                                                <span className="text-sm text-slate-700 truncate block max-w-[150px]">
-                                                    {oit.quotationFileUrl ? 'Archivo cargado' : 'No disponible'}
-                                                </span>
-                                            </div>
-                                            {oit.quotationFileUrl && (
+                                        {oit.quotationFileUrl ? (
+                                            <div className="flex items-center justify-between w-full">
+                                                <div>
+                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                    <span className="text-sm text-slate-700 truncate block max-w-[150px]">
+                                                        Archivo cargado
+                                                    </span>
+                                                </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
@@ -590,8 +593,28 @@ export default function OITDetailPage() {
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
-                                            )}
-                                        </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full">
+                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed text-slate-500 hover:text-slate-900 border-slate-300">
+                                                            <Plus className="mr-1 h-3 w-3" /> Link Cotización
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent>
+                                                        <DialogHeader>
+                                                            <DialogTitle>Vincular Cotización</DialogTitle>
+                                                            <DialogDescription>
+                                                                Selecciona una cotización existente para vincular a esta OIT.
+                                                            </DialogDescription>
+                                                        </DialogHeader>
+                                                        <QuotationLinker oitId={id!} onLinked={fetchOIT} />
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Hidden file inputs */}
                                     <input type="file" id="oitFileInput" accept=".pdf" onChange={(e) => handleFileChange(e, 'oit')} className="hidden" />

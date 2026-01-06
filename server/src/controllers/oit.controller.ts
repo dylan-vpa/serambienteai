@@ -865,6 +865,15 @@ export const updateOIT = async (req: Request, res: Response) => {
         // Only use URL from body if no file was uploaded
         if (oitFileUrl !== undefined && !uploadedOitFile) data.oitFileUrl = oitFileUrl;
         if (quotationFileUrl !== undefined && !uploadedQuotationFile) data.quotationFileUrl = quotationFileUrl;
+        if (req.body.quotationId !== undefined) {
+            data.quotationId = req.body.quotationId;
+            // Fetch quotation file url if we want to sync it?
+            // Ideally, we should rely on relational data, but if we need to display it from oIT.quotationFileUrl for legacy reasons:
+            try {
+                const q = await prisma.quotation.findUnique({ where: { id: req.body.quotationId } });
+                if (q && q.fileUrl) data.quotationFileUrl = q.fileUrl;
+            } catch (e) { console.error('Error fetching linked quotation file', e) }
+        }
         if (aiData !== undefined) data.aiData = aiData;
         if (resources !== undefined) data.resources = resources;
         if (req.body.scheduledDate !== undefined) data.scheduledDate = req.body.scheduledDate;
