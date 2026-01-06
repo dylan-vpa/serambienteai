@@ -6,6 +6,7 @@ import { createNotification } from './notification.controller';
 import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 
@@ -619,6 +620,121 @@ export const createOIT = async (req: Request, res: Response) => {
 };
 
 // Async creation endpoint that accepts file uploads and triggers background AI processing
+// Create OIT from URL (Legacy JSON support)
+export const createOITFromUrl = async (req: Request, res: Response) => {
+    try {
+        const { OT, DOCUMENTO } = req.body;
+
+        if (!DOCUMENTO) {
+            return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
+        }
+
+        const oitNumber = OT || `OIT-${Date.now()}`;
+        // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
+        const userId = (req as any).user?.userId;
+
+        console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
+
+        // 1. Download file
+        const filename = `oitFromUrl-${Date.now()}.pdf`;
+        const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const filePath = path.join(uploadDir, filename);
+
+        try {
+            const response = await axios({
+                method: 'get',
+                url: DOCUMENTO,
+                responseType: 'stream'
+            });
+
+            const writer = fs.createWriteStream(filePath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', () => resolve(true));
+                writer.on('error', reject);
+            });
+        } catch (downloadError) {
+            console.error('Error downloading file:', downloadError);
+            return res.status(400).json({ error: 'Error al descargar el archivo desde la URL proporcionada' });
+        }
+
+        const fileUrl = `/uploads/${filename}`;
+
+        // 2. Create OIT Record
+        const oit = await prisma.oIT.create({
+            data: {
+                oitNumber: oitNumber,
+                description: 'Importado vía integración externa',
+                status: 'UPLOADING',
+                oitFileUrl: fileUrl,
+            }
+        });
+
+        // 3. Respond immediately
+        res.json({
+            id: oit.id,
+            oitNumber: oit.oitNumber,
+            status: 'UPLOADING',
+            message: 'OIT recibida y creada. Procesando archivo...'
+        });
+
+        // 4. Trigger Async Processing reusing existing logic
+        // We mock the file object structure expected by processOITFilesAsync (partial match)
+        const mockFiles = {
+            oitFile: [{
+                path: filePath,
+                filename: filename
+            }]
+        };
+
+        // Note: processOITFilesAsync needs to be defined/imported or available in scope. 
+        // Since it is in this same file (usually below), we can call it if it's hoisted or defined later. 
+        // If it's not exported or hoisted, we might need to check. 
+        // TypeScript functions are hoisted if defined as 'async function', but 'const func = ...' are not hoisted.
+        // If processOITFilesAsync is defined as 'const', we might have issues if it's below.
+        // Let's check processOITFilesAsync definition style.
+
+        // Assuming processOITFilesAsync is defined below as 'const processOITFilesAsync = ...' or 'export const ...'
+        // If so, we can't call it before definition.
+        // Safer approach: duplicate the crucial background logic locally or move definitions.
+        // For now, I'll inline the core logic to be safe and avoid refactoring huge file.
+
+        (async () => {
+            try {
+                const { pdfService } = require('../services/pdf.service');
+                const text = await pdfService.extractText(filePath);
+
+                await prisma.oIT.update({ where: { id: oit.id }, data: { status: 'ANALYZING' } });
+
+                const analysis = await aiService.analyzeDocument(text);
+
+                await prisma.oIT.update({
+                    where: { id: oit.id },
+                    data: {
+                        aiData: JSON.stringify(analysis),
+                        status: 'PENDING'
+                    }
+                });
+                console.log(`[Legacy API] OIT ${oit.oitNumber} processed successfully.`);
+            } catch (err) {
+                console.error('[Legacy API] Error processing background task:', err);
+                await prisma.oIT.update({
+                    where: { id: oit.id },
+                    data: { status: 'REVIEW_IMPORTANT' }
+                });
+            }
+        })();
+
+    } catch (error) {
+        console.error('Error creating OIT from URL:', error);
+        res.status(500).json({ error: 'Error interno al procesar solicitud' });
+    }
+};
+
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
         const { oitNumber, description } = req.body;

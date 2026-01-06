@@ -4,6 +4,7 @@ import {
     getOITById,
     createOIT,
     createOITAsync,
+    createOITFromUrl,
     updateOIT,
     deleteOIT,
     checkCompliance,
@@ -44,6 +45,7 @@ router.post(
     ]),
     createOITAsync
 );
+router.post('/from-url', createOITFromUrl);
 
 router.put('/:id', updateOIT);
 router.patch('/:id', authMiddleware, upload.fields([
