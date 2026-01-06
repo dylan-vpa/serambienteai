@@ -836,19 +836,36 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
     }
 };
 
-// Update OIT (supports new fields and engineer assignment)
+// Update OIT (supports new fields, engineer assignment, and file uploads)
 export const updateOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
+        const userId = (req as any).user?.userId;
         const data: any = {};
+
+        // Handle uploaded files from multer
+        const files = req.files as { oitFile?: Express.Multer.File[], quotationFile?: Express.Multer.File[] } | undefined;
+        const uploadedOitFile = files?.oitFile?.[0];
+        const uploadedQuotationFile = files?.quotationFile?.[0];
+        let shouldReanalyze = false;
+
+        if (uploadedOitFile) {
+            data.oitFileUrl = `/uploads/${uploadedOitFile.filename}`;
+            shouldReanalyze = true;
+        }
+        if (uploadedQuotationFile) {
+            data.quotationFileUrl = `/uploads/${uploadedQuotationFile.filename}`;
+            shouldReanalyze = true;
+        }
+
         if (oitNumber !== undefined) data.oitNumber = oitNumber;
         if (description !== undefined) data.description = description;
         if (status !== undefined) data.status = status;
-        if (oitFileUrl !== undefined) data.oitFileUrl = oitFileUrl;
-        if (quotationFileUrl !== undefined) data.quotationFileUrl = quotationFileUrl;
+        // Only use URL from body if no file was uploaded
+        if (oitFileUrl !== undefined && !uploadedOitFile) data.oitFileUrl = oitFileUrl;
+        if (quotationFileUrl !== undefined && !uploadedQuotationFile) data.quotationFileUrl = quotationFileUrl;
         if (aiData !== undefined) data.aiData = aiData;
-        if (resources !== undefined) data.resources = resources;
         if (resources !== undefined) data.resources = resources;
         if (req.body.scheduledDate !== undefined) data.scheduledDate = req.body.scheduledDate;
 
@@ -969,8 +986,24 @@ export const updateOIT = async (req: Request, res: Response) => {
 
         res.status(200).json({
             ...finalOit,
-            engineers: finalOit?.assignedEngineers.map((a: any) => a.user)
+            engineers: finalOit?.assignedEngineers.map((a: any) => a.user),
+            reanalyzing: shouldReanalyze
         });
+
+        // Trigger re-analysis in background if files were uploaded
+        if (shouldReanalyze && userId && finalOit) {
+            const uploadsRoot = path.join(__dirname, '../../');
+            const oitPath = finalOit.oitFileUrl
+                ? path.join(uploadsRoot, finalOit.oitFileUrl.replace(/^\//, ''))
+                : null;
+            const quotationPath = finalOit.quotationFileUrl
+                ? path.join(uploadsRoot, finalOit.quotationFileUrl.replace(/^\//, ''))
+                : null;
+
+            runOITAnalysis(id, oitPath, quotationPath, userId).catch(err =>
+                console.error('Error in background re-analysis after update:', err)
+            );
+        }
 
     } catch (error) {
         console.error('Error updating OIT:', error);
