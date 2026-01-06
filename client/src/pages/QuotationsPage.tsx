@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, MoreHorizontal, FileText, Download, Eye, Trash2, Loader2, Receipt, Building2 } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, FileText, Download, Eye, Trash2, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Quotation {
     id: string;
@@ -87,6 +87,17 @@ export default function QuotationsPage() {
             q.description?.toLowerCase().includes(lowerTerm)
         );
         setFilteredQuotations(filtered);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            if (selectedFile.type !== 'application/pdf') {
+                toast.error('Solo se permiten archivos PDF');
+                return;
+            }
+            setFile(selectedFile);
+        }
     };
 
     const handleCreate = async () => {
@@ -164,66 +175,100 @@ export default function QuotationsPage() {
                         Gestiona las cotizaciones y verifica su cumplimiento normativo.
                     </p>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <Dialog open={isCreateOpen} onOpenChange={(open) => {
+                    if (!open) resetForm();
+                    setIsCreateOpen(open);
+                }}>
                     <DialogTrigger asChild>
                         <Button className="bg-slate-900 hover:bg-slate-800 text-white">
                             <Plus className="mr-2 h-4 w-4" />
                             Nueva Cotización
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
+                    <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Nueva Cotización</DialogTitle>
+                            <DialogTitle>Subir Cotización</DialogTitle>
                             <DialogDescription>
-                                Sube una cotización para revisión y verificación de cumplimiento.
+                                Sube una cotización para revisión y verificación de cumplimiento normativo.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="quotationNumber">Número de Cotización</Label>
-                                <Input
-                                    id="quotationNumber"
-                                    placeholder="COT-2024-001"
-                                    value={quotationNumber}
-                                    onChange={(e) => setQuotationNumber(e.target.value)}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="clientName">Cliente</Label>
-                                <Input
-                                    id="clientName"
-                                    placeholder="Nombre del cliente"
-                                    value={clientName}
-                                    onChange={(e) => setClientName(e.target.value)}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Descripción</Label>
-                                <Input
-                                    id="description"
-                                    placeholder="Descripción breve..."
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="file">Archivo PDF *</Label>
-                                <Input
-                                    id="file"
+
+                        <div className="grid gap-6 py-6">
+                            {/* File Upload Card */}
+                            <div className={`relative border-2 border-dashed rounded-lg p-8 transition-all ${file
+                                ? 'border-emerald-300 bg-emerald-50'
+                                : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white'
+                                }`}>
+                                <input
+                                    id="quotationFile"
                                     type="file"
                                     accept=".pdf"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    className="cursor-pointer"
+                                    onChange={handleFileChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
+                                <div className="flex flex-col items-center text-center pointer-events-none">
+                                    {file ? (
+                                        <>
+                                            <CheckCircle2 className="h-12 w-12 text-emerald-600 mb-3" />
+                                            <p className="font-semibold text-emerald-900 mb-1">Cotización</p>
+                                            <p className="text-sm text-emerald-700 break-all px-2">{file.name}</p>
+                                            <p className="text-xs text-emerald-600 mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="h-12 w-12 text-slate-400 mb-3" />
+                                            <p className="font-semibold text-slate-700 mb-1">Documento de Cotización *</p>
+                                            <p className="text-sm text-slate-500">Click para subir PDF</p>
+                                            <p className="text-xs text-slate-400 mt-2">Máx. 10MB</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Additional Fields */}
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="quotationNumber">Número de Cotización</Label>
+                                    <Input
+                                        id="quotationNumber"
+                                        placeholder="COT-2024-001"
+                                        value={quotationNumber}
+                                        onChange={(e) => setQuotationNumber(e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="clientName">Cliente</Label>
+                                    <Input
+                                        id="clientName"
+                                        placeholder="Nombre del cliente"
+                                        value={clientName}
+                                        onChange={(e) => setClientName(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex gap-3">
+                                    <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-blue-900 mb-1">Revisión Automática</p>
+                                        <p className="text-sm text-blue-800">
+                                            La cotización será analizada para verificar cumplimiento normativo. Podrás vincularla a OITs después.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button onClick={handleCreate} disabled={isCreating}>
-                                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Crear Cotización
+                            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+                            <Button
+                                onClick={handleCreate}
+                                disabled={isCreating || !file}
+                                className="bg-slate-900 hover:bg-slate-800"
+                            >
+                                {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isCreating ? 'Creando...' : 'Crear Cotización'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
