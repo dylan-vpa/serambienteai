@@ -12,7 +12,8 @@ import {
     Calendar,
     Scale,
     Workflow,
-    Users
+    Users,
+    Receipt
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +25,7 @@ const getNavigationItems = (userRole?: string) => {
     const baseItems = [
         { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
         { icon: FileText, label: 'OITs', href: '/oits' },
+        { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
         { icon: Box, label: 'Recursos', href: '/resources' },
         { icon: Calendar, label: 'Calendario', href: '/calendar' },
         { icon: Scale, label: 'Normas', href: '/standards' },

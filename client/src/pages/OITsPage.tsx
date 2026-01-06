@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, FileText, Filter, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Search, FileText, Filter, Upload, CheckCircle2, AlertCircle, Receipt } from 'lucide-react';
 import { useOITs } from '@/hooks/useOITs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,8 +15,21 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import api from '@/lib/api';
 import { toast } from 'sonner';
+
+interface Quotation {
+    id: string;
+    quotationNumber: string;
+    clientName?: string;
+}
 
 export default function OITsPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -25,10 +38,34 @@ export default function OITsPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const navigate = useNavigate();
 
+    // Quotations for selector
+    const [quotations, setQuotations] = useState<Quotation[]>([]);
+    const [isLoadingQuotations, setIsLoadingQuotations] = useState(false);
+
     const [formData, setFormData] = useState({
         oitFile: null as File | null,
-        quotationFile: null as File | null,
+        quotationId: '' as string,
     });
+
+    // Fetch quotations when dialog opens
+    useEffect(() => {
+        if (isDialogOpen) {
+            fetchQuotations();
+        }
+    }, [isDialogOpen]);
+
+    const fetchQuotations = async () => {
+        setIsLoadingQuotations(true);
+        try {
+            const response = await api.get('/quotations');
+            setQuotations(response.data);
+        } catch (error) {
+            console.error('Error fetching quotations:', error);
+            toast.error('Error al cargar cotizaciones');
+        } finally {
+            setIsLoadingQuotations(false);
+        }
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -54,7 +91,7 @@ export default function OITsPage() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'oit' | 'quotation') => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const validTypes = ['application/pdf', 'text/plain'];
@@ -62,23 +99,22 @@ export default function OITsPage() {
                 toast.error('Solo se permiten archivos PDF o TXT');
                 return;
             }
-            setFormData(prev => ({
-                ...prev,
-                [type === 'oit' ? 'oitFile' : 'quotationFile']: file
-            }));
+            setFormData(prev => ({ ...prev, oitFile: file }));
         }
     };
 
     const handleCreateAsync = async () => {
-        if (!formData.oitFile || !formData.quotationFile) {
-            toast.error('Por favor sube ambos documentos (OIT y Cotización)');
+        if (!formData.oitFile) {
+            toast.error('Por favor sube el documento OIT');
             return;
         }
 
         setIsProcessing(true);
         const uploadData = new FormData();
         uploadData.append('oitFile', formData.oitFile);
-        uploadData.append('quotationFile', formData.quotationFile);
+        if (formData.quotationId) {
+            uploadData.append('quotationId', formData.quotationId);
+        }
         uploadData.append('description', 'Análisis en curso...');
 
         try {
@@ -100,7 +136,7 @@ export default function OITsPage() {
     };
 
     const resetForm = () => {
-        setFormData({ oitFile: null, quotationFile: null });
+        setFormData({ oitFile: null, quotationId: '' });
         setIsDialogOpen(false);
     };
 
@@ -123,9 +159,9 @@ export default function OITsPage() {
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Subir Documentos OIT</DialogTitle>
+                            <DialogTitle>Crear Nueva OIT</DialogTitle>
                             <DialogDescription>
-                                Sube el documento OIT y la cotización para iniciar el análisis automático.
+                                Sube el documento OIT y selecciona una cotización existente (opcional).
                             </DialogDescription>
                         </DialogHeader>
 
@@ -140,7 +176,7 @@ export default function OITsPage() {
                                         id="oitFile"
                                         type="file"
                                         accept=".pdf,.txt"
-                                        onChange={(e) => handleFileChange(e, 'oit')}
+                                        onChange={handleFileChange}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
                                     <div className="flex flex-col items-center text-center pointer-events-none">
@@ -154,7 +190,7 @@ export default function OITsPage() {
                                         ) : (
                                             <>
                                                 <Upload className="h-12 w-12 text-slate-400 mb-3" />
-                                                <p className="font-semibold text-slate-700 mb-1">Documento OIT</p>
+                                                <p className="font-semibold text-slate-700 mb-1">Documento OIT *</p>
                                                 <p className="text-sm text-slate-500">Click para subir PDF o TXT</p>
                                                 <p className="text-xs text-slate-400 mt-2">Máx. 10MB</p>
                                             </>
@@ -162,34 +198,29 @@ export default function OITsPage() {
                                     </div>
                                 </div>
 
-                                {/* Quotation Document Card */}
-                                <div className={`relative border-2 border-dashed rounded-lg p-6 transition-all ${formData.quotationFile
-                                    ? 'border-emerald-300 bg-emerald-50'
-                                    : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white'
-                                    }`}>
-                                    <input
-                                        id="quotationFile"
-                                        type="file"
-                                        accept=".pdf,.txt"
-                                        onChange={(e) => handleFileChange(e, 'quotation')}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    />
-                                    <div className="flex flex-col items-center text-center pointer-events-none">
-                                        {formData.quotationFile ? (
-                                            <>
-                                                <CheckCircle2 className="h-12 w-12 text-emerald-600 mb-3" />
-                                                <p className="font-semibold text-emerald-900 mb-1">Cotización</p>
-                                                <p className="text-sm text-emerald-700 break-all px-2">{formData.quotationFile.name}</p>
-                                                <p className="text-xs text-emerald-600 mt-2">{(formData.quotationFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload className="h-12 w-12 text-slate-400 mb-3" />
-                                                <p className="font-semibold text-slate-700 mb-1">Cotización</p>
-                                                <p className="text-sm text-slate-500">Click para subir PDF o TXT</p>
-                                                <p className="text-xs text-slate-400 mt-2">Máx. 10MB</p>
-                                            </>
-                                        )}
+                                {/* Quotation Selector */}
+                                <div className="border-2 border-slate-200 rounded-lg p-6 bg-slate-50">
+                                    <div className="flex flex-col items-center text-center">
+                                        <Receipt className="h-12 w-12 text-slate-400 mb-3" />
+                                        <p className="font-semibold text-slate-700 mb-3">Cotización (Opcional)</p>
+                                        <Select
+                                            value={formData.quotationId}
+                                            onValueChange={(value) => setFormData(prev => ({ ...prev, quotationId: value }))}
+                                        >
+                                            <SelectTrigger className="w-full bg-white">
+                                                <SelectValue placeholder={isLoadingQuotations ? "Cargando..." : "Seleccionar cotización"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {quotations.map(q => (
+                                                    <SelectItem key={q.id} value={q.id}>
+                                                        {q.quotationNumber} {q.clientName ? `- ${q.clientName}` : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-slate-500 mt-2">
+                                            O <a href="/quotations" className="text-blue-600 hover:underline">crea una nueva</a>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -200,7 +231,7 @@ export default function OITsPage() {
                                     <div>
                                         <p className="text-sm font-semibold text-blue-900 mb-1">Análisis Automático</p>
                                         <p className="text-sm text-blue-800">
-                                            Al crear la OIT, la IA analizará los documentos en segundo plano para extraer información y recursos. Podrás ver el progreso en la vista de detalle.
+                                            Al crear la OIT, la IA analizará el documento en segundo plano para extraer información y recursos.
                                         </p>
                                     </div>
                                 </div>
@@ -211,7 +242,7 @@ export default function OITsPage() {
                             <Button type="button" variant="outline" onClick={resetForm}>Cancelar</Button>
                             <Button
                                 onClick={handleCreateAsync}
-                                disabled={isProcessing || !formData.oitFile || !formData.quotationFile}
+                                disabled={isProcessing || !formData.oitFile}
                                 className="bg-slate-900 hover:bg-slate-800"
                             >
                                 {isProcessing ? 'Creando...' : 'Crear OIT'}

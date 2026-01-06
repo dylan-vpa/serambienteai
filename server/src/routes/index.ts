@@ -10,6 +10,7 @@ import filesRoutes from './files.routes';
 import userRoutes from './user.routes';
 import pushRoutes from './push.routes';
 import feedbackRoutes from '../controllers/feedback.controller';
+import quotationRoutes from './quotation.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/standards', standardRoutes);
 router.use('/sampling-templates', samplingTemplateRoutes);
 router.use('/push', pushRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/quotations', quotationRoutes);
 
 export default router;
 

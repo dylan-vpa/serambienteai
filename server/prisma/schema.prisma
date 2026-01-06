@@ -27,7 +27,9 @@ model OIT {
   location              String?        // Sampling site address
   status                String         @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
   oitFileUrl            String?
-  quotationFileUrl      String?
+  quotationFileUrl      String?        // DEPRECATED: Use quotationId instead
+  quotationId           String?        // Link to independent Quotation
+  quotation             Quotation?     @relation(fields: [quotationId], references: [id])
   samplingReportUrl     String?        // Generated sampling report
   labResultsUrl         String?        // Uploaded lab analysis
   finalReportUrl        String?        // Final AI-generated report
@@ -50,6 +52,21 @@ model OIT {
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]
   assignedEngineers     OITAssignment[]
+}
+
+model Quotation {
+  id                String    @id @default(uuid())
+  quotationNumber   String    @unique
+  description       String?
+  clientName        String?
+  fileUrl           String?
+  extractedText     String?   // Extracted text from PDF for AI analysis
+  status            String    @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
+  aiData            String?   // JSON with AI analysis
+  complianceResult  String?   // JSON with compliance check results
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  linkedOITs        OIT[]     // OITs that use this quotation
 }
 
 model OITAssignment {

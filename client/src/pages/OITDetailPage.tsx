@@ -1061,13 +1061,6 @@ export default function OITDetailPage() {
                                                                     day: 'numeric'
                                                                 })} a las {aiData.data.proposedTime || '09:00'}
                                                             </p>
-                                                            <Button
-                                                                variant="link"
-                                                                className="h-auto p-0 text-indigo-600 text-sm mt-1"
-                                                                onClick={() => setIsManualScheduling(false)}
-                                                            >
-                                                                ← Volver a la propuesta
-                                                            </Button>
                                                         </div>
                                                     )}
                                                 </div>

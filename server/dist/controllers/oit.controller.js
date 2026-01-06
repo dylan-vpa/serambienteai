@@ -808,27 +808,40 @@ const reanalyzeOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.reanalyzeOIT = reanalyzeOIT;
-// Update OIT (supports new fields and engineer assignment)
+// Update OIT (supports new fields, engineer assignment, and file uploads)
 const updateOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b, _c, _d;
     try {
         const { id } = req.params;
         const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const data = {};
+        // Handle uploaded files from multer
+        const files = req.files;
+        const uploadedOitFile = (_b = files === null || files === void 0 ? void 0 : files.oitFile) === null || _b === void 0 ? void 0 : _b[0];
+        const uploadedQuotationFile = (_c = files === null || files === void 0 ? void 0 : files.quotationFile) === null || _c === void 0 ? void 0 : _c[0];
+        let shouldReanalyze = false;
+        if (uploadedOitFile) {
+            data.oitFileUrl = `/uploads/${uploadedOitFile.filename}`;
+            shouldReanalyze = true;
+        }
+        if (uploadedQuotationFile) {
+            data.quotationFileUrl = `/uploads/${uploadedQuotationFile.filename}`;
+            shouldReanalyze = true;
+        }
         if (oitNumber !== undefined)
             data.oitNumber = oitNumber;
         if (description !== undefined)
             data.description = description;
         if (status !== undefined)
             data.status = status;
-        if (oitFileUrl !== undefined)
+        // Only use URL from body if no file was uploaded
+        if (oitFileUrl !== undefined && !uploadedOitFile)
             data.oitFileUrl = oitFileUrl;
-        if (quotationFileUrl !== undefined)
+        if (quotationFileUrl !== undefined && !uploadedQuotationFile)
             data.quotationFileUrl = quotationFileUrl;
         if (aiData !== undefined)
             data.aiData = aiData;
-        if (resources !== undefined)
-            data.resources = resources;
         if (resources !== undefined)
             data.resources = resources;
         if (req.body.scheduledDate !== undefined)
@@ -886,7 +899,7 @@ const updateOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }));
         // Create notification on status change (reuse existing logic)
         if (status && existing.status !== status) {
-            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+            const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d.userId;
             if (userId) {
                 const statusMessages = {
                     'REVIEW_REQUIRED': {
@@ -929,7 +942,18 @@ const updateOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 }
             }
         });
-        res.status(200).json(Object.assign(Object.assign({}, finalOit), { engineers: finalOit === null || finalOit === void 0 ? void 0 : finalOit.assignedEngineers.map((a) => a.user) }));
+        res.status(200).json(Object.assign(Object.assign({}, finalOit), { engineers: finalOit === null || finalOit === void 0 ? void 0 : finalOit.assignedEngineers.map((a) => a.user), reanalyzing: shouldReanalyze }));
+        // Trigger re-analysis in background if files were uploaded
+        if (shouldReanalyze && userId && finalOit) {
+            const uploadsRoot = path_1.default.join(__dirname, '../../');
+            const oitPath = finalOit.oitFileUrl
+                ? path_1.default.join(uploadsRoot, finalOit.oitFileUrl.replace(/^\//, ''))
+                : null;
+            const quotationPath = finalOit.quotationFileUrl
+                ? path_1.default.join(uploadsRoot, finalOit.quotationFileUrl.replace(/^\//, ''))
+                : null;
+            runOITAnalysis(id, oitPath, quotationPath, userId).catch(err => console.error('Error in background re-analysis after update:', err));
+        }
     }
     catch (error) {
         console.error('Error updating OIT:', error);
