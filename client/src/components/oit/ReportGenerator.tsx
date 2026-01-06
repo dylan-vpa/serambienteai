@@ -26,6 +26,11 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
     const [analysisData, setAnalysisData] = useState<any | null>(initialAnalysis || null);
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
+    // New state for verification
+    const [fieldFormFile, setFieldFormFile] = useState<File | null>(null);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verificationResult, setVerificationResult] = useState<any>(null);
+
 
     const { user } = useAuthStore();
     const canDownload = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -108,6 +113,41 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
             notify.error('Error al cargar resultados');
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleFieldFormUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFieldFormFile(file);
+        // Upload logic if needed immediately or keep local until verify?
+        // Let's assume we need to upload it for the backend to read it
+        const formData = new FormData();
+        formData.append('oitFile', file); // Multer expects specific field? reusing updateOIT endpoint or need new one?
+        // Actually schema has oitFileUrl but we added fieldFormUrl.
+        // We probably need a specific endpoint or use updateOIT with specific field.
+        // Let's us updateOIT PATCH.
+        try {
+            await api.patch(`/oits/${oitId}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            notify.success('Planilla cargada');
+        } catch (e) { console.error(e); notify.error('Error cargando planilla'); }
+    };
+
+    const handleVerify = async () => {
+        setIsVerifying(true);
+        try {
+            const res = await api.post(`/oits/${oitId}/verify`);
+            setVerificationResult(res.data);
+            if (res.data.valid) notify.success('Verificación Exitosa');
+            else notify.warning('Se encontraron discrepancias');
+        } catch (e) {
+            console.error(e);
+            notify.error('Error en verificación');
+        } finally {
+            setIsVerifying(false);
         }
     };
 
@@ -261,12 +301,45 @@ export function ReportGenerator({ oitId, finalReportUrl: initialReportUrl, initi
                 </Card>
             )}
 
+            {/* Field Form & Verification Card */}
+            <Card className="border-slate-200 shadow-sm bg-white">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                    <CardTitle className="text-base font-semibold text-slate-900">2. Verificación de Consistencia</CardTitle>
+                    <CardDescription className="text-xs text-slate-500">Carga la planilla de campo para cruzar datos.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex-1">
+                            <input type="file" className="text-sm" onChange={handleFieldFormUpload} accept=".pdf,.jpg,.png" />
+                        </div>
+                        <Button onClick={handleVerify} disabled={isVerifying || !fieldFormFile} variant="outline">
+                            {isVerifying ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                            Verificar
+                        </Button>
+                    </div>
+
+                    {verificationResult && (
+                        <div className={`p-4 rounded-lg border ${verificationResult.valid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                            <h4 className="font-semibold text-sm mb-2">Resultado: {verificationResult.score}/100</h4>
+                            <ul className="list-disc pl-5 text-xs space-y-1">
+                                {verificationResult.discrepancies?.map((d: string, i: number) => (
+                                    <li key={i} className="text-red-700">{d}</li>
+                                ))}
+                                {verificationResult.matches?.map((m: string, i: number) => (
+                                    <li key={i} className="text-emerald-700">{m}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Report Generation Card */}
             <Card className="border-slate-200 shadow-sm bg-white">
                 <CardHeader className="pb-3 border-b border-slate-100">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-base font-medium text-slate-900">2. Generar Informe</CardTitle>
+                            <CardTitle className="text-base font-medium text-slate-900">3. Generar Informe</CardTitle>
                             <CardDescription className="text-xs mt-1 text-slate-500">Procesamiento IA y generación de documento final.</CardDescription>
                         </div>
                         {finalReportUrl && canDownload && (

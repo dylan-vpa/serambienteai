@@ -21,7 +21,9 @@ import {
     getAssignedEngineers,
     submitSampling,
     updatePlanningResources,
-    requestRedoSteps
+    requestRedoSteps,
+    updateServiceDates,
+    verifyConsistency
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
@@ -55,6 +57,7 @@ router.post('/:id/reanalyze', authMiddleware, reanalyzeOIT);
 // Planning endpoints
 router.post('/:id/accept-planning', authMiddleware, acceptPlanning);
 router.post('/:id/reject-planning', authMiddleware, rejectPlanning);
+router.put('/:id/service-dates', authMiddleware, updateServiceDates);
 
 // Sampling data endpoints
 router.post('/:id/sampling-data', authMiddleware, saveSamplingData);
@@ -69,6 +72,7 @@ router.post('/:id/validate-step', authMiddleware, validateStepData);
 router.post('/:id/finalize-sampling', authMiddleware, finalizeSampling);
 router.post('/:id/submit-sampling', authMiddleware, submitSampling);
 router.get('/:id/sampling-report', authMiddleware, generateSamplingReport);
+router.post('/:id/verify', authMiddleware, verifyConsistency);
 
 // Request redo of sampling steps (Admin only)
 router.post('/:id/request-redo', authMiddleware, requireAdmin, requestRedoSteps);

@@ -37,10 +37,11 @@ export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [oit, setOit] = useState<any>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [stepValidations, setStepValidations] = useState<any>({});
     const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
+    const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
+    const [serviceDates, setServiceDates] = useState<Record<string, string>>({});
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
 
@@ -74,102 +75,95 @@ export default function OITDetailPage() {
         setFeedbackModalOpen(true);
     };
 
+    // Fetch OIT Data
+    const fetchOIT = async () => {
+        if (!id) return;
+        try {
+            // Add cache buster
+            const response = await api.get(`/oits/${id}?_t=${Date.now()}`);
+
+            // Only update if data changed
+            setOit((prev: any) => {
+                const newData = response.data;
+
+                if (newData.engineers && newData.engineers.length > 0) {
+                    setSelectedEngineerIds(newData.engineers.map((e: any) => e.id));
+                }
+
+                if (newData.serviceDates) {
+                    try {
+                        const parsedDates = JSON.parse(newData.serviceDates);
+                        setServiceDates(parsedDates);
+                    } catch (e) { console.error('Error parsing serviceDates', e); }
+                }
+
+                if (JSON.stringify(prev) !== JSON.stringify(newData)) {
+                    return newData;
+                }
+                return prev;
+            });
+
+            if (response.data.stepValidations) {
+                setStepValidations(JSON.parse(response.data.stepValidations));
+            }
+            if (response.data.finalAnalysis) {
+                setFinalAnalysis(response.data.finalAnalysis);
+            }
+
+            if (response.data.selectedTemplateIds || response.data.selectedTemplateId) {
+                try {
+                    let allSteps: any[] = [];
+                    let ids: string[] = [];
+                    if (response.data.selectedTemplateIds) {
+                        try {
+                            ids = JSON.parse(response.data.selectedTemplateIds);
+                        } catch (e) { console.error('Error parsing template IDs', e); }
+                    } else if (response.data.selectedTemplateId) {
+                        ids = [response.data.selectedTemplateId];
+                    }
+
+                    const templatePromises = ids.map(tid => api.get(`/sampling-templates/${tid}`));
+                    const templateResponses = await Promise.all(templatePromises);
+                    const tmpls = templateResponses.map(r => r.data);
+                    setSelectedTemplates(tmpls);
+
+                    templateResponses.forEach(templateRes => {
+                        if (templateRes.data.steps) {
+                            try {
+                                const parsedSteps = JSON.parse(templateRes.data.steps);
+                                allSteps = [...allSteps, ...parsedSteps];
+                            } catch (e) {
+                                console.error('Error parsing steps for template', templateRes.data.id, e);
+                            }
+                        }
+                    });
+
+                    setTemplateSteps(allSteps);
+                } catch (e) {
+                    console.error('Error fetching templates:', e);
+                }
+            } else if (response.data.templateSteps) {
+                try {
+                    const parsedSteps = JSON.parse(response.data.templateSteps);
+                    setTemplateSteps(parsedSteps);
+                } catch (e) { console.error('Error parsing legacy steps', e); }
+            }
+
+        } catch (error) {
+            console.error('Error fetching OIT:', error);
+            toast.error('Error al cargar datos de OIT');
+        }
+    };
+
     // Polling for status updates
     useEffect(() => {
         if (!id) return;
-
-        let intervalId: ReturnType<typeof setInterval>;
-
-        const fetchOIT = async () => {
-            try {
-                // Add cache buster
-                const response = await api.get(`/oits/${id}?_t=${Date.now()}`);
-
-                // Only update if data changed (deep comparison/string check would be better but this is ok)
-                setOit((prev: any) => {
-                    const newData = response.data;
-
-                    // Sync loaded engineers
-                    if (newData.engineers && newData.engineers.length > 0) {
-                        setSelectedEngineerIds(newData.engineers.map((e: any) => e.id));
-                    }
-
-                    if (JSON.stringify(prev) !== JSON.stringify(newData)) {
-                        return newData;
-                    }
-                    return prev;
-                });
-
-                // Load validations and analysis
-                if (response.data.stepValidations) {
-                    setStepValidations(JSON.parse(response.data.stepValidations));
-                }
-                if (response.data.finalAnalysis) {
-                    setFinalAnalysis(response.data.finalAnalysis);
-                }
-
-                // Load template steps if available (handle multiple or single legacy)
-                if (response.data.selectedTemplateIds || response.data.selectedTemplateId) {
-                    try {
-                        let allSteps: any[] = [];
-
-                        // Parse IDs
-                        let ids: string[] = [];
-                        if (response.data.selectedTemplateIds) {
-                            try {
-                                ids = JSON.parse(response.data.selectedTemplateIds);
-                            } catch (e) { console.error('Error parsing template IDs', e); }
-                        } else if (response.data.selectedTemplateId) {
-                            ids = [response.data.selectedTemplateId];
-                        }
-
-                        // Fetch all templates sequentially (or parallel promise.all)
-                        const templatePromises = ids.map(tid => api.get(`/sampling-templates/${tid}`));
-                        const templateResponses = await Promise.all(templatePromises);
-
-                        templateResponses.forEach(templateRes => {
-                            if (templateRes.data.steps) {
-                                try {
-                                    const parsedSteps = JSON.parse(templateRes.data.steps);
-                                    allSteps = [...allSteps, ...parsedSteps];
-                                } catch (e) {
-                                    console.error('Error parsing steps for template', templateRes.data.id, e);
-                                }
-                            }
-                        });
+        fetchOIT();
+        const intervalId = setInterval(fetchOIT, 5000);
+        return () => clearInterval(intervalId);
+    }, [id]);
 
 
-                        // Re-sort steps if needed or keep sequence? 
-                        // For now, we assume they are appended. Or we could sort by a global order if defined.
-                        // Let's just re-index them to ensure unique IDs locally if needed, or rely on logic inside Wizard.
-                        // Assuming simple append for now.
-                        setTemplateSteps(allSteps);
-                    } catch (err) {
-                        console.error('Error fetching templates:', err);
-                    }
-                }
-
-                if (response.data.status !== 'ANALYZING' && response.data.status !== 'UPLOADING') {
-                    if (intervalId) clearInterval(intervalId);
-                }
-            } catch (error) {
-                console.error('Error fetching OIT:', error);
-            }
-        };
-
-        // If status is analyzing, start polling
-        if (oit?.status === 'ANALYZING' || oit?.status === 'UPLOADING' || !oit) {
-            fetchOIT(); // Initial fetch
-            intervalId = setInterval(fetchOIT, 3000);
-        } else {
-            // Just fetch once to ensure fresh data if we just mounted or status changed
-            fetchOIT();
-        }
-
-        return () => {
-            if (intervalId) clearInterval(intervalId);
-        };
-    }, [id, oit?.status]);
 
     // Load Local Storage on mount
     useEffect(() => {
@@ -751,100 +745,66 @@ export default function OITDetailPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         {/* AI Proposal Section */}
-                                        {aiData?.data?.proposedDate && !isManualScheduling && !oit.scheduledDate ? (
-                                            <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-xl animate-in fade-in slide-in-from-top-2">
-                                                <div className="flex items-start gap-4">
+                                        {(!oit.scheduledDate || isEditingSchedule) ? (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
                                                     <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                                        <Sparkles className="h-5 w-5 text-indigo-600" />
+                                                        <Calendar className="h-5 w-5 text-indigo-600" />
                                                     </div>
-                                                    <div className="flex-1 space-y-3">
-                                                        <div>
-                                                            <h4 className="text-base font-semibold text-indigo-900">Propuesta de Agendamiento IA</h4>
-                                                            <p className="text-sm text-indigo-700 mt-1">
-                                                                Basado en el análisis de documentos, se sugiere la siguiente fecha:
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 w-fit">
-                                                            <Calendar className="h-5 w-5 text-indigo-600" />
-                                                            <span className="text-lg font-semibold text-indigo-900">
-                                                                {new Date(aiData.data.proposedDate).toLocaleDateString()}
-                                                            </span>
-                                                            {aiData.data.proposedTime && (
-                                                                <>
-                                                                    <span className="text-indigo-300">|</span>
-                                                                    <Clock className="h-5 w-5 text-indigo-600" />
-                                                                    <span className="text-lg font-semibold text-indigo-900">
-                                                                        {aiData.data.proposedTime}
-                                                                    </span>
-                                                                </>
-                                                            )}
-                                                        </div>
-
-                                                        {oit.location && (
-                                                            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-indigo-100 mt-2">
-                                                                <MapPin className="h-5 w-5 text-indigo-600 mt-0.5" />
-                                                                <div>
-                                                                    <p className="text-xs font-medium text-indigo-700 uppercase tracking-wider">Ubicación</p>
-                                                                    <p className="text-sm text-slate-900 mt-0.5">{oit.location}</p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* AI Proposal Actions */}
-                                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                                                            <Button
-                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm w-full sm:w-auto"
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        const dateStr = aiData.data.proposedDate;
-                                                                        const timeStr = aiData.data.proposedTime || '09:00';
-
-                                                                        // Validar que dateStr existe
-                                                                        if (!dateStr) throw new Error("Fecha no disponible");
-
-                                                                        // Intentar parsing básico
-                                                                        let proposedDate = new Date(`${dateStr}T${timeStr}`);
-
-                                                                        // Si falla, intentar solo fecha
-                                                                        if (isNaN(proposedDate.getTime())) {
-                                                                            proposedDate = new Date(dateStr);
-                                                                        }
-
-                                                                        // Si sigue fallando
-                                                                        if (isNaN(proposedDate.getTime())) {
-                                                                            console.error("Fecha inválida recibida:", dateStr);
-                                                                            toast.error("Error al procesar la fecha propuesta. Por favor selecciónala manualmente.");
-                                                                            setIsManualScheduling(true);
-                                                                            return;
-                                                                        }
-
-                                                                        setOit((prev: any) => ({
-                                                                            ...prev,
-                                                                            scheduledDate: proposedDate.toISOString()
-                                                                        }));
-
-                                                                        toast.success("Fecha propuesta cargada. Por favor asigna un ingeniero y confirma.");
-                                                                    } catch (e) {
-                                                                        console.error("Error setting date:", e);
-                                                                        toast.warning("No se pudo cargar la fecha automáticamente.");
-                                                                    }
-                                                                    setIsManualScheduling(true);
-                                                                }}
-                                                            >
-                                                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                                Revisar y Aceptar
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
-                                                                onClick={() => setIsManualScheduling(true)}
-                                                            >
-                                                                Modificar Manualmente
-                                                            </Button>
-                                                        </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-indigo-900">Programación de Servicios</h4>
+                                                        <p className="text-xs text-indigo-700">Define la fecha para cada servicio individualmente.</p>
                                                     </div>
                                                 </div>
+
+                                                <div className="grid gap-3">
+                                                    {selectedTemplates.map(tmpl => (
+                                                        <div key={tmpl.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-indigo-300 transition-colors">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center text-slate-500 font-mono text-xs font-bold">
+                                                                    {tmpl.name.substring(0, 2).toUpperCase()}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
+                                                                    <p className="text-xs text-slate-500">Servicio de Muestreo</p>
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="date"
+                                                                className="h-9 w-40 rounded-md border border-slate-300 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500"
+                                                                value={serviceDates[tmpl.id]?.split('T')[0] || (aiData?.data?.proposedDate?.split('T')[0]) || ''}
+                                                                onChange={(e) => {
+                                                                    const newDate = e.target.value;
+                                                                    setServiceDates(prev => ({
+                                                                        ...prev,
+                                                                        [tmpl.id]: newDate ? new Date(newDate).toISOString() : ''
+                                                                    }));
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <Button
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                                                    onClick={async () => {
+                                                        try {
+                                                            // Verify all dates are set? Optional.
+                                                            // Call API
+                                                            await api.put(`/oits/${id}/service-dates`, { serviceDates });
+
+                                                            // Also likely need to set status to SCHEDULED if not already
+                                                            toast.success('Fechas de servicio actualizadas');
+                                                            fetchOIT(); // Refresh
+                                                        } catch (e) {
+                                                            console.error(e);
+                                                            toast.error('Error al guardar fechas');
+                                                        }
+                                                    }}
+                                                >
+                                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                    Confirmar Fechas de Servicio
+                                                </Button>
                                             </div>
                                         ) : (oit.status === 'SCHEDULED' && !isEditingSchedule) ? (
                                             <div className="space-y-6 animate-in fade-in">
@@ -1348,6 +1308,20 @@ export default function OITDetailPage() {
                                                     <p className="text-sm text-slate-500">Valida las condiciones antes de iniciar el muestreo</p>
                                                 </div>
                                             </div>
+
+                                            {selectedTemplates.some(t => t.startMessage) && (
+                                                <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex gap-3 text-sm text-indigo-900">
+                                                    <div className="shrink-0 pt-0.5">
+                                                        <AlertCircle className="h-5 w-5 text-indigo-600" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="font-semibold">Instrucciones del Servicio</p>
+                                                        <p className="whitespace-pre-line text-indigo-800">
+                                                            {selectedTemplates.map(t => t.startMessage).filter(Boolean).join('\n\n')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="grid md:grid-cols-2 gap-4 mb-8">
                                                 {/* Time Info */}

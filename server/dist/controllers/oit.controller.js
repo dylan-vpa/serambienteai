@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -1293,3 +1293,44 @@ const requestRedoSteps = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.requestRedoSteps = requestRedoSteps;
+// Update Service Dates
+const updateServiceDates = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { serviceDates } = req.body;
+        // Use planning service to update
+        // We need to import planningService instance or class
+        // It seems planning.service.ts exports a default instance `planningService`
+        // But in this file it's not imported yet. I need to make sure I import it.
+        // Wait, line 3 imports AIService, line 5 imports createNotification.
+        // I will let the import be handled by the next tool or add it if multi_replace allows.
+        // Actually replace_file_content replaces a block. I will add the method here.
+        // I'll need to check imports.
+        // Let's assume I can use dynamic import or require if I can't easily add top-level import without reading whole file.
+        // Better: I will use 'require' inside the function or rely on existing imports if any.
+        // But best practice is top level import. 
+        // I'll use inline require for safety in this robust-less edit:
+        const planningService = require('../services/planning.service').default;
+        const updated = yield planningService.updateServiceDates(id, serviceDates);
+        res.json(updated);
+    }
+    catch (error) {
+        console.error('Error updating service dates:', error);
+        res.status(500).json({ error: 'Error al actualizar fechas de servicio' });
+    }
+});
+exports.updateServiceDates = updateServiceDates;
+// Verify Consistency
+const verifyConsistency = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const verificationService = require('../services/verification.service').default;
+        const result = yield verificationService.verifyConsistency(id);
+        res.json(result);
+    }
+    catch (error) {
+        console.error('Error verifying consistency:', error);
+        res.status(500).json({ error: 'Error en verificación de consistencia' });
+    }
+});
+exports.verifyConsistency = verifyConsistency;

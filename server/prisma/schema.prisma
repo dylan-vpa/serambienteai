@@ -43,6 +43,9 @@ model OIT {
   samplingProgress      String?        // JSON: { currentStep: number, completedSteps: number[] }
   stepValidations       String?        // JSON: { [stepIndex]: { validated: bool, feedback: string, data: any } }
   finalAnalysis         String?        // AI comprehensive analysis when sampling completes
+  serviceDates          String?        // JSON: { [templateId]: ISODateString }
+  fieldFormUrl          String?        // URL to uploaded field form (Planilla)
+  fieldFormAnalysis     String?        // JSON: Verification results from AI
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]
@@ -117,6 +120,7 @@ model SamplingTemplate {
   oitType             String   // Tipo de OIT al que aplica
   steps               String   // JSON con los pasos del flujo
   reportTemplateFile  String?  // Nombre del archivo .docx de plantilla de informe
+  startMessage        String?  // Rich text instruction shown at start
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

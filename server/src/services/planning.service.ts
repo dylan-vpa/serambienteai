@@ -444,6 +444,46 @@ ${templatesList}
             }
         });
     }
+    async updateServiceDates(oitId: string, serviceDates: Record<string, string>) {
+        const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
+        if (!oit) throw new Error('OIT not found');
+
+        // Merge with existing dates if any
+        let currentDates: Record<string, string> = {};
+        try {
+            if (oit.serviceDates) {
+                currentDates = JSON.parse(oit.serviceDates);
+            }
+        } catch (e) { }
+
+        const updatedDates = { ...currentDates, ...serviceDates };
+
+        // Also update scheduledDate to the earliest date in the set for sorting
+        const dates = Object.values(updatedDates).map(d => new Date(d as string).getTime());
+        const minDate = dates.length > 0 ? new Date(Math.min(...dates)) : undefined;
+
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                serviceDates: JSON.stringify(updatedDates),
+                scheduledDate: minDate
+            }
+        });
+
+        // Update proposal if exists
+        try {
+            let proposal = oit.planningProposal ? JSON.parse(oit.planningProposal) : null;
+            if (proposal) {
+                proposal.serviceDates = updatedDates;
+                await prisma.oIT.update({
+                    where: { id: oitId },
+                    data: { planningProposal: JSON.stringify(proposal) }
+                });
+            }
+        } catch (e) { console.error('Error updating proposal dates', e); }
+
+        return updatedDates;
+    }
 }
 
 export default new PlanningService();

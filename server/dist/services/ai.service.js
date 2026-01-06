@@ -261,14 +261,26 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
                     }
                     catch (e) { }
                 }
-                // If not an array, try to parse as object and extract keys
+                // If not an array, try to parse as object and extract VALUES (equipment arrays)
                 if (!parsed && jsonObjStart !== -1 && jsonObjEnd !== -1) {
                     const objStr = responseText.substring(jsonObjStart, jsonObjEnd + 1);
                     try {
                         const obj = JSON.parse(objStr);
-                        // Extract keys as resource names
-                        parsed = Object.keys(obj);
-                        console.log('[AI] Extracted keys from object:', parsed);
+                        // FIX: Extract VALUES (equipment arrays) not KEYS (category names)
+                        // AI returns: {"Monitoreo Agua": ["equipo1", "equipo2"], "Monitoreo Aire": ["equipo3"]}
+                        // We want: ["equipo1", "equipo2", "equipo3"]
+                        const allEquipment = [];
+                        for (const [category, items] of Object.entries(obj)) {
+                            if (Array.isArray(items)) {
+                                allEquipment.push(...items.map(String));
+                                console.log(`[AI] Extracted ${items.length} items from category "${category}"`);
+                            }
+                            else if (typeof items === 'string') {
+                                allEquipment.push(items);
+                            }
+                        }
+                        parsed = allEquipment;
+                        console.log('[AI] Total equipment extracted from object:', parsed.length);
                     }
                     catch (e) { }
                 }

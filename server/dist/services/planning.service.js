@@ -293,24 +293,44 @@ class PlanningService {
             // AI suggests best template
             const templatesList = templates.map((t) => `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`).join('\n');
             const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales. 
-Tu responsabilidad es asignar la metodología de muestreo correcta para cada OIT basándote en su descripción y los estándares técnicos.
-Analiza si se requiere monitoreo de aguas, aire, suelos o una combinación.`;
-            const prompt = `Analiza esta OIT y selecciona la plantilla de muestreo más apropiada.
+Tu responsabilidad es asignar TODAS las metodologías de muestreo necesarias para cada OIT.
+IMPORTANTE: Analiza TODO el documento y selecciona TODAS las plantillas que apliquen.
+- Si hay monitoreo de AGUA (vertimientos, aguas residuales, potable): incluir template de Agua
+- Si hay monitoreo de AIRE (PM10, PM2.5, gases, calidad aire): incluir template de Calidad de Aire
+- Si hay monitoreo de RUIDO (emisión, ambiental, intradomiciliario): incluir template de Ruido
+- Si hay FUENTES FIJAS (chimeneas, emisiones): incluir template de Fuentes Fijas
+- Si hay OLORES (sustancias odoríferas, H2S, NH3): incluir template de Olores
+- Si hay PARTÍCULAS VIABLES (microbiología aire): incluir template de Partículas Viables
+- Si hay RESPEL (residuos peligrosos, caracterización): incluir template RESPEL
+NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`;
+            // Include document content for better analysis (truncated to avoid token limits)
+            console.log(`[Planning] Template Selection - fullDocumentText length: ${(fullDocumentText === null || fullDocumentText === void 0 ? void 0 : fullDocumentText.length) || 0}`);
+            const docPreview = fullDocumentText ? fullDocumentText.substring(0, 12000) : '';
+            console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
+            const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
 
 **OIT:**
 - Número: ${oit.oitNumber}
 - Descripción: ${oit.description || 'Sin descripción'}
 
-**Plantillas Disponibles:**
+${docPreview ? `**CONTENIDO DEL DOCUMENTO (Cotización/OIT):**
+${docPreview}
+...
+
+` : ''}**Plantillas Disponibles:**
 ${templatesList}
+
+**INSTRUCCIONES:**
+1. Lee TODO el contenido del documento
+2. Identifica TODOS los tipos de monitoreo mencionados
+3. Selecciona TODAS las plantillas que apliquen (pueden ser 1, 2, 3 o más)
 
 **Responde ÚNICAMENTE en formato JSON:**
 {
-  "templateIds": ["id1", "id2"],
-  "reason": "razón técnica de la selección",
+  "templateIds": ["id1", "id2", "id3", ...],
+  "reason": "razón técnica de CADA selección",
   "confidence": número entre 0 y 1
-}
-Si se requieren múltiples tipos de muestreo, selecciona ambas.`;
+}`;
             let selectedTemplates = [];
             try {
                 const aiResponse = yield aiService.chat(prompt, undefined, systemPrompt);
@@ -436,6 +456,47 @@ Si se requieren múltiples tipos de muestreo, selecciona ambas.`;
                     selectedTemplateIds: null
                 }
             });
+        });
+    }
+    updateServiceDates(oitId, serviceDates) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
+            if (!oit)
+                throw new Error('OIT not found');
+            // Merge with existing dates if any
+            let currentDates = {};
+            try {
+                if (oit.serviceDates) {
+                    currentDates = JSON.parse(oit.serviceDates);
+                }
+            }
+            catch (e) { }
+            const updatedDates = Object.assign(Object.assign({}, currentDates), serviceDates);
+            // Also update scheduledDate to the earliest date in the set for sorting
+            const dates = Object.values(updatedDates).map(d => new Date(d).getTime());
+            const minDate = dates.length > 0 ? new Date(Math.min(...dates)) : undefined;
+            yield prisma.oIT.update({
+                where: { id: oitId },
+                data: {
+                    serviceDates: JSON.stringify(updatedDates),
+                    scheduledDate: minDate
+                }
+            });
+            // Update proposal if exists
+            try {
+                let proposal = oit.planningProposal ? JSON.parse(oit.planningProposal) : null;
+                if (proposal) {
+                    proposal.serviceDates = updatedDates;
+                    yield prisma.oIT.update({
+                        where: { id: oitId },
+                        data: { planningProposal: JSON.stringify(proposal) }
+                    });
+                }
+            }
+            catch (e) {
+                console.error('Error updating proposal dates', e);
+            }
+            return updatedDates;
         });
     }
 }

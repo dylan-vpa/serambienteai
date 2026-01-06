@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, ChevronRight, Upload, FileDown, Beaker, Camera, MapPin, WifiOff, Lock, ShieldCheck, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Upload, FileDown, Beaker, Camera, MapPin, WifiOff, Lock, ShieldCheck, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import LocationMap from '@/components/shared/LocationMap';
 import { cn } from '@/lib/utils';
@@ -14,9 +14,10 @@ import { Badge } from '@/components/ui/badge';
 interface SamplingWizardProps {
     oitId: string;
     scheduledDate?: string;
+    startMessage?: string;
 }
 
-export function SamplingWizard({ oitId, scheduledDate }: SamplingWizardProps) {
+export function SamplingWizard({ oitId, scheduledDate, startMessage }: SamplingWizardProps) {
     const [step, setStep] = useState(1);
     const [isLocked, setIsLocked] = useState(false);
     const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -266,6 +267,19 @@ export function SamplingWizard({ oitId, scheduledDate }: SamplingWizardProps) {
                                         <ShieldCheck className="h-5 w-5 text-indigo-600" />
                                         Verificación de Inicio
                                     </h3>
+
+                                    {/* Template Start Message */}
+                                    {startMessage && (
+                                        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex gap-3 text-sm text-indigo-900">
+                                            <div className="shrink-0 pt-0.5">
+                                                <AlertCircle className="h-5 w-5 text-indigo-600" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="font-semibold">Instrucciones del Servicio</p>
+                                                <p className="whitespace-pre-line text-indigo-800">{startMessage}</p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="grid md:grid-cols-2 gap-6">
                                         {/* Time Verification */}
