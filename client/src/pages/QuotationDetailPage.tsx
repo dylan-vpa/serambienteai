@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Building2, Calendar, Download, Link2, Sparkles, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+    ArrowLeft, FileText, Building2, Calendar, Download, Link2,
+    Sparkles, Loader2, DollarSign, CheckCircle2, AlertCircle,
+    Clock, Hash
+} from 'lucide-react';
 
 interface Quotation {
     id: string;
@@ -29,6 +36,7 @@ export default function QuotationDetailPage() {
     const [quotation, setQuotation] = useState<Quotation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [activeTab, setActiveTab] = useState('info');
 
     useEffect(() => {
         if (id) fetchQuotation();
@@ -62,21 +70,38 @@ export default function QuotationDetailPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            'PENDING': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-            'ANALYZING': 'bg-blue-50 text-blue-700 border-blue-200',
-            'COMPLIANT': 'bg-green-50 text-green-700 border-green-200',
-            'NON_COMPLIANT': 'bg-red-50 text-red-700 border-red-200',
-            'REVIEW_REQUIRED': 'bg-orange-50 text-orange-700 border-orange-200'
+        const config = {
+            'PENDING': { className: 'bg-yellow-100 text-yellow-700 border-yellow-300', label: 'Pendiente', icon: Clock },
+            'ANALYZING': { className: 'bg-blue-100 text-blue-700 border-blue-300', label: 'Analizando', icon: Loader2 },
+            'COMPLIANT': { className: 'bg-green-100 text-green-700 border-green-300', label: 'Conforme', icon: CheckCircle2 },
+            'NON_COMPLIANT': { className: 'bg-red-100 text-red-700 border-red-300', label: 'No Conforme', icon: AlertCircle },
+            'REVIEW_REQUIRED': { className: 'bg-orange-100 text-orange-700 border-orange-300', label: 'Revisión Requerida', icon: AlertCircle }
         };
-        const labels: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'ANALYZING': 'Analizando',
-            'COMPLIANT': 'Conforme',
-            'NON_COMPLIANT': 'No Conforme',
-            'REVIEW_REQUIRED': 'Revisión Requerida'
-        };
-        return <Badge className={`${styles[status] || styles['PENDING']}`}>{labels[status] || status}</Badge>;
+        const { className = '', label = status, icon: Icon = Hash } = config[status as keyof typeof config] || {};
+        return (
+            <Badge className={`${className} flex items-center gap-1`}>
+                <Icon className="h-3 w-3" />
+                {label}
+            </Badge>
+        );
+    };
+
+    const parseAIData = () => {
+        if (!quotation?.aiData) return null;
+        try {
+            return JSON.parse(quotation.aiData);
+        } catch {
+            return null;
+        }
+    };
+
+    const parseComplianceResult = () => {
+        if (!quotation?.complianceResult) return null;
+        try {
+            return JSON.parse(quotation.complianceResult);
+        } catch {
+            return null;
+        }
     };
 
     if (isLoading) {
@@ -96,129 +121,256 @@ export default function QuotationDetailPage() {
         return <div className="text-center text-slate-500">Cotización no encontrada</div>;
     }
 
+    const aiData = parseAIData();
+    const complianceResult = parseComplianceResult();
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/quotations')}>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate('/quotations')}
+                        className="hover:bg-slate-100"
+                    >
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-900">{quotation.quotationNumber}</h2>
-                        <p className="text-slate-500">{quotation.clientName || 'Sin cliente asignado'}</p>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                                {quotation.quotationNumber}
+                            </h1>
+                            {getStatusBadge(quotation.status)}
+                        </div>
+                        <p className="text-slate-500 mt-1 flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {quotation.clientName || 'Sin cliente asignado'}
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {getStatusBadge(quotation.status)}
                     {quotation.status === 'PENDING' && (
-                        <Button onClick={handleAnalyze} disabled={isAnalyzing}>
+                        <Button onClick={handleAnalyze} disabled={isAnalyzing} className="bg-indigo-600 hover:bg-indigo-700">
                             {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                            Analizar
+                            Analizar con IA
+                        </Button>
+                    )}
+                    {quotation.fileUrl && (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Descargar PDF
+                            </a>
                         </Button>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Info */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            Información
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm text-slate-500">Número</p>
-                                <p className="font-medium">{quotation.quotationNumber}</p>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsList className="bg-slate-100">
+                    <TabsTrigger value="info" className="data-[state=active]:bg-white">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Información
+                    </TabsTrigger>
+                    <TabsTrigger value="analysis" className="data-[state=active]:bg-white">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Análisis IA
+                        {aiData && <Badge className="ml-2 bg-indigo-100 text-indigo-700 text-xs">Disponible</Badge>}
+                    </TabsTrigger>
+                    <TabsTrigger value="compliance" className="data-[state=active]:bg-white">
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Cumplimiento
+                        {complianceResult && <Badge className="ml-2 bg-green-100 text-green-700 text-xs">Completado</Badge>}
+                    </TabsTrigger>
+                    <TabsTrigger value="linked" className="data-[state=active]:bg-white">
+                        <Link2 className="h-4 w-4 mr-2" />
+                        OITs Vinculadas
+                        {quotation.linkedOITs && quotation.linkedOITs.length > 0 && (
+                            <Badge className="ml-2 bg-blue-100 text-blue-700 text-xs">{quotation.linkedOITs.length}</Badge>
+                        )}
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Info Tab */}
+                <TabsContent value="info" className="space-y-6">
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <DollarSign className="h-5 w-5 text-indigo-600" />
+                                Detalles de la Cotización
+                            </CardTitle>
+                            <CardDescription>Información general y metadatos</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-500">Número de Cotización</p>
+                                <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                    <Hash className="h-4 w-4 text-slate-400" />
+                                    {quotation.quotationNumber}
+                                </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-slate-500">Cliente</p>
-                                <p className="font-medium flex items-center gap-1">
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-500">Cliente</p>
+                                <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                                     <Building2 className="h-4 w-4 text-slate-400" />
                                     {quotation.clientName || '-'}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-slate-500">Fecha de Creación</p>
-                                <p className="font-medium flex items-center gap-1">
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-500">Fecha de Creación</p>
+                                <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-slate-400" />
-                                    {new Date(quotation.createdAt).toLocaleDateString('es-ES')}
+                                    {new Date(quotation.createdAt).toLocaleDateString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-slate-500">Archivo</p>
-                                {quotation.fileUrl ? (
-                                    <a
-                                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-medium text-blue-600 hover:underline flex items-center gap-1"
-                                    >
-                                        <Download className="h-4 w-4" />
-                                        Descargar PDF
-                                    </a>
-                                ) : <p className="text-slate-400">Sin archivo</p>}
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-500">Estado</p>
+                                <div>{getStatusBadge(quotation.status)}</div>
                             </div>
-                        </div>
-                        {quotation.description && (
-                            <div>
-                                <p className="text-sm text-slate-500">Descripción</p>
-                                <p className="font-medium">{quotation.description}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Linked OITs */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Link2 className="h-5 w-5" />
-                            OITs Vinculadas
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {quotation.linkedOITs?.length ? (
-                            <ul className="space-y-2">
-                                {quotation.linkedOITs.map(oit => (
-                                    <li key={oit.id}>
-                                        <button
-                                            onClick={() => navigate(`/oits/${oit.id}`)}
-                                            className="w-full text-left p-2 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
-                                        >
-                                            <p className="font-medium text-slate-900">{oit.oitNumber}</p>
-                                            <p className="text-sm text-slate-500">{oit.status}</p>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-slate-400 text-center py-4">Ninguna OIT vinculada</p>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Compliance Result */}
-                {quotation.complianceResult && (
-                    <Card className="lg:col-span-3">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5" />
-                                Resultado del Análisis
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-auto max-h-96">
-                                {JSON.stringify(JSON.parse(quotation.complianceResult), null, 2)}
-                            </pre>
+                            {quotation.description && (
+                                <div className="md:col-span-2 space-y-1">
+                                    <p className="text-sm font-medium text-slate-500">Descripción</p>
+                                    <p className="text-slate-700 bg-slate-50 p-4 rounded-lg">{quotation.description}</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
-                )}
-            </div>
+                </TabsContent>
+
+                {/* Analysis Tab */}
+                <TabsContent value="analysis" className="space-y-6">
+                    {aiData ? (
+                        <Card className="border-indigo-200 shadow-sm">
+                            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                                    Análisis de IA
+                                </CardTitle>
+                                <CardDescription>Resultados del análisis automático</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="prose prose-slate max-w-none">
+                                    {typeof aiData === 'string' ? (
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiData}</ReactMarkdown>
+                                    ) : (
+                                        <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-auto max-h-96 border border-slate-200">
+                                            {JSON.stringify(aiData, null, 2)}
+                                        </pre>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-slate-200">
+                            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                                <Sparkles className="h-12 w-12 text-slate-300 mb-4" />
+                                <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay análisis disponible</h3>
+                                <p className="text-slate-500 max-w-md mb-4">
+                                    Esta cotización aún no ha sido analizada por IA. Haz clic en "Analizar con IA" para obtener un análisis detallado.
+                                </p>
+                                {quotation.status === 'PENDING' && (
+                                    <Button onClick={handleAnalyze} disabled={isAnalyzing}>
+                                        {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                        Analizar ahora
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+
+                {/* Compliance Tab */}
+                <TabsContent value="compliance" className="space-y-6">
+                    {complianceResult ? (
+                        <Card className="border-green-200 shadow-sm">
+                            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                                <CardTitle className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                    Resultado de Cumplimiento
+                                </CardTitle>
+                                <CardDescription>Verificación de requisitos y normativas</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-auto max-h-96 border border-slate-200">
+                                    {JSON.stringify(complianceResult, null, 2)}
+                                </pre>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-slate-200">
+                            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                                <CheckCircle2 className="h-12 w-12 text-slate-300 mb-4" />
+                                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin verificación de cumplimiento</h3>
+                                <p className="text-slate-500 max-w-md">
+                                    No se ha realizado una verificación de cumplimiento para esta cotización.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+
+                {/* Linked OITs Tab */}
+                <TabsContent value="linked" className="space-y-6">
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Link2 className="h-5 w-5 text-blue-600" />
+                                OITs Vinculadas
+                            </CardTitle>
+                            <CardDescription>
+                                Órdenes de inspección y trabajo que utilizan esta cotización
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {quotation.linkedOITs && quotation.linkedOITs.length > 0 ? (
+                                <div className="grid gap-3">
+                                    {quotation.linkedOITs.map(oit => (
+                                        <button
+                                            key={oit.id}
+                                            onClick={() => navigate(`/oits/${oit.id}`)}
+                                            className="group p-4 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all text-left"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-semibold text-slate-900 group-hover:text-indigo-700">
+                                                        {oit.oitNumber}
+                                                    </p>
+                                                    {oit.description && (
+                                                        <p className="text-sm text-slate-500 mt-1">{oit.description}</p>
+                                                    )}
+                                                </div>
+                                                <Badge variant="outline">{oit.status}</Badge>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <Link2 className="h-12 w-12 text-slate-300 mb-4" />
+                                    <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin OITs vinculadas</h3>
+                                    <p className="text-slate-500 max-w-md">
+                                        Esta cotización aún no ha sido vinculada a ninguna orden de inspección.
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
+
+
