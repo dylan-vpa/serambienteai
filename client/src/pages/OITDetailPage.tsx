@@ -786,12 +786,84 @@ export default function OITDetailPage() {
 
                                                 {/* AI-Extracted Services with Enhanced Scheduling */}
                                                 {aiData?.data?.services && aiData.data.services.length > 0 && (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
-                                                            <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                    <div className="space-y-4">
+                                                        {/* Check if any service has a proposed date and none are confirmed yet */}
+                                                        {(() => {
+                                                            const hasProposedDates = aiData.data.services.some((s: any) => s.proposedDate);
+                                                            const allUnconfirmed = aiData.data.services.every((_: any, idx: number) => !serviceDates[`ai-service-${idx}`]?.confirmed);
+
+                                                            if (hasProposedDates && allUnconfirmed) {
+                                                                return (
+                                                                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+                                                                        <div className="flex items-start gap-4">
+                                                                            <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                                                                                <Sparkles className="h-6 w-6" />
+                                                                            </div>
+                                                                            <div className="flex-1">
+                                                                                <h4 className="text-lg font-bold mb-1">Propuesta de Programación IA</h4>
+                                                                                <p className="text-sm text-white/80 mb-4">
+                                                                                    La IA ha detectado {aiData.data.services.length} servicio(s) y propuesto fechas basadas en el documento.
+                                                                                </p>
+                                                                                <div className="bg-white/10 rounded-lg p-3 mb-4 space-y-2">
+                                                                                    {aiData.data.services.map((s: any, idx: number) => (
+                                                                                        <div key={idx} className="flex items-center justify-between text-sm">
+                                                                                            <span className="font-medium">{s.name}</span>
+                                                                                            <span className="text-white/70">
+                                                                                                {s.proposedDate
+                                                                                                    ? new Date(s.proposedDate).toLocaleDateString('es-ES')
+                                                                                                    : 'Sin fecha propuesta'}
+                                                                                                {s.duration && ` (${s.duration} día${s.duration > 1 ? 's' : ''})`}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <Button
+                                                                                        className="bg-white text-indigo-700 hover:bg-white/90 font-semibold shadow-md"
+                                                                                        onClick={async () => {
+                                                                                            // Accept all AI proposals
+                                                                                            const newServiceDates: Record<string, ServiceSchedule> = {};
+                                                                                            aiData.data.services.forEach((s: any, idx: number) => {
+                                                                                                const serviceId = `ai-service-${idx}`;
+                                                                                                newServiceDates[serviceId] = {
+                                                                                                    name: s.name,
+                                                                                                    date: s.proposedDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+                                                                                                    time: '09:00',
+                                                                                                    engineerIds: selectedEngineerIds.length > 0 ? selectedEngineerIds : [],
+                                                                                                    confirmed: true
+                                                                                                };
+                                                                                            });
+
+                                                                                            setServiceDates(newServiceDates);
+
+                                                                                            try {
+                                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                                toast.success('¡Propuesta de IA aceptada! Programación guardada.');
+                                                                                                fetchOIT();
+                                                                                            } catch (error) {
+                                                                                                console.error(error);
+                                                                                                toast.error('Error al guardar programación');
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                                                        Aceptar Propuesta IA
+                                                                                    </Button>
+                                                                                    <span className="text-xs text-white/60">o configura manualmente abajo</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+
+                                                        <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                                            <Calendar className="h-4 w-4 text-slate-600" />
                                                             <div>
-                                                                <h5 className="text-sm font-semibold text-indigo-900">Servicios Detectados por IA</h5>
-                                                                <p className="text-xs text-indigo-600">Programa cada servicio con fecha, hora e ingenieros</p>
+                                                                <h5 className="text-sm font-semibold text-slate-900">Programación Manual</h5>
+                                                                <p className="text-xs text-slate-500">Configura cada servicio individualmente</p>
                                                             </div>
                                                         </div>
 
