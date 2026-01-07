@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-    ArrowLeft, FileText, Building2, Calendar, Download, Link2,
+    FileText, Building2, Calendar, Download, Link2,
     Sparkles, Loader2, DollarSign, CheckCircle2,
     Clock, Hash
 } from 'lucide-react';
@@ -130,30 +130,20 @@ export default function QuotationDetailPage() {
             <div className="bg-slate-50/50 border-b border-slate-200">
                 <div className="container mx-auto py-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate('/quotations')}
-                                className="hover:bg-slate-100"
-                            >
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
-                                        {quotation.quotationNumber}
-                                    </h1>
-                                    <Badge variant={quotation.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
-                                        {quotation.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                                        {getStatusLabel(quotation.status)}
-                                    </Badge>
-                                </div>
-                                <p className="text-slate-500 text-sm max-w-2xl truncate flex items-center gap-2">
-                                    <Building2 className="h-4 w-4" />
-                                    {quotation.clientName || 'Sin cliente asignado'}
-                                </p>
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
+                                    {quotation.quotationNumber}
+                                </h1>
+                                <Badge variant={quotation.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
+                                    {quotation.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                                    {getStatusLabel(quotation.status)}
+                                </Badge>
                             </div>
+                            <p className="text-slate-500 text-sm max-w-2xl truncate flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                {quotation.clientName || 'Sin cliente asignado'}
+                            </p>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-500">
                             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full">
