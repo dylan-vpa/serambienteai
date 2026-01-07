@@ -16,6 +16,7 @@ import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
 import { SamplingSheetsUpload } from '@/components/oit/SamplingSheetsUpload';
+import { ServiceScheduleCard } from '@/components/oit/ServiceScheduleCard';
 import {
     DropdownMenuLabel,
     DropdownMenuCheckboxItem
@@ -37,6 +38,15 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
 
+// Service schedule structure for enhanced scheduling
+interface ServiceSchedule {
+    name: string;
+    date: string;
+    time: string;
+    engineerIds: string[];
+    confirmed: boolean;
+}
+
 export default function OITDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [oit, setOit] = useState<any>(null);
@@ -45,7 +55,7 @@ export default function OITDetailPage() {
     const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
     const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
-    const [serviceDates, setServiceDates] = useState<Record<string, string>>({});
+    const [serviceDates, setServiceDates] = useState<Record<string, ServiceSchedule>>({});
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
 
@@ -781,93 +791,103 @@ export default function OITDetailPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* AI-Extracted Services (if available) */}
+                                                {/* AI-Extracted Services with Enhanced Scheduling */}
                                                 {aiData?.data?.services && aiData.data.services.length > 0 && (
-                                                    <div className="space-y-3 mb-4">
+                                                    <div className="space-y-3">
                                                         <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
                                                             <Sparkles className="h-4 w-4 text-indigo-600" />
                                                             <div>
                                                                 <h5 className="text-sm font-semibold text-indigo-900">Servicios Detectados por IA</h5>
-                                                                <p className="text-xs text-indigo-600">Extraídos automáticamente del documento OIT</p>
+                                                                <p className="text-xs text-indigo-600">Programa cada servicio con fecha, hora e ingenieros</p>
                                                             </div>
                                                         </div>
+
                                                         <div className="grid gap-3">
-                                                            {aiData.data.services.map((service: any, idx: number) => (
-                                                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-indigo-200 rounded-lg shadow-sm">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                                                            <Beaker className="h-5 w-5 text-indigo-600" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="font-medium text-slate-900">{service.name}</p>
-                                                                            <div className="flex items-center gap-2 mt-1">
-                                                                                {service.proposedDate && (
-                                                                                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                                                                        Propuesta: {new Date(service.proposedDate).toLocaleDateString('es-ES')}
-                                                                                    </span>
-                                                                                )}
-                                                                                {service.duration && (
-                                                                                    <span className="text-xs text-slate-500">
-                                                                                        {service.duration} día{service.duration > 1 ? 's' : ''}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                            {aiData.data.services.map((service: any, idx: number) => {
+                                                                const serviceId = `ai-service-${idx}`;
+                                                                const existingSchedule = serviceDates[serviceId] || {};
+
+                                                                const schedule = {
+                                                                    name: service.name,
+                                                                    date: existingSchedule.date || service.proposedDate?.split('T')[0] || '',
+                                                                    time: existingSchedule.time || '09:00',
+                                                                    engineerIds: existingSchedule.engineerIds || [],
+                                                                    confirmed: existingSchedule.confirmed || false
+                                                                };
+
+                                                                return (
+                                                                    <ServiceScheduleCard
+                                                                        key={serviceId}
+                                                                        serviceId={serviceId}
+                                                                        schedule={schedule}
+                                                                        engineers={availableEngineers}
+                                                                        onUpdate={async (id, updatedSchedule) => {
+                                                                            const newServiceDates = {
+                                                                                ...serviceDates,
+                                                                                [id]: updatedSchedule
+                                                                            };
+                                                                            setServiceDates(newServiceDates);
+
+                                                                            // Save to backend
+                                                                            try {
+                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                toast.success('Programación actualizada correctamente');
+                                                                                fetchOIT();
+                                                                            } catch (error) {
+                                                                                console.error(error);
+                                                                                toast.error('Error al guardar programación');
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 )}
 
-                                                <div className="grid gap-3">
-                                                    {selectedTemplates.map(tmpl => (
-                                                        <div key={tmpl.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-indigo-300 transition-colors">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center text-slate-500 font-mono text-xs font-bold">
-                                                                    {tmpl.name.substring(0, 2).toUpperCase()}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
-                                                                    <p className="text-xs text-slate-500">Servicio de Muestreo</p>
-                                                                </div>
-                                                            </div>
-                                                            <input
-                                                                type="date"
-                                                                className="h-9 w-40 rounded-md border border-slate-300 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500"
-                                                                value={serviceDates[tmpl.id]?.split('T')[0] || (aiData?.data?.proposedDate?.split('T')[0]) || ''}
-                                                                onChange={(e) => {
-                                                                    const newDate = e.target.value;
-                                                                    setServiceDates(prev => ({
-                                                                        ...prev,
-                                                                        [tmpl.id]: newDate ? new Date(newDate).toISOString() : ''
-                                                                    }));
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                {/* Manual Template Scheduling (if no AI services) */}
+                                                {(!aiData?.data?.services || aiData.data.services.length === 0) && selectedTemplates.length > 0 && (
+                                                    <div className="grid gap-3">
+                                                        {selectedTemplates.map(tmpl => {
+                                                            const serviceId = tmpl.id;
+                                                            const existingSchedule = serviceDates[serviceId] || {};
 
-                                                <Button
-                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                                                    onClick={async () => {
-                                                        try {
-                                                            // Verify all dates are set? Optional.
-                                                            // Call API
-                                                            await api.put(`/oits/${id}/service-dates`, { serviceDates });
+                                                            const schedule = {
+                                                                name: tmpl.name,
+                                                                date: existingSchedule.date || '',
+                                                                time: existingSchedule.time || '09:00',
+                                                                engineerIds: existingSchedule.engineerIds || [],
+                                                                confirmed: existingSchedule.confirmed || false
+                                                            };
 
-                                                            // Also likely need to set status to SCHEDULED if not already
-                                                            toast.success('Fechas de servicio actualizadas');
-                                                            fetchOIT(); // Refresh
-                                                        } catch (e) {
-                                                            console.error(e);
-                                                            toast.error('Error al guardar fechas');
-                                                        }
-                                                    }}
-                                                >
-                                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                    Confirmar Fechas de Servicio
-                                                </Button>
+                                                            return (
+                                                                <ServiceScheduleCard
+                                                                    key={serviceId}
+                                                                    serviceId={serviceId}
+                                                                    schedule={schedule}
+                                                                    engineers={availableEngineers}
+                                                                    onUpdate={async (id, updatedSchedule) => {
+                                                                        const newServiceDates = {
+                                                                            ...serviceDates,
+                                                                            [id]: updatedSchedule
+                                                                        };
+                                                                        setServiceDates(newServiceDates);
+
+                                                                        try {
+                                                                            await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                            toast.success('Programación actualizada correctamente');
+                                                                            fetchOIT();
+                                                                        } catch (error) {
+                                                                            console.error(error);
+                                                                            toast.error('Error al guardar programación');
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
                                             </div>
                                         ) : (oit.status === 'SCHEDULED' && !isEditingSchedule) ? (
                                             <div className="space-y-6 animate-in fade-in">

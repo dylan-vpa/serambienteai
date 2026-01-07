@@ -1629,23 +1629,17 @@ export const updateServiceDates = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { serviceDates } = req.body;
 
-        // Use planning service to update
-        // We need to import planningService instance or class
-        // It seems planning.service.ts exports a default instance `planningService`
-        // But in this file it's not imported yet. I need to make sure I import it.
-        // Wait, line 3 imports AIService, line 5 imports createNotification.
-        // I will let the import be handled by the next tool or add it if multi_replace allows.
-        // Actually replace_file_content replaces a block. I will add the method here.
-        // I'll need to check imports.
+        // serviceDates format:
+        // { [serviceId]: { name, date, time, engineerIds[], confirmed } }
 
-        // Let's assume I can use dynamic import or require if I can't easily add top-level import without reading whole file.
-        // Better: I will use 'require' inside the function or rely on existing imports if any.
-        // But best practice is top level import. 
-        // I'll use inline require for safety in this robust-less edit:
-        const planningService = require('../services/planning.service').default;
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                serviceDates: JSON.stringify(serviceDates)
+            } as any
+        });
 
-        const updated = await planningService.updateServiceDates(id, serviceDates);
-        res.json(updated);
+        res.json({ success: true, message: 'Programación actualizada correctamente' });
     } catch (error) {
         console.error('Error updating service dates:', error);
         res.status(500).json({ error: 'Error al actualizar fechas de servicio' });
