@@ -15,7 +15,7 @@ import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
-import { SamplingSheetsUpload } from '@/components/oit/SamplingSheetsUpload';
+
 import { ServiceScheduleCard } from '@/components/oit/ServiceScheduleCard';
 import {
     DropdownMenuLabel,
@@ -56,6 +56,7 @@ export default function OITDetailPage() {
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
     const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
     const [serviceDates, setServiceDates] = useState<Record<string, ServiceSchedule>>({});
+    const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
 
@@ -787,36 +788,80 @@ export default function OITDetailPage() {
                                                 {/* AI-Extracted Services with Enhanced Scheduling */}
                                                 {aiData?.data?.services && aiData.data.services.length > 0 && (
                                                     <div className="space-y-4">
-                                                        {/* Accept All Button - Shows when none are confirmed */}
-                                                        {aiData.data.services.every((_: any, idx: number) => !serviceDates[`ai-service-${idx}`]?.confirmed) && (
-                                                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                                                                <div className="flex items-center justify-between gap-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                                                            <Sparkles className="h-5 w-5 text-indigo-600" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className="text-sm font-semibold text-indigo-900">
-                                                                                {aiData.data.services.length} Servicio(s) Detectados por IA
-                                                                            </h4>
-                                                                            <p className="text-xs text-indigo-600">
-                                                                                Acepta la propuesta o configura cada uno manualmente abajo
-                                                                            </p>
-                                                                        </div>
+                                                        {aiData.data.services.every((_: any, idx: number) => !serviceDates[`ai-service-${idx}`]?.confirmed) && !isManualScheduling ? (
+                                                            <div className="bg-white border border-indigo-100 rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                                <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex items-center gap-3">
+                                                                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                                                        <Sparkles className="h-4 w-4" />
                                                                     </div>
+                                                                    <div>
+                                                                        <h4 className="font-semibold text-indigo-900">Propuesta de Programación IA</h4>
+                                                                        <p className="text-xs text-indigo-600">Basada en análisis del documento</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="p-0 divide-y divide-slate-100">
+                                                                    {aiData.data.services.map((s: any, idx: number) => {
+                                                                        const today = new Date();
+                                                                        let dateToUse = s.proposedDate?.split('T')[0];
+                                                                        if (!dateToUse) {
+                                                                            const futureDate = new Date(today);
+                                                                            futureDate.setDate(today.getDate() + 7 + idx);
+                                                                            dateToUse = futureDate.toISOString().split('T')[0];
+                                                                        }
+
+                                                                        const dateObj = new Date(dateToUse);
+                                                                        const dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                                                                        return (
+                                                                            <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                                                        {s.name.substring(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-sm font-medium text-slate-900">{s.name}</p>
+                                                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                                            <span className="flex items-center gap-1">
+                                                                                                <Calendar className="h-3 w-3" /> {dateStr}
+                                                                                            </span>
+                                                                                            <span>•</span>
+                                                                                            <span className="flex items-center gap-1">
+                                                                                                <Clock className="h-3 w-3" /> 09:00
+                                                                                            </span>
+                                                                                            {s.duration && (
+                                                                                                <>
+                                                                                                    <span>•</span>
+                                                                                                    <span className="text-xs text-slate-400">{s.duration}</span>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
                                                                     <Button
-                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                                                                        variant="ghost"
+                                                                        onClick={() => setIsManualScheduling(true)}
+                                                                        className="text-slate-600 hover:text-slate-900"
+                                                                    >
+                                                                        Configurar manualmente
+                                                                    </Button>
+                                                                    <Button
+                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105"
                                                                         onClick={async () => {
-                                                                            // Accept all AI proposals
                                                                             const newServiceDates: Record<string, ServiceSchedule> = {};
                                                                             const today = new Date();
                                                                             aiData.data.services.forEach((s: any, idx: number) => {
                                                                                 const serviceId = `ai-service-${idx}`;
-                                                                                // Use proposed date if available, otherwise calculate consecutive dates
                                                                                 let dateToUse = s.proposedDate?.split('T')[0];
                                                                                 if (!dateToUse) {
                                                                                     const futureDate = new Date(today);
-                                                                                    futureDate.setDate(today.getDate() + 7 + idx); // Start 7 days from now, consecutive
+                                                                                    futureDate.setDate(today.getDate() + 7 + idx);
                                                                                     dateToUse = futureDate.toISOString().split('T')[0];
                                                                                 }
                                                                                 newServiceDates[serviceId] = {
@@ -845,73 +890,119 @@ export default function OITDetailPage() {
                                                                     </Button>
                                                                 </div>
                                                             </div>
+                                                        ) : (
+                                                            <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <h5 className="text-sm font-medium text-slate-700">Programación Manual</h5>
+                                                                    {!aiData.data.services.every((_: any, idx: number) => serviceDates[`ai-service-${idx}`]?.confirmed) && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setIsManualScheduling(false)}
+                                                                            className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
+                                                                        >
+                                                                            Ver Propuesta Automática
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                {aiData.data.services.map((service: any, idx: number) => {
+                                                                    const serviceId = `ai-service-${idx}`;
+                                                                    const existingSchedule = serviceDates[serviceId] || {};
+
+                                                                    const schedule = {
+                                                                        name: service.name,
+                                                                        date: existingSchedule.date || service.proposedDate?.split('T')[0] || '',
+                                                                        time: existingSchedule.time || '09:00',
+                                                                        engineerIds: existingSchedule.engineerIds || [],
+                                                                        confirmed: existingSchedule.confirmed || false
+                                                                    };
+
+                                                                    return (
+                                                                        <ServiceScheduleCard
+                                                                            key={serviceId}
+                                                                            serviceId={serviceId}
+                                                                            schedule={schedule}
+                                                                            engineers={availableEngineers}
+                                                                            onUpdate={async (id, updatedSchedule) => {
+                                                                                const newServiceDates = {
+                                                                                    ...serviceDates,
+                                                                                    [id]: updatedSchedule
+                                                                                };
+                                                                                setServiceDates(newServiceDates);
+
+                                                                                try {
+                                                                                    await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                    toast.success('Programación actualizada correctamente');
+                                                                                    fetchOIT();
+                                                                                } catch (error) {
+                                                                                    console.error(error);
+                                                                                    toast.error('Error al guardar programación');
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         )}
-
-                                                        <div className="grid gap-3">
-                                                            {aiData.data.services.map((service: any, idx: number) => {
-                                                                const serviceId = `ai-service-${idx}`;
-                                                                const existingSchedule = serviceDates[serviceId] || {};
-
-                                                                const schedule = {
-                                                                    name: service.name,
-                                                                    date: existingSchedule.date || service.proposedDate?.split('T')[0] || '',
-                                                                    time: existingSchedule.time || '09:00',
-                                                                    engineerIds: existingSchedule.engineerIds || [],
-                                                                    confirmed: existingSchedule.confirmed || false
-                                                                };
-
-                                                                return (
-                                                                    <ServiceScheduleCard
-                                                                        key={serviceId}
-                                                                        serviceId={serviceId}
-                                                                        schedule={schedule}
-                                                                        engineers={availableEngineers}
-                                                                        onUpdate={async (id, updatedSchedule) => {
-                                                                            const newServiceDates = {
-                                                                                ...serviceDates,
-                                                                                [id]: updatedSchedule
-                                                                            };
-                                                                            setServiceDates(newServiceDates);
-
-                                                                            // Save to backend
-                                                                            try {
-                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                toast.success('Programación actualizada correctamente');
-                                                                                fetchOIT();
-                                                                            } catch (error) {
-                                                                                console.error(error);
-                                                                                toast.error('Error al guardar programación');
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                );
-                                                            })}
-                                                        </div>
                                                     </div>
                                                 )}
 
                                                 {/* Manual Template Scheduling (if no AI services) */}
                                                 {(!aiData?.data?.services || aiData.data.services.length === 0) && selectedTemplates.length > 0 && (
                                                     <div className="space-y-4">
-                                                        {/* Accept All Button for Templates - Shows when none are confirmed */}
-                                                        {selectedTemplates.every(tmpl => !serviceDates[tmpl.id]?.confirmed) && (
-                                                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                                                                <div className="flex items-center justify-between gap-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                                                            <Sparkles className="h-5 w-5 text-indigo-600" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className="text-sm font-semibold text-indigo-900">
-                                                                                {selectedTemplates.length} Servicio(s) Detectados
-                                                                            </h4>
-                                                                            <p className="text-xs text-indigo-600">
-                                                                                Acepta la propuesta o configura cada uno manualmente abajo
-                                                                            </p>
-                                                                        </div>
+                                                        {selectedTemplates.every(tmpl => !serviceDates[tmpl.id]?.confirmed) && !isManualScheduling ? (
+                                                            <div className="bg-white border border-indigo-100 rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                                <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex items-center gap-3">
+                                                                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                                                        <Sparkles className="h-4 w-4" />
                                                                     </div>
+                                                                    <div>
+                                                                        <h4 className="font-semibold text-indigo-900">Propuesta de Programación</h4>
+                                                                        <p className="text-xs text-indigo-600">Basada en disponibilidad y carga de trabajo</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="p-0 divide-y divide-slate-100">
+                                                                    {selectedTemplates.map((tmpl, idx) => {
+                                                                        const today = new Date();
+                                                                        const futureDate = new Date(today);
+                                                                        futureDate.setDate(today.getDate() + 7 + idx);
+                                                                        const dateStr = futureDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                                                                        return (
+                                                                            <div key={tmpl.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                                                        {tmpl.name.substring(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
+                                                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                                            <span className="flex items-center gap-1">
+                                                                                                <Calendar className="h-3 w-3" /> {dateStr}
+                                                                                            </span>
+                                                                                            <span>•</span>
+                                                                                            <span className="flex items-center gap-1">
+                                                                                                <Clock className="h-3 w-3" /> 09:00
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
                                                                     <Button
-                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                                                                        variant="ghost"
+                                                                        onClick={() => setIsManualScheduling(true)}
+                                                                        className="text-slate-600 hover:text-slate-900"
+                                                                    >
+                                                                        Configurar manualmente
+                                                                    </Button>
+                                                                    <Button
+                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105"
                                                                         onClick={async () => {
                                                                             const newServiceDates: Record<string, ServiceSchedule> = {};
                                                                             const today = new Date();
@@ -944,47 +1035,60 @@ export default function OITDetailPage() {
                                                                     </Button>
                                                                 </div>
                                                             </div>
+                                                        ) : (
+                                                            <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <h5 className="text-sm font-medium text-slate-700">Programación Manual</h5>
+                                                                    {!selectedTemplates.some(tmpl => serviceDates[tmpl.id]?.confirmed) && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setIsManualScheduling(false)}
+                                                                            className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
+                                                                        >
+                                                                            Ver Propuesta Automática
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                {selectedTemplates.map(tmpl => {
+                                                                    const serviceId = tmpl.id;
+                                                                    const existingSchedule = serviceDates[serviceId] || {};
+
+                                                                    const schedule = {
+                                                                        name: tmpl.name,
+                                                                        date: existingSchedule.date || '',
+                                                                        time: existingSchedule.time || '09:00',
+                                                                        engineerIds: existingSchedule.engineerIds || [],
+                                                                        confirmed: existingSchedule.confirmed || false
+                                                                    };
+
+                                                                    return (
+                                                                        <ServiceScheduleCard
+                                                                            key={serviceId}
+                                                                            serviceId={serviceId}
+                                                                            schedule={schedule}
+                                                                            engineers={availableEngineers}
+                                                                            onUpdate={async (id, updatedSchedule) => {
+                                                                                const newServiceDates = {
+                                                                                    ...serviceDates,
+                                                                                    [id]: updatedSchedule
+                                                                                };
+                                                                                setServiceDates(newServiceDates);
+
+                                                                                try {
+                                                                                    await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                    toast.success('Programación actualizada correctamente');
+                                                                                    fetchOIT();
+                                                                                } catch (error) {
+                                                                                    console.error(error);
+                                                                                    toast.error('Error al guardar programación');
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         )}
-
-                                                        <div className="grid gap-3">
-                                                            {selectedTemplates.map(tmpl => {
-                                                                const serviceId = tmpl.id;
-                                                                const existingSchedule = serviceDates[serviceId] || {};
-
-                                                                const schedule = {
-                                                                    name: tmpl.name,
-                                                                    date: existingSchedule.date || '',
-                                                                    time: existingSchedule.time || '09:00',
-                                                                    engineerIds: existingSchedule.engineerIds || [],
-                                                                    confirmed: existingSchedule.confirmed || false
-                                                                };
-
-                                                                return (
-                                                                    <ServiceScheduleCard
-                                                                        key={serviceId}
-                                                                        serviceId={serviceId}
-                                                                        schedule={schedule}
-                                                                        engineers={availableEngineers}
-                                                                        onUpdate={async (id, updatedSchedule) => {
-                                                                            const newServiceDates = {
-                                                                                ...serviceDates,
-                                                                                [id]: updatedSchedule
-                                                                            };
-                                                                            setServiceDates(newServiceDates);
-
-                                                                            try {
-                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                toast.success('Programación actualizada correctamente');
-                                                                                fetchOIT();
-                                                                            } catch (error) {
-                                                                                console.error(error);
-                                                                                toast.error('Error al guardar programación');
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                );
-                                                            })}
-                                                        </div>
                                                     </div>
                                                 )}
 
@@ -1793,21 +1897,12 @@ export default function OITDetailPage() {
                     <TabsContent value="report" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="space-y-6">
                             {/* Step 1: Sampling Sheets Upload */}
-                            <SamplingSheetsUpload
-                                oitId={id!}
-                                initialSheetUrl={oit.samplingSheetUrl}
-                                initialAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
-                                onAnalysisComplete={() => {
-                                    // Refresh OIT data when analysis completes
-                                    fetchOIT();
-                                }}
-                            />
-
-                            {/* Step 2: Lab Results & Final Report */}
                             <ReportGenerator
                                 oitId={id!}
                                 finalReportUrl={oit.finalReportUrl}
-                                initialAnalysis={oit.labResultsAnalysis || null}
+                                initialLabAnalysis={oit.labResultsAnalysis}
+                                initialSheetUrl={oit.samplingSheetUrl}
+                                initialSheetAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
                             />
                         </div>
                     </TabsContent>
