@@ -1355,6 +1355,90 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
     }
 };
 
+// Upload Sampling Sheets (Planillas de Muestreo)
+export const uploadSamplingSheets = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const file = (req as any).file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo de planillas' });
+        }
+
+        // Save file URL and trigger analysis
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingSheetUrl: `uploads/${file.filename}`,
+                samplingSheetAnalysis: null,
+            } as any
+        });
+
+        res.json({
+            success: true,
+            samplingSheetUrl: `/uploads/${file.filename}`,
+            message: 'Planillas subidas. Analizando...'
+        });
+
+        // Trigger async analysis
+        processSamplingSheetsAsync(id, file.path).catch(err => {
+            console.error('Error in background sampling sheets processing:', err);
+        });
+
+    } catch (error) {
+        console.error('Error uploading sampling sheets:', error);
+        res.status(500).json({ error: 'Error al subir planillas de muestreo' });
+    }
+};
+
+// Background Processor for Sampling Sheets
+async function processSamplingSheetsAsync(oitId: string, filePath: string) {
+    try {
+        console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}`);
+        const { pdfService } = require('../services/pdf.service');
+        let extractedText = '';
+
+        try {
+            if (filePath.endsWith('.pdf')) {
+                extractedText = await pdfService.extractText(filePath);
+            } else {
+                extractedText = fs.readFileSync(filePath, 'utf-8');
+            }
+        } catch (readErr) {
+            console.error("[SAMPLING_SHEETS] Error extracting text:", readErr);
+            extractedText = "Error al leer documento.";
+        }
+
+        const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
+        const oitContext = oit?.description || '';
+
+        const analysis = await aiService.analyzeSamplingSheets(extractedText, oitContext);
+
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                samplingSheetAnalysis: JSON.stringify(analysis)
+            } as any
+        });
+
+        console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, quality: ${analysis.quality}`);
+
+    } catch (error) {
+        console.error('[SAMPLING_SHEETS] Error in background processing:', error);
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                samplingSheetAnalysis: JSON.stringify({
+                    summary: "Error en análisis automático",
+                    quality: 'regular',
+                    findings: ["Error durante el procesamiento"],
+                    recommendations: ["Revisar manualmente"]
+                })
+            } as any
+        });
+    }
+}
+
 export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

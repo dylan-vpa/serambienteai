@@ -48,6 +48,8 @@ model OIT {
   serviceDates          String?        // JSON: { [templateId]: ISODateString }
   fieldFormUrl          String?        // URL to uploaded field form (Planilla)
   fieldFormAnalysis     String?        // JSON: Verification results from AI
+  samplingSheetUrl      String?        // URL to uploaded sampling sheets (planillas)
+  samplingSheetAnalysis String?        // JSON: Quality analysis from AI before final report
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]

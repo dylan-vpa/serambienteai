@@ -17,6 +17,13 @@ interface AIAnalysisResult {
     alerts: string[];
     missing: string[];
     evidence: string[];
+    services?: Array<{
+        name: string;
+        proposedDate: string | null;
+        duration: number;
+    }>;
+    location?: string | null;
+    generalProposedDate?: string | null;
     rawResponse?: string;
 }
 
@@ -96,19 +103,38 @@ export class AIService {
         }
 
         try {
-            const prompt = `Analiza el siguiente documento OIT y responde SOLO con un JSON válido (sin markdown, sin explicaciones adicionales):
+            const prompt = `Analiza el siguiente documento OIT (Orden de Inspección y/o Trabajo) y responde SOLO con un JSON válido (sin markdown, sin explicaciones adicionales):
 
 {
   "status": "check|alerta|error",
   "alerts": ["lista de alertas encontradas"],
   "missing": ["lista de items faltantes"],
-  "evidence": ["lista de evidencias encontradas"]
+  "evidence": ["lista de evidencias encontradas"],
+  "services": [
+    {
+      "name": "nombre del servicio (ej: Calidad de Aire, Ruido Ambiental, Calidad de Agua)",
+      "proposedDate": "fecha sugerida formato YYYY-MM-DD o null",
+      "duration": "duración estimada en días (número)"
+    }
+  ],
+  "location": "ubicación/dirección del proyecto extraída del documento",
+  "generalProposedDate": "fecha general del proyecto si no hay servicios específicos (YYYY-MM-DD)"
 }
 
-Criterios:
-- status "check": Documento completo y correcto
-- status "alerta": Falta información menor
-- status "error": Faltan datos críticos
+INSTRUCCIONES DETALLADAS:
+1. **status**: Evalúa completitud del documento
+   - "check": Documento completo y correcto
+   - "alerta": Falta información menor
+   - "error": Faltan datos críticos
+
+2. **services**: Extrae TODOS los servicios mencionados (ej: monitoreos, análisis, inspecciones)
+   - Si el documento tiene cronograma con fechas específicas por servicio, úsalas
+   - Si no, propón fechas consecutivas razonables
+   - duration: estima días necesarios (generalmente 1-3 días por servicio)
+
+3. **location**: Extrae dirección completa, coordenadas, o nombre del sitio
+
+4. **generalProposedDate**: Solo si NO hay servicios específicos, extrae o propón fecha general
 
 Documento:
 ${documentText}
@@ -141,6 +167,9 @@ JSON:`;
                     alerts: parsed.alerts || [],
                     missing: parsed.missing || [],
                     evidence: parsed.evidence || [],
+                    services: parsed.services || [],
+                    location: parsed.location || null,
+                    generalProposedDate: parsed.generalProposedDate || null,
                     rawResponse,
                 };
             } catch (parseError) {
@@ -650,6 +679,95 @@ Responde en español de forma profesional.`;
         } catch (error) {
             console.error('AI Sampling Analysis error:', error);
             return "Error al analizar datos de muestreo.";
+        }
+    }
+
+    /**
+     * Analyze sampling sheets (planillas de muestreo) before final report generation
+     * This provides quality assessment and feedback before proceeding to lab analysis
+     */
+    async analyzeSamplingSheets(documentText: string, oitContext?: string): Promise<{
+        summary: string;
+        quality: 'buena' | 'regular' | 'deficiente';
+        findings: string[];
+        recommendations: string[];
+    }> {
+        const available = await this.isAvailable();
+
+        if (!available) {
+            // Fallback heuristic analysis
+            return {
+                summary: "Análisis automático no disponible. Revise manualmente las planillas.",
+                quality: 'regular',
+                findings: ["Servicio de IA no disponible para análisis detallado"],
+                recommendations: ["Verificar completitud de datos manualmente"]
+            };
+        }
+
+        try {
+            const prompt = `Eres un supervisor técnico de campo especializado en monitoreos ambientales. Analiza las siguientes planillas de muestreo y responde SOLO con un JSON válido (sin markdown, sin explicaciones adicionales):
+
+{
+  "summary": "resumen ejecutivo breve del estado de las planillas",
+  "quality": "buena|regular|deficiente",
+  "findings": ["hallazgo 1", "hallazgo 2", "..."],
+  "recommendations": ["recomendación 1", "recomendación 2", "..."]
+}
+
+CRITERIOS DE EVALUACIÓN:
+1. **quality**: 
+   - "buena": Datos completos, consistentes, sin anomalías evidentes
+   - "regular": Algunos datos faltantes o inconsistencias menores
+   - "deficiente": Datos críticos faltantes o inconsistencias graves
+
+2. **findings**: Lista de observaciones importantes (ej: datos faltantes, valores anómalos, comentarios relevantes)
+
+3. **recommendations**: Sugerencias de mejora o acciones correctivas necesarias
+
+Contexto OIT: "${oitContext || 'Sin contexto'}"
+
+Contenido de las Planillas:
+${documentText.substring(0, 5000)}
+
+JSON:`;
+
+            console.log('[SAMPLING_SHEETS] Analyzing with AI...');
+
+            const response = await axios.post(`${this.baseURL}/api/generate`, {
+                model: this.defaultModel,
+                prompt: prompt,
+                stream: false,
+                format: 'json',
+            });
+
+            let responseText = response.data.response || '';
+
+            // Sanitize JSON
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
+
+            const parsed = JSON.parse(responseText);
+
+            return {
+                summary: parsed.summary || "Análisis completado",
+                quality: parsed.quality || 'regular',
+                findings: parsed.findings || [],
+                recommendations: parsed.recommendations || []
+            };
+
+        } catch (error) {
+            console.error('[SAMPLING_SHEETS] Analysis error:', error);
+            return {
+                summary: "Error al analizar las planillas. Por favor, revise manualmente.",
+                quality: 'regular',
+                findings: ["Error en el análisis automático"],
+                recommendations: ["Verificar planillas manualmente antes de continuar"]
+            };
         }
     }
 }

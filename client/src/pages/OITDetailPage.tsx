@@ -780,6 +780,45 @@ export default function OITDetailPage() {
                                                     </div>
                                                 </div>
 
+                                                {/* AI-Extracted Services (if available) */}
+                                                {aiData?.data?.services && aiData.data.services.length > 0 && (
+                                                    <div className="space-y-3 mb-4">
+                                                        <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+                                                            <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                            <div>
+                                                                <h5 className="text-sm font-semibold text-indigo-900">Servicios Detectados por IA</h5>
+                                                                <p className="text-xs text-indigo-600">Extraídos automáticamente del documento OIT</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid gap-3">
+                                                            {aiData.data.services.map((service: any, idx: number) => (
+                                                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-indigo-200 rounded-lg shadow-sm">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                                            <Beaker className="h-5 w-5 text-indigo-600" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-medium text-slate-900">{service.name}</p>
+                                                                            <div className="flex items-center gap-2 mt-1">
+                                                                                {service.proposedDate && (
+                                                                                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                                                                        Propuesta: {new Date(service.proposedDate).toLocaleDateString('es-ES')}
+                                                                                    </span>
+                                                                                )}
+                                                                                {service.duration && (
+                                                                                    <span className="text-xs text-slate-500">
+                                                                                        {service.duration} día{service.duration > 1 ? 's' : ''}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="grid gap-3">
                                                     {selectedTemplates.map(tmpl => (
                                                         <div key={tmpl.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-indigo-300 transition-colors">
@@ -1631,11 +1670,25 @@ export default function OITDetailPage() {
                     </TabsContent>
 
                     <TabsContent value="report" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <ReportGenerator
-                            oitId={id!}
-                            finalReportUrl={oit.finalReportUrl}
-                            initialAnalysis={oit.labResultsAnalysis || null}
-                        />
+                        <div className="space-y-6">
+                            {/* Step 1: Sampling Sheets Upload */}
+                            <SamplingSheetsUpload
+                                oitId={id!}
+                                initialSheetUrl={oit.samplingSheetUrl}
+                                initialAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
+                                onAnalysisComplete={() => {
+                                    // Refresh OIT data when analysis completes
+                                    fetchOIT();
+                                }}
+                            />
+
+                            {/* Step 2: Lab Results & Final Report */}
+                            <ReportGenerator
+                                oitId={id!}
+                                finalReportUrl={oit.finalReportUrl}
+                                initialAnalysis={oit.labResultsAnalysis || null}
+                            />
+                        </div>
                     </TabsContent>
                 </Tabs>
 

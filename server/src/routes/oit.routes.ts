@@ -13,6 +13,7 @@ import {
     saveSamplingData,
     getSamplingData,
     uploadLabResults,
+    uploadSamplingSheets,
     generateFinalReport,
     validateStepData,
     finalizeSampling,
@@ -67,6 +68,7 @@ router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 
 // Lab results and final report
 router.post('/:id/lab-results', authMiddleware, upload.single('file'), uploadLabResults);
+router.post('/:id/sampling-sheets', authMiddleware, upload.single('file'), uploadSamplingSheets);
 router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
 
 // Sampling validation workflow
