@@ -1401,6 +1401,19 @@ async function processSamplingSheetsAsync(oitId: string, filePath: string) {
         try {
             if (filePath.endsWith('.pdf')) {
                 extractedText = await pdfService.extractText(filePath);
+            } else if (filePath.match(/\.(xlsx|xls)$/i)) {
+                // Parse Excel file
+                const xlsx = require('xlsx');
+                const workbook = xlsx.readFile(filePath);
+
+                // Convert all sheets to text representation
+                let allSheetsText = "";
+                workbook.SheetNames.forEach((sheetName: string) => {
+                    const sheet = workbook.Sheets[sheetName];
+                    const csvData = xlsx.utils.sheet_to_csv(sheet);
+                    allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
+                });
+                extractedText = allSheetsText;
             } else {
                 extractedText = fs.readFileSync(filePath, 'utf-8');
             }
