@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown } from 'lucide-react';
+import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown, Sparkles } from 'lucide-react';
 
 interface ServiceSchedule {
     name: string;
@@ -101,6 +101,16 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
             <CardContent>
                 {isEditing || !isConfirmed ? (
                     <div className="space-y-4">
+                        {/* AI Suggested Values */}
+                        {!schedule.confirmed && schedule.date && (
+                            <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
+                                <Sparkles className="h-3 w-3" />
+                                <span>
+                                    Sugerencia IA: {new Date(schedule.date).toLocaleDateString('es-ES')} a las {schedule.time}
+                                </span>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium flex items-center gap-1">

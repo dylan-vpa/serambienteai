@@ -199,19 +199,12 @@ export default function OITDetailPage() {
     useEffect(() => {
         const loadEngineers = async () => {
             try {
-                // Use dedicated engineers endpoint which includes assignments
-                const res = await api.get('/users/engineers');
-                setAvailableEngineers(res.data);
+                const res = await api.get('/users');
+                const engineers = res.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
+                setAvailableEngineers(engineers);
             } catch (error) {
-                console.error('Error fetching engineers', error);
-                // Fallback to /users if /engineers fails (backwards compatibility)
-                try {
-                    const fallbackRes = await api.get('/users');
-                    const engineers = fallbackRes.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
-                    setAvailableEngineers(engineers);
-                } catch (e) {
-                    console.error('Fallback failed', e);
-                }
+                console.error('Error fetching engineers:', error);
+                setAvailableEngineers([]);
             }
         };
 
