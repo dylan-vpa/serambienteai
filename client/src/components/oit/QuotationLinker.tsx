@@ -14,7 +14,7 @@ export function QuotationLinker({ oitId, onLinked }: { oitId: string, onLinked: 
         setIsLoading(true);
         api.get('/quotations')
             .then(res => setQuotations(res.data))
-            .catch(err => toast.error('Error cargando cotizaciones'))
+            .catch(() => toast.error('Error cargando cotizaciones'))
             .finally(() => setIsLoading(false));
     }, []);
 

@@ -15,6 +15,7 @@ import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
+import { SamplingSheetsUpload } from '@/components/oit/SamplingSheetsUpload';
 import {
     DropdownMenuLabel,
     DropdownMenuCheckboxItem

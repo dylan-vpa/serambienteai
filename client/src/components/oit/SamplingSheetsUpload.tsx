@@ -6,16 +6,15 @@ import { Upload, Loader2, CheckCircle2, AlertTriangle, FileCheck, Sparkles } fro
 import { notify } from '@/lib/notify';
 import api from '@/lib/api';
 
+
 interface SamplingSheetsUploadProps {
-    oit Id: string;
-initialSheetUrl ?: string | null;
-initialAnalysis ?: any;
-onAnalysisComplete ?: () => void;
+    oitId: string;
+    initialSheetUrl?: string | null;
+    initialAnalysis?: any;
+    onAnalysisComplete?: () => void;
 }
 
-export function SamplingSheetsUpload({ oitId, initial
-
-SheetUrl, initialAnalysis, onAnalysisComplete }: SamplingSheetsUploadProps) {
+export function SamplingSheetsUpload({ oitId, initialSheetUrl, initialAnalysis, onAnalysisComplete }: SamplingSheetsUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [sheetFile, setSheetFile] = useState<File | null>(null);
     const [sheetUploaded, setSheetUploaded] = useState(!!initialSheetUrl);
@@ -141,8 +140,8 @@ SheetUrl, initialAnalysis, onAnalysisComplete }: SamplingSheetsUploadProps) {
                 {!sheetUploaded ? (
                     <div
                         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
                             }`}
                         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                         onDragLeave={() => setIsDragging(false)}
