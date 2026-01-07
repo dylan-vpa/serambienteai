@@ -111,7 +111,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium flex items-center gap-1">
                                     <Calendar className="h-3.5 w-3.5" />

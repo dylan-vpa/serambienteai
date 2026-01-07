@@ -194,7 +194,7 @@ export default function QuotationDetailPage() {
                 <Tabs defaultValue="info" className="w-full">
                     {/* Tabs - Match OIT Style */}
                     <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300">
+                        <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4 bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300">
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <FileText className="mr-2 h-4 w-4" /> Info
                             </TabsTrigger>
