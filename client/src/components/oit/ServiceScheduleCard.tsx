@@ -101,12 +101,12 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
             <CardContent>
                 {isEditing || !isConfirmed ? (
                     <div className="space-y-4">
-                        {/* AI Suggested Values */}
-                        {!schedule.confirmed && schedule.date && (
+                        {/* AI Suggested Values - Always visible until first confirmation */}
+                        {!isConfirmed && schedule.date && (
                             <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
                                 <Sparkles className="h-3 w-3" />
                                 <span>
-                                    Sugerencia IA: {new Date(schedule.date).toLocaleDateString('es-ES')} a las {schedule.time}
+                                    💡 Sugerencia IA: {new Date(schedule.date).toLocaleDateString('es-ES')} a las {schedule.time}
                                 </span>
                             </div>
                         )}
