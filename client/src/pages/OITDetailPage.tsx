@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -59,6 +59,7 @@ export default function OITDetailPage() {
     const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
+    const [selectedServiceForSampling, setSelectedServiceForSampling] = useState<any>(null); // ServiceSchedule | null
 
     // Engineer Scheduling State
     const [availableEngineers, setAvailableEngineers] = useState<any[]>([]);
@@ -1571,37 +1572,106 @@ export default function OITDetailPage() {
 
                             // 0. Verification of Conditions (Time & Location)
                             const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
+
+                            // If not verified and not started, show Service Selector OR Verification for selected service
                             if (!isLocationVerified && !isStarted) {
+                                // CASE 1: No Service Selected -> Show List
+                                if (!selectedServiceForSampling) {
+                                    return (
+                                        <div className="max-w-4xl mx-auto space-y-6 mb-8">
+                                            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 text-center">
+                                                <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                    <Navigation className="h-6 w-6 text-indigo-600" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-indigo-900">Seleccionar Servicio para Muestreo</h3>
+                                                <p className="text-sm text-indigo-700 max-w-lg mx-auto mt-2">
+                                                    Selecciona cuál de los servicios programados vas a realizar ahora. Se verificará tu ubicación y la hora programada para ese servicio específico.
+                                                </p>
+                                            </div>
+
+                                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {Object.entries(serviceDates).map(([key, schedule]) => {
+                                                    const isConfirmed = schedule.confirmed;
+                                                    const scheduledDate = new Date(schedule.date + 'T' + schedule.time);
+                                                    const now = new Date();
+                                                    // Simple time check (e.g. within 2 hours) or just informational
+                                                    const isToday = scheduledDate.toDateString() === now.toDateString();
+
+                                                    return (
+                                                        <Card
+                                                            key={key}
+                                                            className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
+                                                            onClick={() => {
+                                                                if (!isConfirmed) {
+                                                                    toast.error('Este servicio no ha sido confirmado aún.');
+                                                                    return;
+                                                                }
+                                                                setSelectedServiceForSampling(schedule);
+                                                            }}
+                                                        >
+                                                            <CardHeader className="pb-2">
+                                                                <div className="flex justify-between items-start">
+                                                                    <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
+                                                                        {schedule.name}
+                                                                    </Badge>
+                                                                    {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
+                                                                </div>
+                                                                <CardTitle className="text-sm font-medium text-slate-900">
+                                                                    {schedule.name}
+                                                                </CardTitle>
+                                                            </CardHeader>
+                                                            <CardContent>
+                                                                <div className="space-y-2 text-sm text-slate-600">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Calendar className="h-3.5 w-3.5" />
+                                                                        {new Date(schedule.date).toLocaleDateString()}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Clock className="h-3.5 w-3.5" />
+                                                                        {schedule.time}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Users className="h-3.5 w-3.5" />
+                                                                        {schedule.engineerIds.length} ingenieros
+                                                                    </div>
+                                                                </div>
+                                                                <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
+                                                                    Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
+                                                                </Button>
+                                                            </CardContent>
+                                                        </Card>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // CASE 2: Service Selected -> Show Verification Card
+                                const schedule = selectedServiceForSampling;
                                 return (
                                     <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50 mb-8 max-w-2xl mx-auto">
                                         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                                             <ShieldCheck className="h-40 w-40 text-indigo-500" />
                                         </div>
 
-                                        <div className="p-8 relative z-10">
+                                        {/* Back Button */}
+                                        <div className="absolute top-4 left-4 z-20">
+                                            <Button variant="ghost" size="sm" onClick={() => setSelectedServiceForSampling(null)} className="text-indigo-600 hover:bg-indigo-50">
+                                                <ChevronLeft className="h-4 w-4 mr-1" /> Volver a lista
+                                            </Button>
+                                        </div>
+
+                                        <div className="p-8 relative z-10 mt-6">
                                             <div className="flex items-center gap-3 mb-6">
                                                 <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center shadow-inner">
                                                     <ShieldCheck className="h-6 w-6 text-indigo-600" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-xl font-bold text-slate-900">Verificación de Sitio y Hora</h3>
-                                                    <p className="text-sm text-slate-500">Valida las condiciones antes de iniciar el muestreo</p>
+                                                    <h3 className="text-xl font-bold text-slate-900">Verificando: {schedule.name}</h3>
+                                                    <p className="text-sm text-slate-500">Valida condiciones para este servicio específico</p>
                                                 </div>
                                             </div>
-
-                                            {selectedTemplates.some(t => t.startMessage) && (
-                                                <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex gap-3 text-sm text-indigo-900">
-                                                    <div className="shrink-0 pt-0.5">
-                                                        <AlertCircle className="h-5 w-5 text-indigo-600" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className="font-semibold">Instrucciones del Servicio</p>
-                                                        <p className="whitespace-pre-line text-indigo-800">
-                                                            {selectedTemplates.map(t => t.startMessage).filter(Boolean).join('\n\n')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
 
                                             <div className="grid md:grid-cols-2 gap-4 mb-8">
                                                 {/* Time Info */}
@@ -1609,21 +1679,15 @@ export default function OITDetailPage() {
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-sm">
                                                             <Clock className="h-4 w-4" />
-                                                            <span>Horario Agendado</span>
+                                                            <span>Horario Servicio</span>
                                                         </div>
                                                         <div className="text-2xl font-bold text-slate-800">
-                                                            {oit.scheduledDate ? new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                                            {schedule.time}
                                                         </div>
                                                         <div className="text-xs text-slate-500 mt-1">
-                                                            {oit.scheduledDate ? new Date(oit.scheduledDate).toLocaleDateString() : 'Sin fecha'}
+                                                            {new Date(schedule.date).toLocaleDateString()}
                                                         </div>
                                                     </div>
-
-                                                    {!oit.scheduledDate && (
-                                                        <Badge variant="outline" className="mt-3 bg-amber-50 text-amber-700 border-amber-200 self-start">
-                                                            No programado
-                                                        </Badge>
-                                                    )}
                                                 </div>
 
                                                 {/* Location Info */}
@@ -1633,9 +1697,7 @@ export default function OITDetailPage() {
                                                             <MapPin className="h-4 w-4" />
                                                             <span>Ubicación Objetivo</span>
                                                         </div>
-                                                        {/*  <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
-                                                            {oit.location || 'Ubicación no especificada en la OIT'}
-                                                        </div> */}
+
                                                         <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
                                                             CARRERA 41 # 73B – 72
                                                         </div>
@@ -1677,14 +1739,11 @@ export default function OITDetailPage() {
 
                                                     // Artificial delay for UX
                                                     setTimeout(() => {
-                                                        if (!oit.scheduledDate) {
-                                                            setVerificationMsg('Error: No hay fecha agendada en la OIT.');
-                                                            return;
-                                                        }
-
-                                                        const scheduled = new Date(oit.scheduledDate);
+                                                        // VERIFY AGAINST SELECTED SCHEDULE
+                                                        const serviceDate = new Date(schedule.date + 'T' + schedule.time);
                                                         const now = new Date();
-                                                        const startWindow = new Date(scheduled.getTime() - 15 * 60000);
+                                                        // Allow start 30 mins before
+                                                        const startWindow = new Date(serviceDate.getTime() - 30 * 60000);
 
                                                         if (now < startWindow) {
                                                             const waitMin = Math.ceil((startWindow.getTime() - now.getTime()) / 60000);
@@ -1702,11 +1761,6 @@ export default function OITDetailPage() {
                                                                 const currentLat = pos.coords.latitude;
                                                                 const currentLng = pos.coords.longitude;
                                                                 let distanceInfo = '';
-
-                                                                // Use logic similar to before but clearer
-                                                                // Mock success for defined coordinates if parsed correctly
-                                                                // Here we'll just simulate success for UX demo if parsing fails, or keep strict if coords valid.
-                                                                // For now, keeping existing strict logic but wrapped nicely.
 
                                                                 const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
                                                                 if (locParts.length === 2 && !isNaN(parseFloat(locParts[0]))) {
@@ -1761,6 +1815,7 @@ export default function OITDetailPage() {
                                     </div>
                                 );
                             }
+
 
                             // Check if planning has been accepted (or at least Scheduled)
                             if (!oit.planningAccepted && !oit.scheduledDate) {
