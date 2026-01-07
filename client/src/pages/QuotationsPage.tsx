@@ -5,12 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import {
     Dialog,
     DialogContent,
@@ -24,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, MoreHorizontal, FileText, Download, Eye, Trash2, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Quotation {
     id: string;
@@ -130,16 +125,6 @@ export default function QuotationsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        try {
-            await api.delete(`/quotations/${id}`);
-            setQuotations(quotations.filter(q => q.id !== id));
-            toast.success('Cotización eliminada');
-        } catch (error: any) {
-            console.error('Error deleting quotation:', error);
-            toast.error(error.response?.data?.error || 'Error al eliminar cotización');
-        }
-    };
 
     const resetForm = () => {
         setQuotationNumber('');
@@ -301,7 +286,7 @@ export default function QuotationsPage() {
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">Cliente</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">Estado</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">OITs Vinculadas</TableHead>
-                                    <TableHead className="text-right py-3 px-4 font-medium text-slate-500">Acciones</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Fecha</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100">
@@ -312,7 +297,7 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[150px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[80px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[60px]" /></TableCell>
-                                            <TableCell className="py-3 px-4 text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                            <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[80px]" /></TableCell>
                                         </TableRow>
                                     ))
                                 ) : filteredQuotations.length === 0 ? (
@@ -326,7 +311,10 @@ export default function QuotationsPage() {
                                     </TableRow>
                                 ) : (
                                     filteredQuotations.map((q) => (
-                                        <TableRow key={q.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        <TableRow
+                                            key={q.id}
+                                            onClick={() => navigate(`/quotations/${q.id}`)}
+                                            className="hover:bg-indigo-50 transition-colors cursor-pointer group">
                                             <TableCell className="py-3 px-4 font-medium text-slate-900">
                                                 <div className="flex items-center gap-2">
                                                     <FileText className="h-4 w-4 text-slate-400" />
@@ -345,32 +333,8 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4 text-slate-600">
                                                 {q.linkedOITs?.length || 0} OIT(s)
                                             </TableCell>
-                                            <TableCell className="py-3 px-4 text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-900">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}`)}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            Ver Detalles
-                                                        </DropdownMenuItem>
-                                                        {q.fileUrl && (
-                                                            <DropdownMenuItem asChild>
-                                                                <a href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${q.fileUrl}`} target="_blank" rel="noopener noreferrer">
-                                                                    <Download className="mr-2 h-4 w-4" />
-                                                                    Descargar PDF
-                                                                </a>
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(q.id)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Eliminar
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                            <TableCell className="py-3 px-4 text-slate-500 text-sm">
+                                                {new Date(q.createdAt).toLocaleDateString('es-ES')}
                                             </TableCell>
                                         </TableRow>
                                     ))
