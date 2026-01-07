@@ -892,44 +892,99 @@ export default function OITDetailPage() {
 
                                                 {/* Manual Template Scheduling (if no AI services) */}
                                                 {(!aiData?.data?.services || aiData.data.services.length === 0) && selectedTemplates.length > 0 && (
-                                                    <div className="grid gap-3">
-                                                        {selectedTemplates.map(tmpl => {
-                                                            const serviceId = tmpl.id;
-                                                            const existingSchedule = serviceDates[serviceId] || {};
+                                                    <div className="space-y-4">
+                                                        {/* Accept All Button for Templates - Shows when none are confirmed */}
+                                                        {selectedTemplates.every(tmpl => !serviceDates[tmpl.id]?.confirmed) && (
+                                                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                                                            <Sparkles className="h-5 w-5 text-indigo-600" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className="text-sm font-semibold text-indigo-900">
+                                                                                {selectedTemplates.length} Servicio(s) Detectados
+                                                                            </h4>
+                                                                            <p className="text-xs text-indigo-600">
+                                                                                Acepta la propuesta o configura cada uno manualmente abajo
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                                                                        onClick={async () => {
+                                                                            const newServiceDates: Record<string, ServiceSchedule> = {};
+                                                                            const today = new Date();
+                                                                            selectedTemplates.forEach((tmpl, idx) => {
+                                                                                const futureDate = new Date(today);
+                                                                                futureDate.setDate(today.getDate() + 7 + idx);
+                                                                                newServiceDates[tmpl.id] = {
+                                                                                    name: tmpl.name,
+                                                                                    date: futureDate.toISOString().split('T')[0],
+                                                                                    time: '09:00',
+                                                                                    engineerIds: selectedEngineerIds.length > 0 ? selectedEngineerIds : [],
+                                                                                    confirmed: true
+                                                                                };
+                                                                            });
 
-                                                            const schedule = {
-                                                                name: tmpl.name,
-                                                                date: existingSchedule.date || '',
-                                                                time: existingSchedule.time || '09:00',
-                                                                engineerIds: existingSchedule.engineerIds || [],
-                                                                confirmed: existingSchedule.confirmed || false
-                                                            };
+                                                                            setServiceDates(newServiceDates);
 
-                                                            return (
-                                                                <ServiceScheduleCard
-                                                                    key={serviceId}
-                                                                    serviceId={serviceId}
-                                                                    schedule={schedule}
-                                                                    engineers={availableEngineers}
-                                                                    onUpdate={async (id, updatedSchedule) => {
-                                                                        const newServiceDates = {
-                                                                            ...serviceDates,
-                                                                            [id]: updatedSchedule
-                                                                        };
-                                                                        setServiceDates(newServiceDates);
+                                                                            try {
+                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                toast.success('¡Programación aceptada!');
+                                                                                fetchOIT();
+                                                                            } catch (error) {
+                                                                                console.error(error);
+                                                                                toast.error('Error al guardar programación');
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                                        Aceptar Propuesta
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
-                                                                        try {
-                                                                            await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                            toast.success('Programación actualizada correctamente');
-                                                                            fetchOIT();
-                                                                        } catch (error) {
-                                                                            console.error(error);
-                                                                            toast.error('Error al guardar programación');
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            );
-                                                        })}
+                                                        <div className="grid gap-3">
+                                                            {selectedTemplates.map(tmpl => {
+                                                                const serviceId = tmpl.id;
+                                                                const existingSchedule = serviceDates[serviceId] || {};
+
+                                                                const schedule = {
+                                                                    name: tmpl.name,
+                                                                    date: existingSchedule.date || '',
+                                                                    time: existingSchedule.time || '09:00',
+                                                                    engineerIds: existingSchedule.engineerIds || [],
+                                                                    confirmed: existingSchedule.confirmed || false
+                                                                };
+
+                                                                return (
+                                                                    <ServiceScheduleCard
+                                                                        key={serviceId}
+                                                                        serviceId={serviceId}
+                                                                        schedule={schedule}
+                                                                        engineers={availableEngineers}
+                                                                        onUpdate={async (id, updatedSchedule) => {
+                                                                            const newServiceDates = {
+                                                                                ...serviceDates,
+                                                                                [id]: updatedSchedule
+                                                                            };
+                                                                            setServiceDates(newServiceDates);
+
+                                                                            try {
+                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                toast.success('Programación actualizada correctamente');
+                                                                                fetchOIT();
+                                                                            } catch (error) {
+                                                                                console.error(error);
+                                                                                toast.error('Error al guardar programación');
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                 )}
 
