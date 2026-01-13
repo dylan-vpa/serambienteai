@@ -12,6 +12,8 @@ import {
     Sparkles, Loader2, DollarSign, CheckCircle2,
     Clock, Hash, AlertTriangle, XCircle
 } from 'lucide-react';
+import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
+import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 interface Quotation {
     id: string;
@@ -34,6 +36,20 @@ export default function QuotationDetailPage() {
     const [quotation, setQuotation] = useState<Quotation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // Feedback Modal State
+    const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('QUOTATION_ANALYSIS');
+    const [feedbackAiOutput, setFeedbackAiOutput] = useState('');
+    const [feedbackTitle, setFeedbackTitle] = useState('');
+
+    // Open feedback modal helper
+    const openFeedbackModal = (category: FeedbackCategory, aiOutput: string, title: string) => {
+        setFeedbackCategory(category);
+        setFeedbackAiOutput(aiOutput);
+        setFeedbackTitle(title);
+        setFeedbackModalOpen(true);
+    };
 
     useEffect(() => {
         if (id) fetchQuotation();
@@ -315,6 +331,16 @@ export default function QuotationDetailPage() {
                     <TabsContent value="analysis" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {aiData ? (
                             <div className="space-y-6">
+                                {/* Feedback Button */}
+                                <div className="flex justify-end">
+                                    <FeedbackButton
+                                        onClick={() => openFeedbackModal(
+                                            'QUOTATION_ANALYSIS',
+                                            JSON.stringify(aiData, null, 2),
+                                            `Análisis de Cotización ${quotation?.quotationNumber}`
+                                        )}
+                                    />
+                                </div>
                                 {/* Status Banner */}
                                 <div className={`rounded-xl p-6 border ${aiData.status === 'check' ? 'bg-green-50 border-green-200' :
                                     aiData.status === 'error' ? 'bg-red-50 border-red-200' :
@@ -851,6 +877,15 @@ export default function QuotationDetailPage() {
                     </TabsContent >
                 </Tabs >
             </div >
+
+            {/* Feedback Modal */}
+            <FeedbackModal
+                open={feedbackModalOpen}
+                onOpenChange={setFeedbackModalOpen}
+                category={feedbackCategory}
+                aiOutput={feedbackAiOutput}
+                title={feedbackTitle}
+            />
         </div >
     );
 }

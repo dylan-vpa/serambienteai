@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ThumbsUp, ThumbsDown, AlertCircle, Upload, FileText, X, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export type FeedbackCategory = 'OIT_ANALYSIS' | 'PROPOSAL' | 'REPORT' | 'TEMPLATE_MAPPING';
+export type FeedbackCategory = 'OIT_ANALYSIS' | 'PROPOSAL' | 'REPORT' | 'TEMPLATE_MAPPING' | 'QUOTATION_ANALYSIS' | 'QUOTATION_COMPLIANCE';
 
 interface FeedbackModalProps {
     open: boolean;
@@ -40,7 +40,9 @@ const categoryLabels: Record<FeedbackCategory, string> = {
     'OIT_ANALYSIS': 'Análisis de OIT',
     'PROPOSAL': 'Propuesta de Programación',
     'REPORT': 'Informe Final',
-    'TEMPLATE_MAPPING': 'Mapeo de Plantilla'
+    'TEMPLATE_MAPPING': 'Mapeo de Plantilla',
+    'QUOTATION_ANALYSIS': 'Análisis de Cotización',
+    'QUOTATION_COMPLIANCE': 'Cumplimiento de Cotización'
 };
 
 export function FeedbackModal({
@@ -183,8 +185,8 @@ export function FeedbackModal({
                             <button
                                 onClick={() => setFeedbackType('CORRECT')}
                                 className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${feedbackType === 'CORRECT'
-                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                                    : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                     }`}
                             >
                                 <ThumbsUp className="w-5 h-5" />
@@ -193,8 +195,8 @@ export function FeedbackModal({
                             <button
                                 onClick={() => setFeedbackType('PARTIAL')}
                                 className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${feedbackType === 'PARTIAL'
-                                        ? 'bg-amber-50 border-amber-500 text-amber-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                    ? 'bg-amber-50 border-amber-500 text-amber-700'
+                                    : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                     }`}
                             >
                                 <AlertCircle className="w-5 h-5" />
@@ -203,8 +205,8 @@ export function FeedbackModal({
                             <button
                                 onClick={() => setFeedbackType('WRONG')}
                                 className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${feedbackType === 'WRONG'
-                                        ? 'bg-red-50 border-red-500 text-red-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                    ? 'bg-red-50 border-red-500 text-red-700'
+                                    : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                     }`}
                             >
                                 <ThumbsDown className="w-5 h-5" />
@@ -254,8 +256,8 @@ export function FeedbackModal({
                         </label>
                         <div
                             className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${attachment
-                                    ? 'border-emerald-500 bg-emerald-50'
-                                    : 'border-slate-200 hover:border-slate-400'
+                                ? 'border-emerald-500 bg-emerald-50'
+                                : 'border-slate-200 hover:border-slate-400'
                                 }`}
                         >
                             <input
