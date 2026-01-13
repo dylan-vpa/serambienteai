@@ -261,53 +261,45 @@ ${s.content || 'Sin contenido'}
         }).join('\n---\n');
 
         // Build EXHAUSTIVE compliance check prompt
-        const systemPrompt = `Eres un Auditor de Calidad Ambiental EXTREMADAMENTE ESTRICTO y experto en normativa colombiana.
-Tu trabajo es encontrar ABSOLUTAMENTE TODOS los errores, omisiones e incumplimientos en las cotizaciones.
-NO debes ser permisivo. Si algo no está explícitamente correcto, DEBES marcarlo como error.
-Cada norma tiene requisitos específicos que DEBEN cumplirse al 100%.
+        const systemPrompt = `Eres un Auditor de Calidad Ambiental experto en normativa colombiana.
+Tu trabajo es verificar que la cotización cumple con las normas que ELLA MISMA REFERENCIA.
 
-REGLA CRÍTICA: DEBES listar TODOS los errores encontrados SIN EXCEPCIÓN.
-NO te detengas después de encontrar algunos errores. Revisa CADA norma y CADA requisito.
-Si hay 50 errores, lista los 50. Si hay 100, lista los 100. NO HAY LÍMITE.
-El usuario necesita ver TODOS los problemas para poder corregirlos.`;
+IMPORTANTE: SOLO verifica contra las normas mencionadas en la sección "Documentos de referencia" o "Normativa aplicable" de la cotización.
+NO uses normas que no estén referenciadas en el documento.`;
 
         const prompt = `
 ## COTIZACIÓN A VERIFICAR (CONTENIDO COMPLETO)
 ${extractedText}
 
-## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
+## BASE DE DATOS DE NORMAS (para consulta)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN - LEE CON CUIDADO
+## INSTRUCCIONES DE VERIFICACIÓN
 
-REGLA FUNDAMENTAL: SOLO reporta errores que puedas PROBAR.
-- Un error es válido SOLO si: 1) La norma EXIGE algo específico, Y 2) Ese algo NO está en la cotización
-- NO inventes errores. NO adivines. NO asumas que algo falta si no estás 100% seguro
-- Si un parámetro ESTÁ en la cotización, NO lo reportes como faltante
-- Lee la cotización COMPLETA antes de decidir qué falta
+PASO 1: IDENTIFICAR NORMAS REFERENCIADAS
+- Busca en la cotización la sección "Documentos de referencia", "Normativa aplicable", o sección similar
+- Extrae la LISTA de normas/resoluciones/decretos que la cotización menciona como referencia
+- Ejemplo: "Resolución 2115 de 2007", "Decreto 1076 de 2015", etc.
 
-PROCESO DE VERIFICACIÓN:
-1. Lee la cotización completa y extrae la LISTA de parámetros/análisis que SÍ incluye
-2. Lee cada norma y extrae los parámetros OBLIGATORIOS que exige
-3. Compara: ¿El parámetro obligatorio de la norma está en la lista de la cotización?
-4. SOLO si NO está, repórtalo como error
+PASO 2: VERIFICAR SOLO CONTRA ESAS NORMAS
+- Para CADA norma referenciada en la cotización:
+  - Busca esa norma en la base de datos proporcionada
+  - Verifica que la cotización incluya TODOS los parámetros que esa norma exige
+  - Si falta algún parámetro que la norma exige, repórtalo como error
+
+PASO 3: REPORTAR ERRORES REALES
+- SOLO reporta errores de parámetros que:
+  1. La norma REFERENCIADA en la cotización exige
+  2. NO están incluidos en la oferta de la cotización
+- NO reportes errores de normas que la cotización NO menciona
 
 EJEMPLO:
-- La cotización dice: "pH, DBO5, DQO, SST, Coliformes"
-- La norma exige: "pH, DBO5, Nitrógeno Total"
-- Error válido: "Nitrógeno Total" (porque la norma lo exige y NO está en la cotización)
-- NO es error: "pH" (porque SÍ está en la cotización)
+- La cotización referencia: "Resolución 2115 de 2007"
+- Esa resolución exige: pH, Turbidez, Color, Coliformes
+- La cotización ofrece: pH, Turbidez, Color
+- ERROR VÁLIDO: "Falta Coliformes según Resolución 2115 de 2007"
 
-VERIFICAR:
-1. **PARÁMETROS**: Compara los parámetros de la cotización vs los que exige cada norma
-2. **MÉTODOS**: ¿Los métodos coinciden con lo que exigen las normas?
-3. **INFORMACIÓN**: ¿Falta información obligatoria según las normas?
-
-⚠️ ADVERTENCIA ANTI-ALUCINACIÓN:
-- NO reportes "pH faltante" si pH aparece en la cotización
-- NO reportes parámetros faltantes sin verificar primero que realmente NO están
-- Si no estás seguro, NO lo reportes
-- Es mejor reportar menos errores pero REALES, que muchos errores inventados
+NO REPORTAR: Errores de normas que NO están en "Documentos de referencia" de la cotización
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
