@@ -240,76 +240,100 @@ async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
             extractedText = 'Error al extraer texto del documento';
         }
 
-        // Fetch all quotation-related standards from database
-        console.log(`[Quotation] Fetching standards from database...`);
+        // Fetch ALL standards from database - no limit
+        console.log(`[Quotation] Fetching ALL standards from database...`);
         const standards = await prisma.standard.findMany({
-            where: {
-                OR: [
-                    { type: 'QUOTATION' },
-                    { type: 'OIT' }, // Also include OIT standards as they may apply
-                    { category: { in: ['agua_potable', 'vertimientos', 'ruido', 'aire', 'general', 'decreto'] } }
-                ]
-            },
-            take: 10 // Limit to avoid token overflow
+            orderBy: { createdAt: 'desc' }
         });
 
-        console.log(`[Quotation] Found ${standards.length} applicable standards`);
+        console.log(`[Quotation] Found ${standards.length} total standards to verify against`);
 
-        // Build standards content for AI prompt
+        // Build standards content for AI prompt - include more content per standard
         const standardsContent = standards.map(s => {
-            const content = s.content ? s.content.substring(0, 8000) : '';
+            const content = s.content ? s.content.substring(0, 15000) : '';
             return `
-### ${s.title}
+### NORMA: ${s.title}
 **Categoría:** ${s.category || 'general'}
 **Tipo:** ${s.type}
-${content || s.description}
+**Descripción:** ${s.description || 'N/A'}
+**Contenido Normativo:**
+${content}
 `;
         }).join('\n---\n');
 
-        // Build compliance check prompt
-        const systemPrompt = `Eres un Auditor de Calidad Ambiental experto en normativa colombiana. 
-Tu tarea es verificar que las cotizaciones de servicios ambientales cumplan con la normativa vigente.
-Debes ser ESTRICTO y reportar TODOS los errores o incumplimientos encontrados.`;
+        // Build EXHAUSTIVE compliance check prompt
+        const systemPrompt = `Eres un Auditor de Calidad Ambiental EXTREMADAMENTE ESTRICTO y experto en normativa colombiana.
+Tu trabajo es encontrar TODOS los errores, omisiones e incumplimientos en las cotizaciones.
+NO debes ser permisivo. Si algo no está explícitamente correcto, DEBES marcarlo como error.
+Cada norma tiene requisitos específicos que DEBEN cumplirse al 100%.`;
 
         const prompt = `
-## COTIZACIÓN A VERIFICAR
-${extractedText.substring(0, 15000)}
+## COTIZACIÓN A VERIFICAR (CONTENIDO COMPLETO)
+${extractedText}
 
-## NORMAS APLICABLES
+## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN
-Analiza la cotización contra las normas y verifica:
+## INSTRUCCIONES DE VERIFICACIÓN EXHAUSTIVA
+Analiza la cotización contra TODAS las normas y verifica RIGUROSAMENTE:
 
-1. **PARÁMETROS OBLIGATORIOS**: ¿Incluye todos los parámetros/análisis que exige la normativa?
-2. **MÉTODOS DE ANÁLISIS**: ¿Los métodos mencionados son los correctos según las normas?
-3. **REQUISITOS LEGALES**: ¿Cumple con los requisitos legales colombianos?
-4. **EXCLUSIONES**: Si hay exclusiones, ¿son válidas o violan la normativa?
-5. **INFORMACIÓN COMPLETA**: ¿Tiene toda la información requerida (cliente, alcance, etc.)?
+1. **PARÁMETROS OBLIGATORIOS POR NORMA**: 
+   - ¿Incluye TODOS los parámetros/análisis que exige CADA normativa aplicable?
+   - Si falta aunque sea UN parámetro obligatorio, es un incumplimiento CRITICAL
+
+2. **MÉTODOS DE ANÁLISIS**: 
+   - ¿Los métodos mencionados son EXACTAMENTE los que exigen las normas?
+   - ¿Están correctamente referenciados (ej: Standard Methods, IDEAM, etc.)?
+
+3. **LÍMITES Y VALORES PERMISIBLES**:
+   - ¿Se mencionan correctamente los límites máximos permisibles según cada norma?
+   - ¿Los rangos de acreditación cubren los límites normativos?
+
+4. **REQUISITOS DE MUESTREO**:
+   - ¿Se especifica correctamente el tipo de muestra (puntual, compuesta)?
+   - ¿Los tiempos de preservación y recipientes son correctos?
+
+5. **ACREDITACIÓN Y CERTIFICACIONES**:
+   - ¿Los laboratorios mencionados tienen la acreditación requerida?
+   - ¿Se menciona el alcance de acreditación IDEAM?
+
+6. **EXCLUSIONES Y NOTAS**:
+   - Si hay exclusiones, ¿violan algún requisito normativo obligatorio?
+   - ¿Hay modificaciones que afecten el cumplimiento?
+
+7. **INFORMACIÓN CONTRACTUAL**:
+   - ¿Tiene toda la información requerida (cliente, alcance, vigencia, condiciones)?
+
+SÉ MUY ESTRICTO. Si hay CUALQUIER duda o ambigüedad, márcalo como WARNING.
+Si falta algo obligatorio por norma, es CRITICAL.
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
   "compliant": true/false,
   "score": 0-100,
-  "summary": "Resumen ejecutivo del análisis de cumplimiento",
-  "appliedStandards": ["lista de normas verificadas"],
+  "summary": "Resumen ejecutivo detallado del análisis de cumplimiento",
+  "appliedStandards": ["lista completa de normas verificadas"],
   "issues": [
     {
       "severity": "CRITICAL/WARNING/INFO",
-      "category": "categoria del problema",
-      "description": "descripción detallada del incumplimiento",
-      "normReference": "referencia a la norma incumplida",
-      "recommendation": "cómo corregirlo"
+      "category": "categoria del problema (ej: Parámetros, Métodos, Límites, Muestreo, etc.)",
+      "description": "descripción detallada y específica del incumplimiento",
+      "normReference": "norma específica que se incumple con artículo/numeral si aplica",
+      "recommendation": "acción correctiva específica requerida"
     }
   ],
-  "compliantItems": ["lista de requisitos que SÍ cumple"],
-  "missingParameters": ["parámetros/análisis que faltan según la norma"],
-  "exclusions": ["exclusiones detectadas en la cotización"],
-  "recommendations": ["recomendaciones generales"]
+  "compliantItems": ["lista detallada de requisitos que SÍ cumple correctamente"],
+  "missingParameters": ["lista de parámetros/análisis faltantes según las normas"],
+  "exclusions": ["exclusiones detectadas en la cotización y si son válidas"],
+  "recommendations": ["recomendaciones específicas para lograr cumplimiento total"]
 }
 
-IMPORTANTE: Si encuentras errores o incumplimientos, debes listarlos TODOS en "issues" con detalle.
-Si la cotización NO cumple, "compliant" debe ser false y "score" bajo.
+IMPORTANTE: 
+- Score 100 SOLO si cumple ABSOLUTAMENTE TODO según TODAS las normas
+- Score 80-99 si tiene issues menores (WARNING/INFO)
+- Score 50-79 si tiene algunos CRITICAL pero es parcialmente conforme
+- Score <50 si tiene múltiples CRITICAL o fallas graves
+- Si encuentras problemas, "compliant" DEBE ser false
 `.trim();
 
         // Run AI compliance check
