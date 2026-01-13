@@ -7,12 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
     FileText, Building2, Calendar, Download, Link2,
     Sparkles, Loader2, DollarSign, CheckCircle2,
-    Clock, Hash
+    Clock, Hash, AlertTriangle, XCircle
 } from 'lucide-react';
 
 interface Quotation {
@@ -316,28 +314,195 @@ export default function QuotationDetailPage() {
                     {/* Analysis Tab */}
                     <TabsContent value="analysis" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {aiData ? (
-                            <Card className="border-indigo-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                                <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Sparkles className="h-5 w-5 text-indigo-600" />
-                                        Análisis de IA
-                                    </CardTitle>
-                                    <CardDescription>Resultados del análisis automático</CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-6">
-                                    <div className="prose prose-slate max-w-none">
-                                        {typeof aiData === 'string' ? (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiData}</ReactMarkdown>
-                                        ) : aiData.analysis ? (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiData.analysis}</ReactMarkdown>
-                                        ) : (
-                                            <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-auto max-h-96 border border-slate-200">
-                                                {JSON.stringify(aiData, null, 2)}
-                                            </pre>
+                            <div className="space-y-6">
+                                {/* Status Banner */}
+                                <div className={`rounded-xl p-6 border ${aiData.status === 'check' ? 'bg-green-50 border-green-200' :
+                                    aiData.status === 'error' ? 'bg-red-50 border-red-200' :
+                                        'bg-amber-50 border-amber-200'
+                                    }`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${aiData.status === 'check' ? 'bg-green-100' :
+                                            aiData.status === 'error' ? 'bg-red-100' :
+                                                'bg-amber-100'
+                                            }`}>
+                                            {aiData.status === 'check' ? (
+                                                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                            ) : (
+                                                <Sparkles className={`h-6 w-6 ${aiData.status === 'error' ? 'text-red-600' : 'text-amber-600'}`} />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className={`text-lg font-semibold ${aiData.status === 'check' ? 'text-green-900' :
+                                                aiData.status === 'error' ? 'text-red-900' :
+                                                    'text-amber-900'
+                                                }`}>
+                                                {aiData.status === 'check' ? 'Documento Completo' :
+                                                    aiData.status === 'error' ? 'Requiere Revisión' :
+                                                        'Atención Requerida'}
+                                            </h3>
+                                            <p className={`text-sm ${aiData.status === 'check' ? 'text-green-700' :
+                                                aiData.status === 'error' ? 'text-red-700' :
+                                                    'text-amber-700'
+                                                }`}>
+                                                {aiData.status === 'check' ? 'El análisis no encontró problemas críticos' :
+                                                    aiData.status === 'error' ? 'Se detectaron elementos faltantes importantes' :
+                                                        'Hay algunos elementos que requieren atención'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {/* Extracted Info */}
+                                    {aiData.rawResponse && (() => {
+                                        try {
+                                            const rawData = JSON.parse(aiData.rawResponse);
+                                            return (
+                                                <Card className="border-slate-200 shadow-sm">
+                                                    <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                                                        <CardTitle className="text-base flex items-center gap-2">
+                                                            <FileText className="h-4 w-4 text-indigo-600" />
+                                                            Información Extraída
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-4 space-y-3">
+                                                        {rawData.offer_id && (
+                                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                                                <span className="text-sm text-slate-500">ID Oferta</span>
+                                                                <span className="font-medium text-slate-900">{rawData.offer_id}</span>
+                                                            </div>
+                                                        )}
+                                                        {rawData.date && (
+                                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                                                <span className="text-sm text-slate-500">Fecha</span>
+                                                                <span className="font-medium text-slate-900">{rawData.date}</span>
+                                                            </div>
+                                                        )}
+                                                        {rawData.sender && (
+                                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                                                <span className="text-sm text-slate-500">Remitente</span>
+                                                                <span className="font-medium text-slate-900">{rawData.sender}</span>
+                                                            </div>
+                                                        )}
+                                                        {rawData.position && (
+                                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                                                <span className="text-sm text-slate-500">Cargo</span>
+                                                                <span className="font-medium text-slate-900">{rawData.position}</span>
+                                                            </div>
+                                                        )}
+                                                        {rawData.contact_commercial?.name && (
+                                                            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                                                <span className="text-sm text-slate-500">Ejecutivo Comercial</span>
+                                                                <span className="font-medium text-slate-900">{rawData.contact_commercial.name}</span>
+                                                            </div>
+                                                        )}
+                                                        {rawData.contact_info?.email_general && (
+                                                            <div className="flex justify-between items-center py-2">
+                                                                <span className="text-sm text-slate-500">Email</span>
+                                                                <span className="font-medium text-slate-900 text-sm">{rawData.contact_info.email_general}</span>
+                                                            </div>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        } catch {
+                                            return null;
+                                        }
+                                    })()}
+
+                                    {/* Services */}
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-blue-600" />
+                                                Servicios Detectados
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4">
+                                            {aiData.services && aiData.services.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {aiData.services.map((service: any, idx: number) => (
+                                                        <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <p className="font-medium text-slate-900">{service.name}</p>
+                                                            {service.proposedDate && (
+                                                                <p className="text-sm text-slate-500 mt-1">
+                                                                    Fecha propuesta: {service.proposedDate}
+                                                                </p>
+                                                            )}
+                                                            {service.duration && (
+                                                                <p className="text-sm text-slate-500">
+                                                                    Duración: {service.duration} día(s)
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-500 text-center py-4">
+                                                    No se detectaron servicios específicos
+                                                </p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Alerts & Missing */}
+                                {((aiData.alerts && aiData.alerts.length > 0) || (aiData.missing && aiData.missing.length > 0)) && (
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {aiData.alerts && aiData.alerts.length > 0 && (
+                                            <Card className="border-amber-200 shadow-sm">
+                                                <CardHeader className="bg-amber-50">
+                                                    <CardTitle className="text-base text-amber-900">⚠️ Alertas</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="pt-4">
+                                                    <ul className="space-y-2">
+                                                        {aiData.alerts.map((alert: string, idx: number) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-sm text-amber-800">
+                                                                <span className="text-amber-500 mt-0.5">•</span>
+                                                                {alert}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                        {aiData.missing && aiData.missing.length > 0 && (
+                                            <Card className="border-red-200 shadow-sm">
+                                                <CardHeader className="bg-red-50">
+                                                    <CardTitle className="text-base text-red-900">❌ Elementos Faltantes</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="pt-4">
+                                                    <ul className="space-y-2">
+                                                        {aiData.missing.map((item: string, idx: number) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-sm text-red-800">
+                                                                <span className="text-red-500 mt-0.5">•</span>
+                                                                {item}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </CardContent>
+                                            </Card>
                                         )}
                                     </div>
-                                </CardContent>
-                            </Card>
+                                )}
+
+                                {/* Location */}
+                                {aiData.location && (
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardContent className="py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
+                                                    <Building2 className="h-5 w-5 text-slate-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Ubicación</p>
+                                                    <p className="font-medium text-slate-900">{aiData.location}</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
                         ) : (
                             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -362,20 +527,137 @@ export default function QuotationDetailPage() {
                     {/* Compliance Tab */}
                     <TabsContent value="compliance" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {complianceResult ? (
-                            <Card className="border-green-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                        Resultado de Cumplimiento
-                                    </CardTitle>
-                                    <CardDescription>Verificación de requisitos y normativas</CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-6">
-                                    <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-auto max-h-96 border border-slate-200">
-                                        {JSON.stringify(complianceResult, null, 2)}
-                                    </pre>
-                                </CardContent>
-                            </Card>
+                            <div className="space-y-6">
+                                {/* Status Banner */}
+                                <div className={`rounded-xl p-6 border ${complianceResult.status === 'check' ? 'bg-green-50 border-green-200' :
+                                    complianceResult.status === 'error' ? 'bg-red-50 border-red-200' :
+                                        'bg-amber-50 border-amber-200'
+                                    }`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${complianceResult.status === 'check' ? 'bg-green-100' :
+                                            complianceResult.status === 'error' ? 'bg-red-100' :
+                                                'bg-amber-100'
+                                            }`}>
+                                            {complianceResult.status === 'check' ? (
+                                                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                            ) : complianceResult.status === 'error' ? (
+                                                <XCircle className="h-6 w-6 text-red-600" />
+                                            ) : (
+                                                <AlertTriangle className="h-6 w-6 text-amber-600" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className={`text-lg font-semibold ${complianceResult.status === 'check' ? 'text-green-900' :
+                                                complianceResult.status === 'error' ? 'text-red-900' :
+                                                    'text-amber-900'
+                                                }`}>
+                                                {complianceResult.status === 'check' ? 'Cumple con Normativas' :
+                                                    complianceResult.status === 'error' ? 'No Cumple' :
+                                                        'Requiere Revisión'}
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                Verificado: {complianceResult.analyzedAt ?
+                                                    new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Alerts & Missing */}
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {/* Alerts */}
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardHeader className="bg-amber-50">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                                Alertas ({complianceResult.alerts?.length || 0})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4">
+                                            {complianceResult.alerts && complianceResult.alerts.length > 0 ? (
+                                                <ul className="space-y-2">
+                                                    {complianceResult.alerts.map((alert: string, idx: number) => (
+                                                        <li key={idx} className="flex items-start gap-2 text-sm text-amber-800 p-2 bg-amber-50 rounded">
+                                                            <span className="text-amber-500 mt-0.5">•</span>
+                                                            {alert}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-slate-500 text-center py-4">
+                                                    ✅ Sin alertas
+                                                </p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Missing */}
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardHeader className="bg-red-50">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <XCircle className="h-4 w-4 text-red-600" />
+                                                Elementos Faltantes ({complianceResult.missing?.length || 0})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4">
+                                            {complianceResult.missing && complianceResult.missing.length > 0 ? (
+                                                <ul className="space-y-2">
+                                                    {complianceResult.missing.map((item: string, idx: number) => (
+                                                        <li key={idx} className="flex items-start gap-2 text-sm text-red-800 p-2 bg-red-50 rounded">
+                                                            <span className="text-red-500 mt-0.5">•</span>
+                                                            {item}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-slate-500 text-center py-4">
+                                                    ✅ Sin elementos faltantes
+                                                </p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Evidence & Services */}
+                                {((complianceResult.evidence && complianceResult.evidence.length > 0) ||
+                                    (complianceResult.services && complianceResult.services.length > 0)) && (
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            {complianceResult.evidence && complianceResult.evidence.length > 0 && (
+                                                <Card className="border-green-200 shadow-sm">
+                                                    <CardHeader className="bg-green-50">
+                                                        <CardTitle className="text-base text-green-900">✓ Evidencias Encontradas</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-4">
+                                                        <ul className="space-y-2">
+                                                            {complianceResult.evidence.map((item: string, idx: number) => (
+                                                                <li key={idx} className="flex items-start gap-2 text-sm text-green-800">
+                                                                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                                                    {item}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+                                            {complianceResult.services && complianceResult.services.length > 0 && (
+                                                <Card className="border-blue-200 shadow-sm">
+                                                    <CardHeader className="bg-blue-50">
+                                                        <CardTitle className="text-base text-blue-900">📋 Servicios Identificados</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="pt-4">
+                                                        <div className="space-y-2">
+                                                            {complianceResult.services.map((svc: any, idx: number) => (
+                                                                <div key={idx} className="p-2 bg-blue-50 rounded text-sm">
+                                                                    <span className="font-medium text-blue-900">{svc.name || svc}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+                                        </div>
+                                    )}
+                            </div>
                         ) : (
                             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
