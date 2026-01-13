@@ -45,13 +45,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
 const notification_controller_1 = require("./notification.controller");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const axios_1 = __importDefault(require("axios"));
 const prisma = new client_1.PrismaClient();
 // Accept Planning Proposal
 const acceptPlanning = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -613,6 +614,107 @@ const createOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.createOIT = createOIT;
 // Async creation endpoint that accepts file uploads and triggers background AI processing
+// Create OIT from URL (Legacy JSON support)
+const createOITFromUrl = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { OT, DOCUMENTO } = req.body;
+        if (!DOCUMENTO) {
+            return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
+        }
+        const oitNumber = OT || `OIT-${Date.now()}`;
+        // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+        console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
+        // 1. Download file
+        const filename = `oitFromUrl-${Date.now()}.pdf`;
+        const uploadDir = path_1.default.join(__dirname, '../../uploads');
+        if (!fs_1.default.existsSync(uploadDir)) {
+            fs_1.default.mkdirSync(uploadDir, { recursive: true });
+        }
+        const filePath = path_1.default.join(uploadDir, filename);
+        try {
+            const response = yield (0, axios_1.default)({
+                method: 'get',
+                url: DOCUMENTO,
+                responseType: 'stream'
+            });
+            const writer = fs_1.default.createWriteStream(filePath);
+            response.data.pipe(writer);
+            yield new Promise((resolve, reject) => {
+                writer.on('finish', () => resolve(true));
+                writer.on('error', reject);
+            });
+        }
+        catch (downloadError) {
+            console.error('Error downloading file:', downloadError);
+            return res.status(400).json({ error: 'Error al descargar el archivo desde la URL proporcionada' });
+        }
+        const fileUrl = `/uploads/${filename}`;
+        // 2. Create OIT Record
+        const oit = yield prisma.oIT.create({
+            data: {
+                oitNumber: oitNumber,
+                description: 'Importado vía integración externa',
+                status: 'UPLOADING',
+                oitFileUrl: fileUrl,
+            }
+        });
+        // 3. Respond immediately
+        res.json({
+            id: oit.id,
+            oitNumber: oit.oitNumber,
+            status: 'UPLOADING',
+            message: 'OIT recibida y creada. Procesando archivo...'
+        });
+        // 4. Trigger Async Processing reusing existing logic
+        // We mock the file object structure expected by processOITFilesAsync (partial match)
+        const mockFiles = {
+            oitFile: [{
+                    path: filePath,
+                    filename: filename
+                }]
+        };
+        // Note: processOITFilesAsync needs to be defined/imported or available in scope. 
+        // Since it is in this same file (usually below), we can call it if it's hoisted or defined later. 
+        // If it's not exported or hoisted, we might need to check. 
+        // TypeScript functions are hoisted if defined as 'async function', but 'const func = ...' are not hoisted.
+        // If processOITFilesAsync is defined as 'const', we might have issues if it's below.
+        // Let's check processOITFilesAsync definition style.
+        // Assuming processOITFilesAsync is defined below as 'const processOITFilesAsync = ...' or 'export const ...'
+        // If so, we can't call it before definition.
+        // Safer approach: duplicate the crucial background logic locally or move definitions.
+        // For now, I'll inline the core logic to be safe and avoid refactoring huge file.
+        (() => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                const { pdfService } = require('../services/pdf.service');
+                const text = yield pdfService.extractText(filePath);
+                yield prisma.oIT.update({ where: { id: oit.id }, data: { status: 'ANALYZING' } });
+                const analysis = yield aiService.analyzeDocument(text);
+                yield prisma.oIT.update({
+                    where: { id: oit.id },
+                    data: {
+                        aiData: JSON.stringify(analysis),
+                        status: 'PENDING'
+                    }
+                });
+                console.log(`[Legacy API] OIT ${oit.oitNumber} processed successfully.`);
+            }
+            catch (err) {
+                console.error('[Legacy API] Error processing background task:', err);
+                yield prisma.oIT.update({
+                    where: { id: oit.id },
+                    data: { status: 'REVIEW_IMPORTANT' }
+                });
+            }
+        }))();
+    }
+    catch (error) {
+        console.error('Error creating OIT from URL:', error);
+        res.status(500).json({ error: 'Error interno al procesar solicitud' });
+    }
+});
+exports.createOITFromUrl = createOITFromUrl;
 const createOITAsync = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -840,6 +942,19 @@ const updateOIT = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             data.oitFileUrl = oitFileUrl;
         if (quotationFileUrl !== undefined && !uploadedQuotationFile)
             data.quotationFileUrl = quotationFileUrl;
+        if (req.body.quotationId !== undefined) {
+            data.quotationId = req.body.quotationId;
+            // Fetch quotation file url if we want to sync it?
+            // Ideally, we should rely on relational data, but if we need to display it from oIT.quotationFileUrl for legacy reasons:
+            try {
+                const q = yield prisma.quotation.findUnique({ where: { id: req.body.quotationId } });
+                if (q && q.fileUrl)
+                    data.quotationFileUrl = q.fileUrl;
+            }
+            catch (e) {
+                console.error('Error fetching linked quotation file', e);
+            }
+        }
         if (aiData !== undefined)
             data.aiData = aiData;
         if (resources !== undefined)
@@ -1153,6 +1268,97 @@ const generateSamplingReport = (req, res) => __awaiter(void 0, void 0, void 0, f
     }
 });
 exports.generateSamplingReport = generateSamplingReport;
+// Upload Sampling Sheets (Planillas de Muestreo)
+const uploadSamplingSheets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo de planillas' });
+        }
+        // Save file URL and trigger analysis
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingSheetUrl: `uploads/${file.filename}`,
+                samplingSheetAnalysis: null,
+            }
+        });
+        res.json({
+            success: true,
+            samplingSheetUrl: `/uploads/${file.filename}`,
+            message: 'Planillas subidas. Analizando...'
+        });
+        // Trigger async analysis
+        processSamplingSheetsAsync(id, file.path).catch(err => {
+            console.error('Error in background sampling sheets processing:', err);
+        });
+    }
+    catch (error) {
+        console.error('Error uploading sampling sheets:', error);
+        res.status(500).json({ error: 'Error al subir planillas de muestreo' });
+    }
+});
+exports.uploadSamplingSheets = uploadSamplingSheets;
+// Background Processor for Sampling Sheets
+function processSamplingSheetsAsync(oitId, filePath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}`);
+            const { pdfService } = require('../services/pdf.service');
+            let extractedText = '';
+            try {
+                if (filePath.endsWith('.pdf')) {
+                    extractedText = yield pdfService.extractText(filePath);
+                }
+                else if (filePath.match(/\.(xlsx|xls)$/i)) {
+                    // Parse Excel file
+                    const xlsx = require('xlsx');
+                    const workbook = xlsx.readFile(filePath);
+                    // Convert all sheets to text representation
+                    let allSheetsText = "";
+                    workbook.SheetNames.forEach((sheetName) => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const csvData = xlsx.utils.sheet_to_csv(sheet);
+                        allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
+                    });
+                    extractedText = allSheetsText;
+                }
+                else {
+                    extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                }
+            }
+            catch (readErr) {
+                console.error("[SAMPLING_SHEETS] Error extracting text:", readErr);
+                extractedText = "Error al leer documento.";
+            }
+            const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
+            const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
+            const analysis = yield aiService.analyzeSamplingSheets(extractedText, oitContext);
+            yield prisma.oIT.update({
+                where: { id: oitId },
+                data: {
+                    samplingSheetAnalysis: JSON.stringify(analysis)
+                }
+            });
+            console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, quality: ${analysis.quality}`);
+        }
+        catch (error) {
+            console.error('[SAMPLING_SHEETS] Error in background processing:', error);
+            yield prisma.oIT.update({
+                where: { id: oitId },
+                data: {
+                    samplingSheetAnalysis: JSON.stringify({
+                        summary: "Error en análisis automático",
+                        quality: 'regular',
+                        findings: ["Error durante el procesamiento"],
+                        recommendations: ["Revisar manualmente"]
+                    })
+                }
+            });
+        }
+    });
+}
 const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -1322,21 +1528,15 @@ const updateServiceDates = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const { id } = req.params;
         const { serviceDates } = req.body;
-        // Use planning service to update
-        // We need to import planningService instance or class
-        // It seems planning.service.ts exports a default instance `planningService`
-        // But in this file it's not imported yet. I need to make sure I import it.
-        // Wait, line 3 imports AIService, line 5 imports createNotification.
-        // I will let the import be handled by the next tool or add it if multi_replace allows.
-        // Actually replace_file_content replaces a block. I will add the method here.
-        // I'll need to check imports.
-        // Let's assume I can use dynamic import or require if I can't easily add top-level import without reading whole file.
-        // Better: I will use 'require' inside the function or rely on existing imports if any.
-        // But best practice is top level import. 
-        // I'll use inline require for safety in this robust-less edit:
-        const planningService = require('../services/planning.service').default;
-        const updated = yield planningService.updateServiceDates(id, serviceDates);
-        res.json(updated);
+        // serviceDates format:
+        // { [serviceId]: { name, date, time, engineerIds[], confirmed } }
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                serviceDates: JSON.stringify(serviceDates)
+            }
+        });
+        res.json({ success: true, message: 'Programación actualizada correctamente' });
     }
     catch (error) {
         console.error('Error updating service dates:', error);

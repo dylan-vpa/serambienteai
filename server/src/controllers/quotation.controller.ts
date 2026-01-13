@@ -56,17 +56,27 @@ export const createQuotation = async (req: Request, res: Response) => {
         // Generate quotation number if not provided
         const finalQuotationNumber = quotationNumber || `COT-${Date.now()}`;
 
+        // Store file URL with /uploads/ prefix for consistency
+        const fileUrl = file ? `/uploads/${file.filename}` : undefined;
+
         const quotation = await prisma.quotation.create({
             data: {
                 quotationNumber: finalQuotationNumber,
                 description,
                 clientName,
-                fileUrl: file ? file.path : undefined,
-                status: 'PENDING'
+                fileUrl,
+                status: file ? 'ANALYZING' : 'PENDING'
             }
         });
 
         res.status(201).json(quotation);
+
+        // Trigger analysis in background if file was uploaded
+        if (file && fileUrl) {
+            runQuotationAnalysis(quotation.id, fileUrl).catch(err => {
+                console.error('Error in background quotation analysis:', err);
+            });
+        }
     } catch (error) {
         console.error('Error creating quotation:', error);
         res.status(500).json({ error: 'Error al crear cotización' });
@@ -85,7 +95,13 @@ export const updateQuotation = async (req: Request, res: Response) => {
         if (description !== undefined) data.description = description;
         if (clientName !== undefined) data.clientName = clientName;
         if (status) data.status = status;
-        if (file) data.fileUrl = file.path;
+
+        let shouldReanalyze = false;
+        if (file) {
+            data.fileUrl = `/uploads/${file.filename}`;
+            data.status = 'ANALYZING';
+            shouldReanalyze = true;
+        }
 
         const quotation = await prisma.quotation.update({
             where: { id },
@@ -93,6 +109,13 @@ export const updateQuotation = async (req: Request, res: Response) => {
         });
 
         res.json(quotation);
+
+        // Trigger re-analysis if file was updated
+        if (shouldReanalyze && quotation.fileUrl) {
+            runQuotationAnalysis(id, quotation.fileUrl).catch(err => {
+                console.error('Error in background quotation re-analysis:', err);
+            });
+        }
     } catch (error) {
         console.error('Error updating quotation:', error);
         res.status(500).json({ error: 'Error al actualizar cotización' });
@@ -144,18 +167,26 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Cotización no encontrada' });
         }
 
+        if (!quotation.fileUrl) {
+            return res.status(400).json({ error: 'La cotización no tiene archivo adjunto para analizar' });
+        }
+
         // Update status to analyzing
         await prisma.quotation.update({
             where: { id },
             data: { status: 'ANALYZING' }
         });
 
-        // TODO: Implement AI analysis using aiService
-        // For now, return a placeholder response
+        // Return immediate response
         res.json({
             message: 'Análisis iniciado',
             quotationId: id,
             status: 'ANALYZING'
+        });
+
+        // Run analysis in background
+        runQuotationAnalysis(id, quotation.fileUrl).catch(err => {
+            console.error('Error in background quotation analysis:', err);
         });
 
     } catch (error) {
@@ -163,3 +194,96 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al analizar cotización' });
     }
 };
+
+// Background analysis function
+async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
+    try {
+        console.log(`[Quotation] Starting analysis for ${quotationId}`);
+
+        // Import services
+        const { pdfService } = require('../services/pdf.service');
+        const { AIService } = require('../services/ai.service');
+        const aiService = new AIService();
+
+        // Resolve file path
+        const uploadsRoot = path.join(__dirname, '../../');
+        let filePath = fileUrl;
+        if (!path.isAbsolute(filePath)) {
+            filePath = path.join(uploadsRoot, fileUrl.replace(/^\//, ''));
+        }
+        if (!fs.existsSync(filePath)) {
+            filePath = path.join(uploadsRoot, 'uploads', path.basename(fileUrl));
+        }
+
+        if (!fs.existsSync(filePath)) {
+            console.error(`[Quotation] File not found: ${filePath}`);
+            await prisma.quotation.update({
+                where: { id: quotationId },
+                data: {
+                    status: 'REVIEW_REQUIRED',
+                    complianceResult: JSON.stringify({
+                        error: 'Archivo no encontrado',
+                        message: 'No se pudo localizar el archivo de cotización para análisis'
+                    })
+                }
+            });
+            return;
+        }
+
+        // Extract text from PDF
+        console.log(`[Quotation] Extracting text from: ${filePath}`);
+        let extractedText = '';
+        try {
+            extractedText = await pdfService.extractText(filePath);
+            console.log(`[Quotation] Extracted ${extractedText.length} characters`);
+        } catch (extractError) {
+            console.error('[Quotation] Text extraction error:', extractError);
+            extractedText = 'Error al extraer texto del documento';
+        }
+
+        // Run AI analysis
+        console.log(`[Quotation] Running AI analysis...`);
+        const analysisResult = await aiService.analyzeDocument(extractedText);
+
+        // Determine compliance status based on analysis
+        let finalStatus = 'REVIEW_REQUIRED';
+        if (analysisResult.status === 'check' && analysisResult.missing.length === 0) {
+            finalStatus = 'COMPLIANT';
+        } else if (analysisResult.status === 'error' || analysisResult.missing.length > 3) {
+            finalStatus = 'NON_COMPLIANT';
+        }
+
+        // Update quotation with results
+        await prisma.quotation.update({
+            where: { id: quotationId },
+            data: {
+                status: finalStatus,
+                extractedText: extractedText.substring(0, 10000), // Store first 10k chars
+                aiData: JSON.stringify(analysisResult),
+                complianceResult: JSON.stringify({
+                    status: analysisResult.status,
+                    alerts: analysisResult.alerts || [],
+                    missing: analysisResult.missing || [],
+                    evidence: analysisResult.evidence || [],
+                    services: analysisResult.services || [],
+                    analyzedAt: new Date().toISOString()
+                })
+            }
+        });
+
+        console.log(`[Quotation] Analysis complete for ${quotationId}. Status: ${finalStatus}`);
+
+    } catch (error: any) {
+        console.error(`[Quotation] Analysis failed for ${quotationId}:`, error);
+        await prisma.quotation.update({
+            where: { id: quotationId },
+            data: {
+                status: 'REVIEW_REQUIRED',
+                complianceResult: JSON.stringify({
+                    error: error.message || 'Error desconocido',
+                    message: 'El análisis automático falló. Por favor revise manualmente.'
+                })
+            }
+        });
+    }
+}

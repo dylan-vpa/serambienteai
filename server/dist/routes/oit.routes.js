@@ -13,6 +13,7 @@ router.post('/async', auth_middleware_1.authMiddleware, multer_1.upload.fields([
     { name: 'oitFile', maxCount: 1 },
     { name: 'quotationFile', maxCount: 1 },
 ]), oit_controller_1.createOITAsync);
+router.post('/from-url', oit_controller_1.createOITFromUrl);
 router.put('/:id', oit_controller_1.updateOIT);
 router.patch('/:id', auth_middleware_1.authMiddleware, multer_1.upload.fields([
     { name: 'oitFile', maxCount: 1 },
@@ -29,6 +30,7 @@ router.post('/:id/sampling-data', auth_middleware_1.authMiddleware, oit_controll
 router.get('/:id/sampling-data', auth_middleware_1.authMiddleware, oit_controller_1.getSamplingData);
 // Lab results and final report
 router.post('/:id/lab-results', auth_middleware_1.authMiddleware, multer_1.upload.single('file'), oit_controller_1.uploadLabResults);
+router.post('/:id/sampling-sheets', auth_middleware_1.authMiddleware, multer_1.upload.single('file'), oit_controller_1.uploadSamplingSheets);
 router.post('/:id/generate-final-report', auth_middleware_1.authMiddleware, oit_controller_1.generateFinalReport);
 // Sampling validation workflow
 router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controller_1.validateStepData);

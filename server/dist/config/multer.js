@@ -24,9 +24,9 @@ const storage = multer_1.default.diskStorage({
 });
 // File filter
 const fileFilter = (req, file, cb) => {
-    // Allow PDF, Word docs, and Text files
-    const allowedExtensions = /pdf|doc|docx|txt/;
-    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain/;
+    // Allow PDF, Word docs, Text, and Excel/CSV files
+    const allowedExtensions = /pdf|doc|docx|txt|xlsx|xls|csv/;
+    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain|application\/vnd.ms-excel|application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet|text\/csv/;
     const extname = allowedExtensions.test(path_1.default.extname(file.originalname).toLowerCase());
     const mimetype = allowedMimeTypes.test(file.mimetype);
     if (extname && mimetype) {
@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
     }
     else {
         console.log('❌ [MULTER] Rejected file:', file.originalname, file.mimetype);
-        cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
+        cb(new Error('Only PDF, DOC, DOCX, TXT, Excel, and CSV files are allowed'));
     }
 };
 exports.upload = (0, multer_1.default)({
