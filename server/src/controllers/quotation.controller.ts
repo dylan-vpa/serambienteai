@@ -278,38 +278,36 @@ ${extractedText}
 ## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN EXHAUSTIVA
-Analiza la cotización contra TODAS las normas y verifica RIGUROSAMENTE:
+## INSTRUCCIONES DE VERIFICACIÓN - LEE CON CUIDADO
 
-1. **PARÁMETROS OBLIGATORIOS POR NORMA**: 
-   - ¿Incluye TODOS los parámetros/análisis que exige CADA normativa aplicable?
-   - Si falta aunque sea UN parámetro obligatorio, es un incumplimiento CRITICAL
+REGLA FUNDAMENTAL: SOLO reporta errores que puedas PROBAR.
+- Un error es válido SOLO si: 1) La norma EXIGE algo específico, Y 2) Ese algo NO está en la cotización
+- NO inventes errores. NO adivines. NO asumas que algo falta si no estás 100% seguro
+- Si un parámetro ESTÁ en la cotización, NO lo reportes como faltante
+- Lee la cotización COMPLETA antes de decidir qué falta
 
-2. **MÉTODOS DE ANÁLISIS**: 
-   - ¿Los métodos mencionados son EXACTAMENTE los que exigen las normas?
-   - ¿Están correctamente referenciados (ej: Standard Methods, IDEAM, etc.)?
+PROCESO DE VERIFICACIÓN:
+1. Lee la cotización completa y extrae la LISTA de parámetros/análisis que SÍ incluye
+2. Lee cada norma y extrae los parámetros OBLIGATORIOS que exige
+3. Compara: ¿El parámetro obligatorio de la norma está en la lista de la cotización?
+4. SOLO si NO está, repórtalo como error
 
-3. **LÍMITES Y VALORES PERMISIBLES**:
-   - ¿Se mencionan correctamente los límites máximos permisibles según cada norma?
-   - ¿Los rangos de acreditación cubren los límites normativos?
+EJEMPLO:
+- La cotización dice: "pH, DBO5, DQO, SST, Coliformes"
+- La norma exige: "pH, DBO5, Nitrógeno Total"
+- Error válido: "Nitrógeno Total" (porque la norma lo exige y NO está en la cotización)
+- NO es error: "pH" (porque SÍ está en la cotización)
 
-4. **REQUISITOS DE MUESTREO**:
-   - ¿Se especifica correctamente el tipo de muestra (puntual, compuesta)?
-   - ¿Los tiempos de preservación y recipientes son correctos?
+VERIFICAR:
+1. **PARÁMETROS**: Compara los parámetros de la cotización vs los que exige cada norma
+2. **MÉTODOS**: ¿Los métodos coinciden con lo que exigen las normas?
+3. **INFORMACIÓN**: ¿Falta información obligatoria según las normas?
 
-5. **ACREDITACIÓN Y CERTIFICACIONES**:
-   - ¿Los laboratorios mencionados tienen la acreditación requerida?
-   - ¿Se menciona el alcance de acreditación IDEAM?
-
-6. **EXCLUSIONES Y NOTAS**:
-   - Si hay exclusiones, ¿violan algún requisito normativo obligatorio?
-   - ¿Hay modificaciones que afecten el cumplimiento?
-
-7. **INFORMACIÓN CONTRACTUAL**:
-   - ¿Tiene toda la información requerida (cliente, alcance, vigencia, condiciones)?
-
-SÉ MUY ESTRICTO. Si hay CUALQUIER duda o ambigüedad, márcalo como WARNING.
-Si falta algo obligatorio por norma, es CRITICAL.
+⚠️ ADVERTENCIA ANTI-ALUCINACIÓN:
+- NO reportes "pH faltante" si pH aparece en la cotización
+- NO reportes parámetros faltantes sin verificar primero que realmente NO están
+- Si no estás seguro, NO lo reportes
+- Es mejor reportar menos errores pero REALES, que muchos errores inventados
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
