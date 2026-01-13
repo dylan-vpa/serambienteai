@@ -278,33 +278,35 @@ ${extractedText}
 ## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN ESTRICTA
+## INSTRUCCIONES DE VERIFICACIÓN - MUY IMPORTANTE
 
-PASO 1 - EXTRAE LOS PARÁMETROS DE LA COTIZACIÓN:
-- Lee TODA la cotización y lista CADA parámetro/análisis que ofrece
-- Incluye: pH, DBO, DQO, SST, Coliformes, etc. - lo que encuentres
+⚠️ REGLA CRÍTICA: SOLO USA LAS NORMAS QUE APARECEN EN LA COTIZACIÓN
+- Lee la sección "Documentos de referencia" o "Normativa aplicable" de la cotización
+- Si la cotización menciona "Resolución 0699", SOLO verificas contra 0699
+- Si la cotización menciona "Decreto 1594", SOLO verificas contra 1594
+- NO uses otras normas aunque las tengas disponibles
+- IGNORA las normas que te proporcioné si NO están en la cotización
 
-PASO 2 - IDENTIFICA LAS NORMAS REFERENCIADAS:
-- Busca "Documentos de referencia" o "Normativa" en la cotización
-- Lista las normas que menciona la cotización
+EJEMPLO:
+- Cotización dice: "Según Resolución 0699 de 2021"
+- ✅ CORRECTO: Verificar contra Resolución 0699
+- ❌ INCORRECTO: Verificar contra Resolución 2115 (no está mencionada)
 
-PASO 3 - VERIFICA CADA NORMA:
-Para cada norma referenciada en la cotización:
-- ¿Qué parámetros EXIGE esa norma como OBLIGATORIOS?
-- ¿La cotización incluye TODOS esos parámetros?
-- Si falta alguno, es un ERROR CRÍTICO
+PROCESO:
+1. PRIMERO: Busca qué normas menciona la cotización (ej: "Res. 0699", "Decreto 1575")
+2. SEGUNDO: De mis normas, usa SOLO las que coinciden con las de la cotización
+3. TERCERO: Extrae parámetros de la cotización
+4. CUARTO: Compara solo contra los requisitos de las normas MENCIONADAS en la cotización
 
-PASO 4 - REPORTA ERRORES:
-- Si un parámetro obligatorio de la norma NO está en la cotización = ERROR
-- Si un método de análisis es incorrecto = ERROR
-- Si falta información obligatoria = ERROR
+REPORTAR ERRORES:
+- Solo reporta errores si la norma MENCIONADA EN LA COTIZACIÓN exige algo que falta
+- En "normReference" escribe la norma que LA COTIZACIÓN menciona, no cualquier norma
+- "appliedStandards" debe listar SOLO las normas que LA COTIZACIÓN menciona
 
-REGLAS ESTRICTAS:
-1. NO asumas que algo está bien si no lo verificaste
-2. Lista TODOS los errores, no solo algunos
-3. Si hay parámetros faltantes, DEBEN aparecer en issues
-4. "compliant" = false si hay CUALQUIER error
-5. Score < 100 si hay CUALQUIER issue
+REGLAS:
+1. "compliant" = false si hay CUALQUIER error
+2. Score < 100 si hay CUALQUIER issue
+3. Lista TODOS los errores encontrados
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
