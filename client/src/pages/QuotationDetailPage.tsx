@@ -730,10 +730,10 @@ export default function QuotationDetailPage() {
                                             </CardHeader>
                                             <CardContent className="pt-4">
                                                 <ul className="space-y-2">
-                                                    {complianceResult.recommendations.map((rec: string, idx: number) => (
+                                                    {complianceResult.recommendations.map((rec: any, idx: number) => (
                                                         <li key={idx} className="flex items-start gap-2 text-sm text-blue-800 p-2 bg-blue-50 rounded">
                                                             <span className="text-blue-500 mt-0.5">→</span>
-                                                            {rec}
+                                                            {typeof rec === 'string' ? rec : JSON.stringify(rec)}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -753,10 +753,10 @@ export default function QuotationDetailPage() {
                                         </CardHeader>
                                         <CardContent className="pt-4">
                                             <ul className="grid md:grid-cols-2 gap-2">
-                                                {complianceResult.compliantItems.map((item: string, idx: number) => (
+                                                {complianceResult.compliantItems.map((item: any, idx: number) => (
                                                     <li key={idx} className="flex items-start gap-2 text-sm text-green-800">
                                                         <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                                        {item}
+                                                        {typeof item === 'string' ? item : JSON.stringify(item)}
                                                     </li>
                                                 ))}
                                             </ul>
@@ -774,9 +774,9 @@ export default function QuotationDetailPage() {
                                         </CardHeader>
                                         <CardContent className="pt-4">
                                             <div className="flex flex-wrap gap-2">
-                                                {complianceResult.appliedStandards.map((std: string, idx: number) => (
+                                                {complianceResult.appliedStandards.map((std: any, idx: number) => (
                                                     <span key={idx} className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full">
-                                                        {std}
+                                                        {typeof std === 'string' ? std : (std.title || std.name || JSON.stringify(std))}
                                                     </span>
                                                 ))}
                                             </div>
