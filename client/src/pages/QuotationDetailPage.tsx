@@ -410,16 +410,16 @@ export default function QuotationDetailPage() {
                                         }
                                     })()}
 
-                                    {/* Services */}
-                                    <Card className="border-slate-200 shadow-sm">
-                                        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-blue-600" />
-                                                Servicios Detectados
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="pt-4">
-                                            {aiData.services && aiData.services.length > 0 ? (
+                                    {/* Services - Only show if services exist */}
+                                    {aiData.services && aiData.services.length > 0 ? (
+                                        <Card className="border-slate-200 shadow-sm">
+                                            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-blue-600" />
+                                                    Servicios Detectados
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-4">
                                                 <div className="space-y-3">
                                                     {aiData.services.map((service: any, idx: number) => (
                                                         <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -437,13 +437,59 @@ export default function QuotationDetailPage() {
                                                         </div>
                                                     ))}
                                                 </div>
-                                            ) : (
-                                                <p className="text-sm text-slate-500 text-center py-4">
-                                                    No se detectaron servicios específicos
-                                                </p>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                            </CardContent>
+                                        </Card>
+                                    ) : aiData.rawResponse && (
+                                        /* AI Commentary when no services detected */
+                                        <Card className="border-slate-200 shadow-sm">
+                                            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <Sparkles className="h-4 w-4 text-indigo-600" />
+                                                    Comentarios del Análisis
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-4">
+                                                {(() => {
+                                                    try {
+                                                        const rawData = JSON.parse(aiData.rawResponse);
+                                                        return (
+                                                            <div className="space-y-3 text-sm text-slate-700">
+                                                                {rawData.decision_rule?.map((rule: any, idx: number) => (
+                                                                    <div key={idx} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                                                        <p className="font-medium text-blue-900 mb-1">📋 Regla de Decisión</p>
+                                                                        <p className="text-blue-800">{rule.description}</p>
+                                                                    </div>
+                                                                ))}
+                                                                {rawData.confidentiality?.map((conf: any, idx: number) => (
+                                                                    <div key={idx} className="p-3 bg-green-50 rounded-lg border border-green-100">
+                                                                        <p className="font-medium text-green-900 mb-1">🔒 Confidencialidad</p>
+                                                                        <p className="text-green-800">{conf.description}</p>
+                                                                    </div>
+                                                                ))}
+                                                                {rawData.equipment_availability?.map((eq: any, idx: number) => (
+                                                                    <div key={idx} className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                                                                        <p className="font-medium text-amber-900 mb-1">🔧 Disponibilidad de Equipos</p>
+                                                                        <p className="text-amber-800">{eq.description}</p>
+                                                                    </div>
+                                                                ))}
+                                                                {!rawData.decision_rule && !rawData.confidentiality && !rawData.equipment_availability && (
+                                                                    <p className="text-slate-600 italic">
+                                                                        El documento fue analizado correctamente. No se encontraron servicios específicos pero la información general fue extraída exitosamente.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    } catch {
+                                                        return (
+                                                            <p className="text-sm text-slate-600 italic">
+                                                                El documento fue analizado. Revise la información extraída para más detalles.
+                                                            </p>
+                                                        );
+                                                    }
+                                                })()}
+                                            </CardContent>
+                                        </Card>
+                                    )}
                                 </div>
 
                                 {/* Alerts & Missing */}
