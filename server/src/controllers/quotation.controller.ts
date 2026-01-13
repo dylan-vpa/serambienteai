@@ -261,45 +261,48 @@ ${s.content || 'Sin contenido'}
         }).join('\n---\n');
 
         // Build EXHAUSTIVE compliance check prompt
-        const systemPrompt = `Eres un Auditor de Calidad Ambiental experto en normativa colombiana.
-Tu trabajo es verificar que la cotización cumple con las normas que ELLA MISMA REFERENCIA.
+        const systemPrompt = `Eres un Auditor de Calidad Ambiental EXTREMADAMENTE ESTRICTO y experto en normativa colombiana.
+Tu trabajo es encontrar ABSOLUTAMENTE TODOS los errores, omisiones e incumplimientos en las cotizaciones.
+NO debes ser permisivo. Si algo no está explícitamente correcto, DEBES marcarlo como error.
+Cada norma tiene requisitos específicos que DEBEN cumplirse al 100%.
 
-IMPORTANTE: SOLO verifica contra las normas mencionadas en la sección "Documentos de referencia" o "Normativa aplicable" de la cotización.
-NO uses normas que no estén referenciadas en el documento.`;
+REGLA CRÍTICA: DEBES listar TODOS los errores encontrados SIN EXCEPCIÓN.
+NO te detengas después de encontrar algunos errores. Revisa CADA norma y CADA requisito.
+Si hay 50 errores, lista los 50. Si hay 100, lista los 100. NO HAY LÍMITE.
+El usuario necesita ver TODOS los problemas para poder corregirlos.`;
 
         const prompt = `
 ## COTIZACIÓN A VERIFICAR (CONTENIDO COMPLETO)
 ${extractedText}
 
-## BASE DE DATOS DE NORMAS (para consulta)
+## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN
+## INSTRUCCIONES DE VERIFICACIÓN - LEE CON CUIDADO
 
-PASO 1: IDENTIFICAR NORMAS REFERENCIADAS
-- Busca en la cotización la sección "Documentos de referencia", "Normativa aplicable", o sección similar
-- Extrae la LISTA de normas/resoluciones/decretos que la cotización menciona como referencia
-- Ejemplo: "Resolución 2115 de 2007", "Decreto 1076 de 2015", etc.
+REGLA CRÍTICA: SOLO verifica contra las normas que LA COTIZACIÓN MENCIONA.
+- Busca la sección "Documentos de referencia" o "Normativa aplicable" en la cotización
+- SOLO esas normas son las que debes usar para verificar cumplimiento
+- Ignora las otras normas que te proporcioné si NO están mencionadas en la cotización
+- Si la cotización dice "según Resolución 2115 de 2007", SOLO verificas contra esa norma
 
-PASO 2: VERIFICAR SOLO CONTRA ESAS NORMAS
-- Para CADA norma referenciada en la cotización:
-  - Busca esa norma en la base de datos proporcionada
-  - Verifica que la cotización incluya TODOS los parámetros que esa norma exige
-  - Si falta algún parámetro que la norma exige, repórtalo como error
-
-PASO 3: REPORTAR ERRORES REALES
-- SOLO reporta errores de parámetros que:
-  1. La norma REFERENCIADA en la cotización exige
-  2. NO están incluidos en la oferta de la cotización
-- NO reportes errores de normas que la cotización NO menciona
+PROCESO DE VERIFICACIÓN:
+1. PRIMERO: Identifica qué normas menciona la cotización en "Documentos de referencia"
+2. SEGUNDO: De las normas que te proporcioné, usa SOLO las que coinciden con las mencionadas en la cotización
+3. TERCERO: Extrae los parámetros que la cotización SÍ incluye
+4. CUARTO: Compara solo contra los requisitos de las normas REFERENCIADAS en la cotización
+5. QUINTO: Reporta errores SOLO si la norma REFERENCIADA exige algo que NO está en la cotización
 
 EJEMPLO:
-- La cotización referencia: "Resolución 2115 de 2007"
-- Esa resolución exige: pH, Turbidez, Color, Coliformes
-- La cotización ofrece: pH, Turbidez, Color
-- ERROR VÁLIDO: "Falta Coliformes según Resolución 2115 de 2007"
+- La cotización en "Documentos de referencia" menciona: "Resolución 2115 de 2007, Decreto 1575"
+- SOLO verificas contra esas dos normas, aunque tengas 30 normas en el sistema
+- Si el Decreto 1594 exige algo, NO lo reportas como error porque no está referenciado en la cotización
 
-NO REPORTAR: Errores de normas que NO están en "Documentos de referencia" de la cotización
+REGLA ANTI-ALUCINACIÓN:
+- NO inventes errores
+- Si un parámetro ESTÁ en la cotización, NO lo reportes como faltante
+- SOLO usa normas MENCIONADAS en la cotización
+- Es mejor reportar menos errores pero REALES, que muchos inventados
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
