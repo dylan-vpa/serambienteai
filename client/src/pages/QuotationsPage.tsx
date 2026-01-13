@@ -42,7 +42,6 @@ export default function QuotationsPage() {
     const [isCreating, setIsCreating] = useState(false);
 
     // Create form state
-    const [quotationNumber, setQuotationNumber] = useState('');
     const [clientName, setClientName] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -105,7 +104,6 @@ export default function QuotationsPage() {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            if (quotationNumber) formData.append('quotationNumber', quotationNumber);
             if (clientName) formData.append('clientName', clientName);
             if (description) formData.append('description', description);
 
@@ -127,7 +125,6 @@ export default function QuotationsPage() {
 
 
     const resetForm = () => {
-        setQuotationNumber('');
         setClientName('');
         setDescription('');
         setFile(null);
@@ -210,26 +207,15 @@ export default function QuotationsPage() {
                                 </div>
                             </div>
 
-                            {/* Additional Fields */}
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="quotationNumber">Número de Cotización</Label>
-                                    <Input
-                                        id="quotationNumber"
-                                        placeholder="COT-2024-001"
-                                        value={quotationNumber}
-                                        onChange={(e) => setQuotationNumber(e.target.value)}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="clientName">Cliente</Label>
-                                    <Input
-                                        id="clientName"
-                                        placeholder="Nombre del cliente"
-                                        value={clientName}
-                                        onChange={(e) => setClientName(e.target.value)}
-                                    />
-                                </div>
+                            {/* Client Name Field */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="clientName">Cliente (opcional)</Label>
+                                <Input
+                                    id="clientName"
+                                    placeholder="Nombre del cliente"
+                                    value={clientName}
+                                    onChange={(e) => setClientName(e.target.value)}
+                                />
                             </div>
 
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
