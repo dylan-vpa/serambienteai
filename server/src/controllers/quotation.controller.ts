@@ -278,31 +278,33 @@ ${extractedText}
 ## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
 ${standardsContent || 'No hay normas configuradas en el sistema.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN - LEE CON CUIDADO
+## INSTRUCCIONES DE VERIFICACIÓN ESTRICTA
 
-REGLA CRÍTICA: SOLO verifica contra las normas que LA COTIZACIÓN MENCIONA.
-- Busca la sección "Documentos de referencia" o "Normativa aplicable" en la cotización
-- SOLO esas normas son las que debes usar para verificar cumplimiento
-- Ignora las otras normas que te proporcioné si NO están mencionadas en la cotización
-- Si la cotización dice "según Resolución 2115 de 2007", SOLO verificas contra esa norma
+PASO 1 - EXTRAE LOS PARÁMETROS DE LA COTIZACIÓN:
+- Lee TODA la cotización y lista CADA parámetro/análisis que ofrece
+- Incluye: pH, DBO, DQO, SST, Coliformes, etc. - lo que encuentres
 
-PROCESO DE VERIFICACIÓN:
-1. PRIMERO: Identifica qué normas menciona la cotización en "Documentos de referencia"
-2. SEGUNDO: De las normas que te proporcioné, usa SOLO las que coinciden con las mencionadas en la cotización
-3. TERCERO: Extrae los parámetros que la cotización SÍ incluye
-4. CUARTO: Compara solo contra los requisitos de las normas REFERENCIADAS en la cotización
-5. QUINTO: Reporta errores SOLO si la norma REFERENCIADA exige algo que NO está en la cotización
+PASO 2 - IDENTIFICA LAS NORMAS REFERENCIADAS:
+- Busca "Documentos de referencia" o "Normativa" en la cotización
+- Lista las normas que menciona la cotización
 
-EJEMPLO:
-- La cotización en "Documentos de referencia" menciona: "Resolución 2115 de 2007, Decreto 1575"
-- SOLO verificas contra esas dos normas, aunque tengas 30 normas en el sistema
-- Si el Decreto 1594 exige algo, NO lo reportas como error porque no está referenciado en la cotización
+PASO 3 - VERIFICA CADA NORMA:
+Para cada norma referenciada en la cotización:
+- ¿Qué parámetros EXIGE esa norma como OBLIGATORIOS?
+- ¿La cotización incluye TODOS esos parámetros?
+- Si falta alguno, es un ERROR CRÍTICO
 
-REGLA ANTI-ALUCINACIÓN:
-- NO inventes errores
-- Si un parámetro ESTÁ en la cotización, NO lo reportes como faltante
-- SOLO usa normas MENCIONADAS en la cotización
-- Es mejor reportar menos errores pero REALES, que muchos inventados
+PASO 4 - REPORTA ERRORES:
+- Si un parámetro obligatorio de la norma NO está en la cotización = ERROR
+- Si un método de análisis es incorrecto = ERROR
+- Si falta información obligatoria = ERROR
+
+REGLAS ESTRICTAS:
+1. NO asumas que algo está bien si no lo verificaste
+2. Lista TODOS los errores, no solo algunos
+3. Si hay parámetros faltantes, DEBEN aparecer en issues
+4. "compliant" = false si hay CUALQUIER error
+5. Score < 100 si hay CUALQUIER issue
 
 ## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
 {
