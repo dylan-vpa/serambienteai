@@ -261,108 +261,54 @@ ${s.content || 'Sin contenido'}
         }).join('\n---\n');
 
         // Build EXHAUSTIVE compliance check prompt
-        const systemPrompt = `Eres un Auditor de Calidad Ambiental EXTREMADAMENTE ESTRICTO y experto en normativa colombiana.
-Tu trabajo es encontrar ABSOLUTAMENTE TODOS los errores, omisiones e incumplimientos en las cotizaciones.
-NO debes ser permisivo. Si algo no está explícitamente correcto, DEBES marcarlo como error.
-Cada norma tiene requisitos específicos que DEBEN cumplirse al 100%.
+        const systemPrompt = `Eres un auditor de calidad que SOLO reporta errores REALES.
 
-REGLA CRÍTICA: DEBES listar TODOS los errores encontrados SIN EXCEPCIÓN.
-NO te detengas después de encontrar algunos errores. Revisa CADA norma y CADA requisito.
-Si hay 50 errores, lista los 50. Si hay 100, lista los 100. NO HAY LÍMITE.
-El usuario necesita ver TODOS los problemas para poder corregirlos.`;
+REGLA #1: NO INVENTES ERRORES
+- Si un parámetro (como pH, DBO, etc.) APARECE en el documento, NO lo reportes como faltante
+- Lee el documento COMPLETO antes de decidir qué falta
+- Si no estás 100% seguro de que algo falta, NO lo reportes
+
+REGLA #2: NO INVENTES NORMAS
+- Solo usa las normas que el documento MENCIONA en "Documentos de referencia"
+- Si el documento dice "Resolución 0699", solo verificas contra 0699
+- NO uses otras normas aunque las conozcas`;
 
         const prompt = `
-## COTIZACIÓN A VERIFICAR (CONTENIDO COMPLETO)
+## DOCUMENTO A ANALIZAR
 ${extractedText}
 
-## TODAS LAS NORMAS APLICABLES (${standards.length} normas)
-${standardsContent || 'No hay normas configuradas en el sistema.'}
+## NORMAS DISPONIBLES (solo como referencia)
+${standardsContent || 'Sin normas configuradas.'}
 
-## INSTRUCCIONES DE VERIFICACIÓN - MUY IMPORTANTE
+## INSTRUCCIONES
 
-⚠️ REGLA CRÍTICA: SOLO USA LAS NORMAS QUE APARECEN EN LA COTIZACIÓN
-- Lee la sección "Documentos de referencia" o "Normativa aplicable" de la cotización
-- Si la cotización menciona "Resolución 0699", SOLO verificas contra 0699
-- Si la cotización menciona "Decreto 1594", SOLO verificas contra 1594
-- NO uses otras normas aunque las tengas disponibles
-- IGNORA las normas que te proporcioné si NO están en la cotización
+PASO 1: Lee el documento y encuentra la sección "Documentos de referencia" o "Normativa"
+PASO 2: Lista SOLO las normas que el documento menciona (ej: "Resolución 0699")
+PASO 3: Lee TODOS los parámetros/análisis que el documento ofrece
+PASO 4: Si alguna norma mencionada exige un parámetro que NO está en el documento, repórtalo
 
-EJEMPLO:
-- Cotización dice: "Según Resolución 0699 de 2021"
-- ✅ CORRECTO: Verificar contra Resolución 0699
-- ❌ INCORRECTO: Verificar contra Resolución 2115 (no está mencionada)
+⚠️ MUY IMPORTANTE - ANTI-ALUCINACIÓN:
+- Si el documento incluye "pH" en su lista de análisis, NO reportes "pH faltante"
+- Si el documento incluye "Coliformes", NO reportes "Coliformes faltante"  
+- SOLO reporta como faltante algo que REALMENTE no está en el documento
+- Si no hay errores reales, responde con "compliant": true y "issues": []
 
-PROCESO:
-1. PRIMERO: Busca qué normas menciona la cotización (ej: "Res. 0699", "Decreto 1575")
-2. SEGUNDO: De mis normas, usa SOLO las que coinciden con las de la cotización
-3. TERCERO: Extrae parámetros de la cotización
-4. CUARTO: Compara solo contra los requisitos de las normas MENCIONADAS en la cotización
-
-REPORTAR ERRORES:
-- Solo reporta errores si la norma MENCIONADA EN LA COTIZACIÓN exige algo que falta
-- En "normReference" escribe la norma que LA COTIZACIÓN menciona, no cualquier norma
-- "appliedStandards" debe listar SOLO las normas que LA COTIZACIÓN menciona
-
-REGLAS:
-1. "compliant" = false si hay CUALQUIER error
-2. Score < 100 si hay CUALQUIER issue
-3. Lista TODOS los errores encontrados
-
-## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
+## RESPONDE EN JSON:
 {
-  "compliant": true/false,
-  "score": 0-100,
-  "summary": "Resumen ejecutivo detallado del análisis de cumplimiento",
-  "appliedStandards": ["lista completa de normas verificadas"],
-  "issues": [
-    {
-      "severity": "CRITICAL/WARNING/INFO",
-      "category": "Parámetros Faltantes / Métodos Incorrectos / Límites / Muestreo / Acreditación / Exclusiones / Información",
-      "parameter": "NOMBRE EXACTO del parámetro afectado (ej: 'pH', 'DBO5', 'Coliformes Totales', 'Sólidos Suspendidos')",
-      "description": "Descripción ESPECÍFICA: El parámetro [X] exigido por [norma] no está incluido en la cotización",
-      "normReference": "Nombre EXACTO de la norma + artículo/numeral (ej: 'Resolución 2115 de 2007, Artículo 7, Tabla 2')",
-      "location": "Dónde debería aparecer en la cotización (ej: 'Sección de análisis fisicoquímicos', 'Tabla de parámetros')",
-      "recommendation": "Acción ESPECÍFICA: Agregar el parámetro [X] con método [Y] según norma [Z]"
-    }
-  ],
-  "compliantItems": ["Lista de requisitos que SÍ cumple con el parámetro específico"],
-  "missingParameters": [
-    {
-      "parameter": "NOMBRE EXACTO del parámetro faltante",
-      "norm": "Norma que lo exige",
-      "article": "Artículo/numeral específico",
-      "requiredMethod": "Método de análisis requerido si aplica"
-    }
-  ],
-  "exclusions": ["exclusiones detectadas en la cotización y si son válidas según la normativa"],
-  "recommendations": ["Recomendaciones ESPECÍFICAS con nombres de parámetros y normas"]
+  "compliant": true si no hay errores reales / false si hay errores,
+  "score": 100 si cumple / menos si hay errores reales,
+  "summary": "Descripción breve",
+  "appliedStandards": ["solo las normas que el DOCUMENTO menciona"],
+  "foundParameters": ["lista de parámetros que SÍ encontraste en el documento"],
+  "issues": [solo errores REALES - si no hay, dejar vacío],
+  "compliantItems": ["requisitos que sí cumple"],
+  "missingParameters": [solo parámetros que REALMENTE faltan],
+  "recommendations": ["recomendaciones si aplica"]
 }
 
-REGLAS DE ESPECIFICIDAD:
-1. NUNCA uses frases genéricas como "faltan algunos parámetros" - SIEMPRE lista cada parámetro por nombre
-2. SIEMPRE incluye el nombre EXACTO de la norma y el artículo/numeral específico
-3. SIEMPRE indica el nombre EXACTO del parámetro faltante (pH, DBO5, SST, etc.)
-4. SIEMPRE indica el método de análisis esperado si la norma lo especifica
-5. En "recommendation" SIEMPRE di EXACTAMENTE qué agregar y cómo
+Recuerda: Es mejor reportar 0 errores que inventar errores falsos.
 
-EJEMPLO DE ISSUE CORRECTO:
-{
-  "severity": "CRITICAL",
-  "category": "Parámetros Faltantes",
-  "parameter": "Coliformes Fecales",
-  "description": "El parámetro 'Coliformes Fecales' exigido por la Resolución 2115 de 2007 para agua potable no está incluido en la cotización",
-  "normReference": "Resolución 2115 de 2007, Artículo 11, Tabla 4 - Características Microbiológicas",
-  "location": "Debería aparecer en la sección de análisis microbiológicos de la cotización",
-  "recommendation": "Agregar análisis de Coliformes Fecales con método NMP o Filtración por Membrana según Standard Methods 9221"
-}
-
-IMPORTANTE: 
-- Score 100 SOLO si cumple ABSOLUTAMENTE TODO según TODAS las normas
-- Score 80-99 si tiene issues menores (WARNING/INFO)
-- Score 50-79 si tiene algunos CRITICAL pero es parcialmente conforme
-- Score <50 si tiene múltiples CRITICAL o fallas graves
-- Si encuentras problemas, "compliant" DEBE ser false
-`.trim();
+`;
 
         // Run AI compliance check
         console.log(`[Quotation] Running AI compliance check...`);
@@ -422,7 +368,7 @@ IMPORTANTE:
             }
         });
 
-        console.log(`[Quotation] Compliance check complete for ${quotationId}. Status: ${finalStatus}, Score: ${complianceResult.score}/100`);
+        console.log(`[Quotation] Compliance check complete for ${quotationId}.Status: ${finalStatus}, Score: ${complianceResult.score}/100`);
 
     } catch (error: any) {
         console.error(`[Quotation] Analysis failed for ${quotationId}:`, error);
