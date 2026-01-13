@@ -574,135 +574,199 @@ export default function QuotationDetailPage() {
                     <TabsContent value="compliance" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {complianceResult ? (
                             <div className="space-y-6">
-                                {/* Status Banner */}
-                                <div className={`rounded-xl p-6 border ${complianceResult.status === 'check' ? 'bg-green-50 border-green-200' :
-                                    complianceResult.status === 'error' ? 'bg-red-50 border-red-200' :
-                                        'bg-amber-50 border-amber-200'
+                                {/* Score & Status Banner */}
+                                <div className={`rounded-xl p-6 border ${complianceResult.compliant === true ? 'bg-green-50 border-green-200' :
+                                        complianceResult.compliant === false ? 'bg-red-50 border-red-200' :
+                                            'bg-amber-50 border-amber-200'
                                     }`}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${complianceResult.status === 'check' ? 'bg-green-100' :
-                                            complianceResult.status === 'error' ? 'bg-red-100' :
-                                                'bg-amber-100'
-                                            }`}>
-                                            {complianceResult.status === 'check' ? (
-                                                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                                            ) : complianceResult.status === 'error' ? (
-                                                <XCircle className="h-6 w-6 text-red-600" />
-                                            ) : (
-                                                <AlertTriangle className="h-6 w-6 text-amber-600" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <h3 className={`text-lg font-semibold ${complianceResult.status === 'check' ? 'text-green-900' :
-                                                complianceResult.status === 'error' ? 'text-red-900' :
-                                                    'text-amber-900'
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${complianceResult.compliant === true ? 'bg-green-100' :
+                                                    complianceResult.compliant === false ? 'bg-red-100' :
+                                                        'bg-amber-100'
                                                 }`}>
-                                                {complianceResult.status === 'check' ? 'Cumple con Normativas' :
-                                                    complianceResult.status === 'error' ? 'No Cumple' :
-                                                        'Requiere Revisión'}
-                                            </h3>
-                                            <p className="text-sm text-slate-600 mt-1">
-                                                Verificado: {complianceResult.analyzedAt ?
-                                                    new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
-                                            </p>
+                                                {complianceResult.compliant === true ? (
+                                                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                                ) : complianceResult.compliant === false ? (
+                                                    <XCircle className="h-8 w-8 text-red-600" />
+                                                ) : (
+                                                    <AlertTriangle className="h-8 w-8 text-amber-600" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h3 className={`text-xl font-bold ${complianceResult.compliant === true ? 'text-green-900' :
+                                                        complianceResult.compliant === false ? 'text-red-900' :
+                                                            'text-amber-900'
+                                                    }`}>
+                                                    {complianceResult.compliant === true ? 'CUMPLE' :
+                                                        complianceResult.compliant === false ? 'NO CUMPLE' :
+                                                            'REQUIERE REVISIÓN'}
+                                                </h3>
+                                                <p className="text-sm text-slate-600 mt-1">
+                                                    Verificado: {complianceResult.analyzedAt ?
+                                                        new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
+                                                </p>
+                                                {complianceResult.standardsCount !== undefined && (
+                                                    <p className="text-xs text-slate-500">
+                                                        Normas verificadas: {complianceResult.standardsCount}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
+                                        {/* Score Circle */}
+                                        {complianceResult.score !== undefined && (
+                                            <div className="text-center">
+                                                <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center ${complianceResult.score >= 80 ? 'border-green-500 bg-green-50' :
+                                                        complianceResult.score >= 50 ? 'border-amber-500 bg-amber-50' :
+                                                            'border-red-500 bg-red-50'
+                                                    }`}>
+                                                    <span className={`text-2xl font-bold ${complianceResult.score >= 80 ? 'text-green-700' :
+                                                            complianceResult.score >= 50 ? 'text-amber-700' :
+                                                                'text-red-700'
+                                                        }`}>{complianceResult.score}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">Puntuación</p>
+                                            </div>
+                                        )}
                                     </div>
+                                    {/* Summary */}
+                                    {complianceResult.summary && (
+                                        <p className="mt-4 text-sm text-slate-700 bg-white/50 p-3 rounded-lg">
+                                            {complianceResult.summary}
+                                        </p>
+                                    )}
                                 </div>
 
-                                {/* Alerts & Missing */}
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    {/* Alerts */}
-                                    <Card className="border-slate-200 shadow-sm">
-                                        <CardHeader className="bg-amber-50">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                                Alertas ({complianceResult.alerts?.length || 0})
+                                {/* Issues List - Detailed */}
+                                {complianceResult.issues && complianceResult.issues.length > 0 && (
+                                    <Card className="border-red-200 shadow-sm">
+                                        <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
+                                            <CardTitle className="text-base flex items-center gap-2 text-red-900">
+                                                <XCircle className="h-5 w-5" />
+                                                Incumplimientos Detectados ({complianceResult.issues.length})
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent className="pt-4">
-                                            {complianceResult.alerts && complianceResult.alerts.length > 0 ? (
+                                        <CardContent className="pt-4 space-y-3">
+                                            {complianceResult.issues.map((issue: any, idx: number) => (
+                                                <div key={idx} className={`p-4 rounded-lg border ${issue.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' :
+                                                        issue.severity === 'WARNING' ? 'bg-amber-50 border-amber-200' :
+                                                            'bg-blue-50 border-blue-200'
+                                                    }`}>
+                                                    <div className="flex items-start gap-3">
+                                                        <span className={`px-2 py-0.5 text-xs font-bold rounded ${issue.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
+                                                                issue.severity === 'WARNING' ? 'bg-amber-500 text-white' :
+                                                                    'bg-blue-500 text-white'
+                                                            }`}>
+                                                            {issue.severity || 'INFO'}
+                                                        </span>
+                                                        {issue.category && (
+                                                            <span className="text-xs text-slate-500">{issue.category}</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-2 font-medium text-slate-900">{issue.description}</p>
+                                                    {issue.normReference && (
+                                                        <p className="mt-1 text-xs text-slate-500 italic">
+                                                            📋 Norma: {issue.normReference}
+                                                        </p>
+                                                    )}
+                                                    {issue.recommendation && (
+                                                        <p className="mt-2 text-sm text-slate-700 bg-white/50 p-2 rounded">
+                                                            💡 {issue.recommendation}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Missing Parameters & Recommendations */}
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {/* Missing Parameters */}
+                                    {complianceResult.missingParameters && complianceResult.missingParameters.length > 0 && (
+                                        <Card className="border-amber-200 shadow-sm">
+                                            <CardHeader className="bg-amber-50">
+                                                <CardTitle className="text-base flex items-center gap-2 text-amber-900">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    Parámetros Faltantes ({complianceResult.missingParameters.length})
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-4">
                                                 <ul className="space-y-2">
-                                                    {complianceResult.alerts.map((alert: string, idx: number) => (
+                                                    {complianceResult.missingParameters.map((param: string, idx: number) => (
                                                         <li key={idx} className="flex items-start gap-2 text-sm text-amber-800 p-2 bg-amber-50 rounded">
                                                             <span className="text-amber-500 mt-0.5">•</span>
-                                                            {alert}
+                                                            {param}
                                                         </li>
                                                     ))}
                                                 </ul>
-                                            ) : (
-                                                <p className="text-sm text-slate-500 text-center py-4">
-                                                    ✅ Sin alertas
-                                                </p>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
-                                    {/* Missing */}
-                                    <Card className="border-slate-200 shadow-sm">
-                                        <CardHeader className="bg-red-50">
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                                <XCircle className="h-4 w-4 text-red-600" />
-                                                Elementos Faltantes ({complianceResult.missing?.length || 0})
+                                    {/* Recommendations */}
+                                    {complianceResult.recommendations && complianceResult.recommendations.length > 0 && (
+                                        <Card className="border-blue-200 shadow-sm">
+                                            <CardHeader className="bg-blue-50">
+                                                <CardTitle className="text-base flex items-center gap-2 text-blue-900">
+                                                    💡 Recomendaciones
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-4">
+                                                <ul className="space-y-2">
+                                                    {complianceResult.recommendations.map((rec: string, idx: number) => (
+                                                        <li key={idx} className="flex items-start gap-2 text-sm text-blue-800 p-2 bg-blue-50 rounded">
+                                                            <span className="text-blue-500 mt-0.5">→</span>
+                                                            {rec}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+
+                                {/* Compliant Items */}
+                                {complianceResult.compliantItems && complianceResult.compliantItems.length > 0 && (
+                                    <Card className="border-green-200 shadow-sm">
+                                        <CardHeader className="bg-green-50">
+                                            <CardTitle className="text-base flex items-center gap-2 text-green-900">
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                Requisitos Cumplidos ({complianceResult.compliantItems.length})
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4">
-                                            {complianceResult.missing && complianceResult.missing.length > 0 ? (
-                                                <ul className="space-y-2">
-                                                    {complianceResult.missing.map((item: string, idx: number) => (
-                                                        <li key={idx} className="flex items-start gap-2 text-sm text-red-800 p-2 bg-red-50 rounded">
-                                                            <span className="text-red-500 mt-0.5">•</span>
-                                                            {item}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-sm text-slate-500 text-center py-4">
-                                                    ✅ Sin elementos faltantes
-                                                </p>
-                                            )}
+                                            <ul className="grid md:grid-cols-2 gap-2">
+                                                {complianceResult.compliantItems.map((item: string, idx: number) => (
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-green-800">
+                                                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                                        {item}
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </CardContent>
                                     </Card>
-                                </div>
+                                )}
 
-                                {/* Evidence & Services */}
-                                {((complianceResult.evidence && complianceResult.evidence.length > 0) ||
-                                    (complianceResult.services && complianceResult.services.length > 0)) && (
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            {complianceResult.evidence && complianceResult.evidence.length > 0 && (
-                                                <Card className="border-green-200 shadow-sm">
-                                                    <CardHeader className="bg-green-50">
-                                                        <CardTitle className="text-base text-green-900">✓ Evidencias Encontradas</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="pt-4">
-                                                        <ul className="space-y-2">
-                                                            {complianceResult.evidence.map((item: string, idx: number) => (
-                                                                <li key={idx} className="flex items-start gap-2 text-sm text-green-800">
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                                                    {item}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </CardContent>
-                                                </Card>
-                                            )}
-                                            {complianceResult.services && complianceResult.services.length > 0 && (
-                                                <Card className="border-blue-200 shadow-sm">
-                                                    <CardHeader className="bg-blue-50">
-                                                        <CardTitle className="text-base text-blue-900">📋 Servicios Identificados</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="pt-4">
-                                                        <div className="space-y-2">
-                                                            {complianceResult.services.map((svc: any, idx: number) => (
-                                                                <div key={idx} className="p-2 bg-blue-50 rounded text-sm">
-                                                                    <span className="font-medium text-blue-900">{svc.name || svc}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            )}
-                                        </div>
-                                    )}
+                                {/* Applied Standards */}
+                                {complianceResult.appliedStandards && complianceResult.appliedStandards.length > 0 && (
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardHeader className="bg-slate-50">
+                                            <CardTitle className="text-base text-slate-700">
+                                                📚 Normas Aplicadas
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4">
+                                            <div className="flex flex-wrap gap-2">
+                                                {complianceResult.appliedStandards.map((std: string, idx: number) => (
+                                                    <span key={idx} className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full">
+                                                        {std}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </div>
                         ) : (
                             <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">

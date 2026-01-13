@@ -198,12 +198,11 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
 // Background analysis function
 async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
     try {
-        console.log(`[Quotation] Starting analysis for ${quotationId}`);
+        console.log(`[Quotation] Starting compliance analysis for ${quotationId}`);
 
         // Import services
         const { pdfService } = require('../services/pdf.service');
-        const { AIService } = require('../services/ai.service');
-        const aiService = new AIService();
+        const { aiService } = require('../services/ai.service');
 
         // Resolve file path
         const uploadsRoot = path.join(__dirname, '../../');
@@ -241,37 +240,137 @@ async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
             extractedText = 'Error al extraer texto del documento';
         }
 
-        // Run AI analysis
-        console.log(`[Quotation] Running AI analysis...`);
-        const analysisResult = await aiService.analyzeDocument(extractedText);
+        // Fetch all quotation-related standards from database
+        console.log(`[Quotation] Fetching standards from database...`);
+        const standards = await prisma.standard.findMany({
+            where: {
+                OR: [
+                    { type: 'QUOTATION' },
+                    { type: 'OIT' }, // Also include OIT standards as they may apply
+                    { category: { in: ['agua_potable', 'vertimientos', 'ruido', 'aire', 'general', 'decreto'] } }
+                ]
+            },
+            take: 10 // Limit to avoid token overflow
+        });
 
-        // Determine compliance status based on analysis
+        console.log(`[Quotation] Found ${standards.length} applicable standards`);
+
+        // Build standards content for AI prompt
+        const standardsContent = standards.map(s => {
+            const content = s.content ? s.content.substring(0, 8000) : '';
+            return `
+### ${s.title}
+**Categoría:** ${s.category || 'general'}
+**Tipo:** ${s.type}
+${content || s.description}
+`;
+        }).join('\n---\n');
+
+        // Build compliance check prompt
+        const systemPrompt = `Eres un Auditor de Calidad Ambiental experto en normativa colombiana. 
+Tu tarea es verificar que las cotizaciones de servicios ambientales cumplan con la normativa vigente.
+Debes ser ESTRICTO y reportar TODOS los errores o incumplimientos encontrados.`;
+
+        const prompt = `
+## COTIZACIÓN A VERIFICAR
+${extractedText.substring(0, 15000)}
+
+## NORMAS APLICABLES
+${standardsContent || 'No hay normas configuradas en el sistema.'}
+
+## INSTRUCCIONES DE VERIFICACIÓN
+Analiza la cotización contra las normas y verifica:
+
+1. **PARÁMETROS OBLIGATORIOS**: ¿Incluye todos los parámetros/análisis que exige la normativa?
+2. **MÉTODOS DE ANÁLISIS**: ¿Los métodos mencionados son los correctos según las normas?
+3. **REQUISITOS LEGALES**: ¿Cumple con los requisitos legales colombianos?
+4. **EXCLUSIONES**: Si hay exclusiones, ¿son válidas o violan la normativa?
+5. **INFORMACIÓN COMPLETA**: ¿Tiene toda la información requerida (cliente, alcance, etc.)?
+
+## RESPONDE ÚNICAMENTE EN JSON VÁLIDO:
+{
+  "compliant": true/false,
+  "score": 0-100,
+  "summary": "Resumen ejecutivo del análisis de cumplimiento",
+  "appliedStandards": ["lista de normas verificadas"],
+  "issues": [
+    {
+      "severity": "CRITICAL/WARNING/INFO",
+      "category": "categoria del problema",
+      "description": "descripción detallada del incumplimiento",
+      "normReference": "referencia a la norma incumplida",
+      "recommendation": "cómo corregirlo"
+    }
+  ],
+  "compliantItems": ["lista de requisitos que SÍ cumple"],
+  "missingParameters": ["parámetros/análisis que faltan según la norma"],
+  "exclusions": ["exclusiones detectadas en la cotización"],
+  "recommendations": ["recomendaciones generales"]
+}
+
+IMPORTANTE: Si encuentras errores o incumplimientos, debes listarlos TODOS en "issues" con detalle.
+Si la cotización NO cumple, "compliant" debe ser false y "score" bajo.
+`.trim();
+
+        // Run AI compliance check
+        console.log(`[Quotation] Running AI compliance check...`);
+        let complianceResult: any;
+
+        try {
+            const aiResponse = await aiService.chat(prompt, undefined, systemPrompt);
+
+            // Parse JSON response
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse;
+            complianceResult = JSON.parse(jsonStr);
+        } catch (parseError) {
+            console.error('[Quotation] Error parsing AI compliance response:', parseError);
+            complianceResult = {
+                compliant: false,
+                score: 0,
+                summary: 'Error al analizar la respuesta de la IA.',
+                issues: [{
+                    severity: 'WARNING',
+                    category: 'Sistema',
+                    description: 'No se pudo completar el análisis automático',
+                    recommendation: 'Revisar manualmente la cotización'
+                }],
+                recommendations: ['Verificar manualmente el cumplimiento normativo']
+            };
+        }
+
+        // Ensure required fields
+        complianceResult.appliedStandards = complianceResult.appliedStandards || standards.map(s => s.title);
+        complianceResult.issues = complianceResult.issues || [];
+        complianceResult.analyzedAt = new Date().toISOString();
+        complianceResult.standardsCount = standards.length;
+
+        // Determine final status
         let finalStatus = 'REVIEW_REQUIRED';
-        if (analysisResult.status === 'check' && analysisResult.missing.length === 0) {
+        if (complianceResult.compliant === true && complianceResult.score >= 80) {
             finalStatus = 'COMPLIANT';
-        } else if (analysisResult.status === 'error' || analysisResult.missing.length > 3) {
+        } else if (complianceResult.compliant === false || complianceResult.score < 50) {
             finalStatus = 'NON_COMPLIANT';
         }
+
+        // Also run general document analysis for additional info
+        const generalAnalysis = await aiService.analyzeDocument(extractedText);
 
         // Update quotation with results
         await prisma.quotation.update({
             where: { id: quotationId },
             data: {
                 status: finalStatus,
-                extractedText: extractedText.substring(0, 10000), // Store first 10k chars
-                aiData: JSON.stringify(analysisResult),
-                complianceResult: JSON.stringify({
-                    status: analysisResult.status,
-                    alerts: analysisResult.alerts || [],
-                    missing: analysisResult.missing || [],
-                    evidence: analysisResult.evidence || [],
-                    services: analysisResult.services || [],
-                    analyzedAt: new Date().toISOString()
-                })
+                extractedText: extractedText.substring(0, 10000),
+                aiData: JSON.stringify({
+                    ...generalAnalysis,
+                    rawResponse: generalAnalysis.rawResponse
+                }),
+                complianceResult: JSON.stringify(complianceResult)
             }
         });
 
-        console.log(`[Quotation] Analysis complete for ${quotationId}. Status: ${finalStatus}`);
+        console.log(`[Quotation] Compliance check complete for ${quotationId}. Status: ${finalStatus}, Score: ${complianceResult.score}/100`);
 
     } catch (error: any) {
         console.error(`[Quotation] Analysis failed for ${quotationId}:`, error);
@@ -281,9 +380,16 @@ async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
                 status: 'REVIEW_REQUIRED',
                 complianceResult: JSON.stringify({
                     error: error.message || 'Error desconocido',
-                    message: 'El análisis automático falló. Por favor revise manualmente.'
+                    message: 'El análisis automático falló. Por favor revise manualmente.',
+                    issues: [{
+                        severity: 'CRITICAL',
+                        category: 'Sistema',
+                        description: `Error en análisis: ${error.message}`,
+                        recommendation: 'Contactar soporte técnico'
+                    }]
                 })
             }
         });
     }
 }
+
