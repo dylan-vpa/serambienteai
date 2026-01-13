@@ -576,14 +576,14 @@ export default function QuotationDetailPage() {
                             <div className="space-y-6">
                                 {/* Score & Status Banner */}
                                 <div className={`rounded-xl p-6 border ${complianceResult.compliant === true ? 'bg-green-50 border-green-200' :
-                                        complianceResult.compliant === false ? 'bg-red-50 border-red-200' :
-                                            'bg-amber-50 border-amber-200'
+                                    complianceResult.compliant === false ? 'bg-red-50 border-red-200' :
+                                        'bg-amber-50 border-amber-200'
                                     }`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className={`h-16 w-16 rounded-full flex items-center justify-center ${complianceResult.compliant === true ? 'bg-green-100' :
-                                                    complianceResult.compliant === false ? 'bg-red-100' :
-                                                        'bg-amber-100'
+                                                complianceResult.compliant === false ? 'bg-red-100' :
+                                                    'bg-amber-100'
                                                 }`}>
                                                 {complianceResult.compliant === true ? (
                                                     <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -595,8 +595,8 @@ export default function QuotationDetailPage() {
                                             </div>
                                             <div>
                                                 <h3 className={`text-xl font-bold ${complianceResult.compliant === true ? 'text-green-900' :
-                                                        complianceResult.compliant === false ? 'text-red-900' :
-                                                            'text-amber-900'
+                                                    complianceResult.compliant === false ? 'text-red-900' :
+                                                        'text-amber-900'
                                                     }`}>
                                                     {complianceResult.compliant === true ? 'CUMPLE' :
                                                         complianceResult.compliant === false ? 'NO CUMPLE' :
@@ -617,12 +617,12 @@ export default function QuotationDetailPage() {
                                         {complianceResult.score !== undefined && (
                                             <div className="text-center">
                                                 <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center ${complianceResult.score >= 80 ? 'border-green-500 bg-green-50' :
-                                                        complianceResult.score >= 50 ? 'border-amber-500 bg-amber-50' :
-                                                            'border-red-500 bg-red-50'
+                                                    complianceResult.score >= 50 ? 'border-amber-500 bg-amber-50' :
+                                                        'border-red-500 bg-red-50'
                                                     }`}>
                                                     <span className={`text-2xl font-bold ${complianceResult.score >= 80 ? 'text-green-700' :
-                                                            complianceResult.score >= 50 ? 'text-amber-700' :
-                                                                'text-red-700'
+                                                        complianceResult.score >= 50 ? 'text-amber-700' :
+                                                            'text-red-700'
                                                         }`}>{complianceResult.score}</span>
                                                 </div>
                                                 <p className="text-xs text-slate-500 mt-1">Puntuación</p>
@@ -649,29 +649,39 @@ export default function QuotationDetailPage() {
                                         <CardContent className="pt-4 space-y-3">
                                             {complianceResult.issues.map((issue: any, idx: number) => (
                                                 <div key={idx} className={`p-4 rounded-lg border ${issue.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' :
-                                                        issue.severity === 'WARNING' ? 'bg-amber-50 border-amber-200' :
-                                                            'bg-blue-50 border-blue-200'
+                                                    issue.severity === 'WARNING' ? 'bg-amber-50 border-amber-200' :
+                                                        'bg-blue-50 border-blue-200'
                                                     }`}>
-                                                    <div className="flex items-start gap-3">
+                                                    <div className="flex flex-wrap items-center gap-2">
                                                         <span className={`px-2 py-0.5 text-xs font-bold rounded ${issue.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
-                                                                issue.severity === 'WARNING' ? 'bg-amber-500 text-white' :
-                                                                    'bg-blue-500 text-white'
+                                                            issue.severity === 'WARNING' ? 'bg-amber-500 text-white' :
+                                                                'bg-blue-500 text-white'
                                                             }`}>
                                                             {issue.severity || 'INFO'}
                                                         </span>
                                                         {issue.category && (
-                                                            <span className="text-xs text-slate-500">{issue.category}</span>
+                                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{issue.category}</span>
+                                                        )}
+                                                        {issue.parameter && (
+                                                            <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">
+                                                                🔬 {issue.parameter}
+                                                            </span>
                                                         )}
                                                     </div>
                                                     <p className="mt-2 font-medium text-slate-900">{issue.description}</p>
                                                     {issue.normReference && (
-                                                        <p className="mt-1 text-xs text-slate-500 italic">
-                                                            📋 Norma: {issue.normReference}
+                                                        <p className="mt-1 text-xs text-slate-600 bg-slate-100 p-2 rounded">
+                                                            📋 <strong>Norma:</strong> {issue.normReference}
+                                                        </p>
+                                                    )}
+                                                    {issue.location && (
+                                                        <p className="mt-1 text-xs text-slate-500">
+                                                            📍 <strong>Ubicación:</strong> {issue.location}
                                                         </p>
                                                     )}
                                                     {issue.recommendation && (
-                                                        <p className="mt-2 text-sm text-slate-700 bg-white/50 p-2 rounded">
-                                                            💡 {issue.recommendation}
+                                                        <p className="mt-2 text-sm text-green-800 bg-green-50 p-2 rounded border border-green-200">
+                                                            💡 <strong>Acción:</strong> {issue.recommendation}
                                                         </p>
                                                     )}
                                                 </div>
@@ -692,19 +702,25 @@ export default function QuotationDetailPage() {
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-4">
-                                                <ul className="space-y-2">
-                                                    {complianceResult.missingParameters.map((param: string, idx: number) => (
-                                                        <li key={idx} className="flex items-start gap-2 text-sm text-amber-800 p-2 bg-amber-50 rounded">
-                                                            <span className="text-amber-500 mt-0.5">•</span>
-                                                            {param}
+                                                <ul className="space-y-3">
+                                                    {complianceResult.missingParameters.map((param: any, idx: number) => (
+                                                        <li key={idx} className="p-3 bg-amber-50 rounded border border-amber-200">
+                                                            {typeof param === 'string' ? (
+                                                                <span className="text-sm text-amber-800">{param}</span>
+                                                            ) : (
+                                                                <div className="space-y-1">
+                                                                    <p className="font-bold text-amber-900">🔬 {param.parameter}</p>
+                                                                    {param.norm && <p className="text-xs text-amber-700">📋 Norma: {param.norm}</p>}
+                                                                    {param.article && <p className="text-xs text-amber-600">📌 Artículo: {param.article}</p>}
+                                                                    {param.requiredMethod && <p className="text-xs text-amber-600">🧪 Método: {param.requiredMethod}</p>}
+                                                                </div>
+                                                            )}
                                                         </li>
                                                     ))}
                                                 </ul>
                                             </CardContent>
                                         </Card>
                                     )}
-
-                                    {/* Recommendations */}
                                     {complianceResult.recommendations && complianceResult.recommendations.length > 0 && (
                                         <Card className="border-blue-200 shadow-sm">
                                             <CardHeader className="bg-blue-50">
@@ -780,7 +796,8 @@ export default function QuotationDetailPage() {
                                     </p>
                                 </CardContent>
                             </Card>
-                        )}
+                        )
+                        }
                     </TabsContent>
 
                     {/* Linked OITs Tab */}
@@ -831,9 +848,9 @@ export default function QuotationDetailPage() {
                                 )}
                             </CardContent>
                         </Card>
-                    </TabsContent>
-                </Tabs>
-            </div>
-        </div>
+                    </TabsContent >
+                </Tabs >
+            </div >
+        </div >
     );
 }

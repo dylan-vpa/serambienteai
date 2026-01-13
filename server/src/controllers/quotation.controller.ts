@@ -315,16 +315,43 @@ Si falta algo obligatorio por norma, es CRITICAL.
   "issues": [
     {
       "severity": "CRITICAL/WARNING/INFO",
-      "category": "categoria del problema (ej: Parámetros, Métodos, Límites, Muestreo, etc.)",
-      "description": "descripción detallada y específica del incumplimiento",
-      "normReference": "norma específica que se incumple con artículo/numeral si aplica",
-      "recommendation": "acción correctiva específica requerida"
+      "category": "Parámetros Faltantes / Métodos Incorrectos / Límites / Muestreo / Acreditación / Exclusiones / Información",
+      "parameter": "NOMBRE EXACTO del parámetro afectado (ej: 'pH', 'DBO5', 'Coliformes Totales', 'Sólidos Suspendidos')",
+      "description": "Descripción ESPECÍFICA: El parámetro [X] exigido por [norma] no está incluido en la cotización",
+      "normReference": "Nombre EXACTO de la norma + artículo/numeral (ej: 'Resolución 2115 de 2007, Artículo 7, Tabla 2')",
+      "location": "Dónde debería aparecer en la cotización (ej: 'Sección de análisis fisicoquímicos', 'Tabla de parámetros')",
+      "recommendation": "Acción ESPECÍFICA: Agregar el parámetro [X] con método [Y] según norma [Z]"
     }
   ],
-  "compliantItems": ["lista detallada de requisitos que SÍ cumple correctamente"],
-  "missingParameters": ["lista de parámetros/análisis faltantes según las normas"],
-  "exclusions": ["exclusiones detectadas en la cotización y si son válidas"],
-  "recommendations": ["recomendaciones específicas para lograr cumplimiento total"]
+  "compliantItems": ["Lista de requisitos que SÍ cumple con el parámetro específico"],
+  "missingParameters": [
+    {
+      "parameter": "NOMBRE EXACTO del parámetro faltante",
+      "norm": "Norma que lo exige",
+      "article": "Artículo/numeral específico",
+      "requiredMethod": "Método de análisis requerido si aplica"
+    }
+  ],
+  "exclusions": ["exclusiones detectadas en la cotización y si son válidas según la normativa"],
+  "recommendations": ["Recomendaciones ESPECÍFICAS con nombres de parámetros y normas"]
+}
+
+REGLAS DE ESPECIFICIDAD:
+1. NUNCA uses frases genéricas como "faltan algunos parámetros" - SIEMPRE lista cada parámetro por nombre
+2. SIEMPRE incluye el nombre EXACTO de la norma y el artículo/numeral específico
+3. SIEMPRE indica el nombre EXACTO del parámetro faltante (pH, DBO5, SST, etc.)
+4. SIEMPRE indica el método de análisis esperado si la norma lo especifica
+5. En "recommendation" SIEMPRE di EXACTAMENTE qué agregar y cómo
+
+EJEMPLO DE ISSUE CORRECTO:
+{
+  "severity": "CRITICAL",
+  "category": "Parámetros Faltantes",
+  "parameter": "Coliformes Fecales",
+  "description": "El parámetro 'Coliformes Fecales' exigido por la Resolución 2115 de 2007 para agua potable no está incluido en la cotización",
+  "normReference": "Resolución 2115 de 2007, Artículo 11, Tabla 4 - Características Microbiológicas",
+  "location": "Debería aparecer en la sección de análisis microbiológicos de la cotización",
+  "recommendation": "Agregar análisis de Coliformes Fecales con método NMP o Filtración por Membrana según Standard Methods 9221"
 }
 
 IMPORTANTE: 
