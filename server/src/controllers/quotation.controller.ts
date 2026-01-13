@@ -248,16 +248,15 @@ async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
 
         console.log(`[Quotation] Found ${standards.length} total standards to verify against`);
 
-        // Build standards content for AI prompt - include more content per standard
+        // Build standards content for AI prompt - include FULL content of each standard
         const standardsContent = standards.map(s => {
-            const content = s.content ? s.content.substring(0, 15000) : '';
             return `
 ### NORMA: ${s.title}
 **Categoría:** ${s.category || 'general'}
 **Tipo:** ${s.type}
 **Descripción:** ${s.description || 'N/A'}
-**Contenido Normativo:**
-${content}
+**Contenido Normativo Completo:**
+${s.content || 'Sin contenido'}
 `;
         }).join('\n---\n');
 

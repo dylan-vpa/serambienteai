@@ -144,16 +144,15 @@ class ComplianceService {
         });
     }
     /**
-     * Build standards content for prompt (limited to avoid token overflow)
+     * Build standards content for prompt - FULL content, no truncation
      */
-    buildStandardsContent(standards, maxCharsPerStandard = 15000) {
+    buildStandardsContent(standards) {
         return standards.map(s => {
-            const content = s.content ? s.content.substring(0, maxCharsPerStandard) : '';
             return `
-### ${s.title}
+### NORMA: ${s.title}
 **Categoría:** ${s.category || 'general'}
-**Contenido relevante:**
-${content || s.description}
+**Contenido Normativo Completo:**
+${s.content || s.description || 'Sin contenido'}
 `;
         }).join('\n---\n');
     }
@@ -188,8 +187,8 @@ ${content || s.description}
             console.log(`📄 Quotation content extracted: ${quotationContent.length} chars`);
             // Parse OIT AI data
             const aiData = oit.aiData ? JSON.parse(oit.aiData) : {};
-            // Build standards content (limit to avoid token overflow)
-            const standardsContent = this.buildStandardsContent(standards.slice(0, 5), 10000);
+            // Build standards content - use ALL standards with FULL content
+            const standardsContent = this.buildStandardsContent(standards);
             // Build enhanced prompt
             const prompt = `
 Actúa como Auditor de Calidad Ambiental experto en normativa colombiana.
