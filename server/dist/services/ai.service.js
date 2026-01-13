@@ -101,6 +101,10 @@ class AIService {
                     prompt: message,
                     system: system, // Pass system prompt
                     stream: false,
+                    options: {
+                        temperature: 0, // Make responses deterministic
+                        seed: 42, // Fixed seed for reproducibility
+                    }
                 });
                 const reply = response.data.response || 'No response from AI';
                 console.log(`[AI] Response: ${reply.substring(0, 200)}...`);
