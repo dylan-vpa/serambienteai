@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileCheck, FileText } from 'lucide-react';
+import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileCheck, FileText, X } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import api from '@/lib/api';
 // import { useAuthStore } from '@/features/auth/authStore'; // Unused
@@ -204,6 +204,45 @@ export function ReportGenerator({
         }
     };
 
+    // --- Remove File Handlers ---
+    const handleSheetRemove = async (urlToRemove: string) => {
+        try {
+            const response = await api.delete(`/oits/${oitId}/sampling-sheets`, {
+                data: { fileUrl: urlToRemove }
+            });
+            try {
+                const parsed = JSON.parse(response.data.samplingSheetUrl);
+                setSheetUrls(Array.isArray(parsed) ? parsed : []);
+            } catch {
+                setSheetUrls([]);
+            }
+            setSheetAnalysis(null); // Reset analysis since files changed
+            notify.success('Archivo eliminado');
+        } catch (error) {
+            console.error('Error removing sheet:', error);
+            notify.error('Error al eliminar archivo');
+        }
+    };
+
+    const handleLabRemove = async (urlToRemove: string) => {
+        try {
+            const response = await api.delete(`/oits/${oitId}/lab-results`, {
+                data: { fileUrl: urlToRemove }
+            });
+            try {
+                const parsed = JSON.parse(response.data.labResultsUrl);
+                setLabUrls(Array.isArray(parsed) ? parsed : []);
+            } catch {
+                setLabUrls([]);
+            }
+            setLabAnalysis(null); // Reset analysis since files changed
+            notify.success('Archivo eliminado');
+        } catch (error) {
+            console.error('Error removing lab result:', error);
+            notify.error('Error al eliminar archivo');
+        }
+    };
+
     // --- Report Generation ---
     const handleGenerateReport = async () => {
         if (!labAnalysis && labUrls.length === 0 && !finalReportUrl) {
@@ -257,7 +296,8 @@ export function ReportGenerator({
         setIsDragging: (v: boolean) => void,
         handleDrop: (e: React.DragEvent) => void,
         handleUpload: (f: File) => void,
-        accept: string
+        accept: string,
+        onRemove: (url: string) => void
     ) => (
         <Card className={`border-slate-200 shadow-sm transition-all ${isDragging ? 'border-indigo-400 ring-2 ring-indigo-50' : 'hover:border-indigo-300'}`}>
             <CardHeader className="pb-3 border-b border-slate-50 bg-slate-50/50">
@@ -277,10 +317,18 @@ export function ReportGenerator({
                         {urls.map((url, idx) => {
                             const cleanName = url.split('/').pop() || 'Archivo';
                             return (
-                                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-xs border border-slate-100">
+                                <div key={idx} className="group flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-xs border border-slate-100 hover:bg-slate-100 transition-colors">
                                     <FileText className="h-3 w-3 text-slate-400" />
                                     <span className="truncate flex-1 text-slate-600">{cleanName}</span>
-                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-500 group-hover:hidden" />
+                                    <button
+                                        type="button"
+                                        onClick={() => onRemove(url)}
+                                        className="hidden group-hover:flex h-4 w-4 rounded-full bg-red-100 hover:bg-red-200 items-center justify-center transition-colors"
+                                        title="Eliminar archivo"
+                                    >
+                                        <X className="h-2.5 w-2.5 text-red-600" />
+                                    </button>
                                 </div>
                             );
                         })}
@@ -334,7 +382,8 @@ export function ReportGenerator({
                     setIsSheetDragging,
                     handleSheetDrop,
                     handleSheetUpload,
-                    ".pdf,.xlsx,.xls"
+                    ".pdf,.xlsx,.xls",
+                    handleSheetRemove
                 )}
 
                 {/* Right: Lab Results */}
@@ -348,7 +397,8 @@ export function ReportGenerator({
                     setIsLabDragging,
                     handleLabDrop,
                     handleLabUpload,
-                    ".pdf,.xlsx,.csv"
+                    ".pdf,.xlsx,.csv",
+                    handleLabRemove
                 )}
             </div>
 

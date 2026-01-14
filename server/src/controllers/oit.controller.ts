@@ -1449,6 +1449,96 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
     }
 };
 
+// Delete a Sampling Sheet from the list
+export const deleteSamplingSheet = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { fileUrl } = req.body;
+
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
+        }
+
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
+        let fileList: string[] = [];
+
+        if (currentOit?.samplingSheetUrl) {
+            try {
+                const parsed = JSON.parse(currentOit.samplingSheetUrl);
+                fileList = Array.isArray(parsed) ? parsed : [currentOit.samplingSheetUrl];
+            } catch {
+                fileList = [currentOit.samplingSheetUrl];
+            }
+        }
+
+        // Remove the file from the list
+        fileList = fileList.filter(url => url !== fileUrl);
+
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingSheetUrl: JSON.stringify(fileList),
+                samplingSheetAnalysis: null // Reset analysis
+            } as any
+        });
+
+        res.json({
+            success: true,
+            samplingSheetUrl: JSON.stringify(fileList),
+            message: 'Archivo eliminado'
+        });
+
+    } catch (error) {
+        console.error('Error deleting sampling sheet:', error);
+        res.status(500).json({ error: 'Error al eliminar planilla' });
+    }
+};
+
+// Delete a Lab Result from the list
+export const deleteLabResult = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { fileUrl } = req.body;
+
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
+        }
+
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
+        let fileList: string[] = [];
+
+        if (currentOit?.labResultsUrl) {
+            try {
+                const parsed = JSON.parse(currentOit.labResultsUrl);
+                fileList = Array.isArray(parsed) ? parsed : [currentOit.labResultsUrl];
+            } catch {
+                fileList = [currentOit.labResultsUrl];
+            }
+        }
+
+        // Remove the file from the list
+        fileList = fileList.filter(url => url !== fileUrl);
+
+        await prisma.oIT.update({
+            where: { id },
+            data: {
+                labResultsUrl: JSON.stringify(fileList),
+                labResultsAnalysis: null // Reset analysis
+            } as any
+        });
+
+        res.json({
+            success: true,
+            labResultsUrl: JSON.stringify(fileList),
+            message: 'Archivo eliminado'
+        });
+
+    } catch (error) {
+        console.error('Error deleting lab result:', error);
+        res.status(500).json({ error: 'Error al eliminar resultado de laboratorio' });
+    }
+};
+
 // Background Processor for Sampling Sheets
 async function processSamplingSheetsAsync(oitId: string, filenames: string[]) {
     try {

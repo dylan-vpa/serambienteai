@@ -14,6 +14,8 @@ import {
     getSamplingData,
     uploadLabResults,
     uploadSamplingSheets,
+    deleteSamplingSheet,
+    deleteLabResult,
     generateFinalReport,
     validateStepData,
     finalizeSampling,
@@ -68,7 +70,9 @@ router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 
 // Lab results and final report
 router.post('/:id/lab-results', authMiddleware, upload.single('file'), uploadLabResults);
+router.delete('/:id/lab-results', authMiddleware, deleteLabResult);
 router.post('/:id/sampling-sheets', authMiddleware, upload.single('file'), uploadSamplingSheets);
+router.delete('/:id/sampling-sheets', authMiddleware, deleteSamplingSheet);
 router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
 
 // Sampling validation workflow
