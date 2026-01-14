@@ -195,6 +195,7 @@ export const getSamplingData = async (req: Request, res: Response) => {
 
 // Upload Lab Results
 // Upload Lab Results
+// Upload Lab Results
 export const uploadLabResults = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -204,11 +205,32 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
 
+        // Fetch current OIT to append file
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
+        let fileList: string[] = [];
+
+        if (currentOit?.labResultsUrl) {
+            try {
+                // Try parsing as JSON array
+                const parsed = JSON.parse(currentOit.labResultsUrl);
+                if (Array.isArray(parsed)) {
+                    fileList = parsed;
+                } else {
+                    fileList = [currentOit.labResultsUrl];
+                }
+            } catch (e) {
+                fileList = [currentOit.labResultsUrl];
+            }
+        }
+
+        const newPath = `uploads/${file.filename}`;
+        fileList.push(newPath);
+
         // 1. Return immediate response and set status to ANALYZING
-        const oit = await prisma.oIT.update({
+        await prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: `uploads/${file.filename}`,
+                labResultsUrl: JSON.stringify(fileList),
                 labResultsAnalysis: null, // Clear previous analysis
                 status: 'ANALYZING'
             } as any
@@ -216,13 +238,13 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 
         res.json({
             success: true,
-            labResultsUrl: file.path,
+            labResultsUrl: JSON.stringify(fileList),
             status: 'ANALYZING',
-            message: 'Resultados subidos. Análisis en curso...'
+            message: 'Resultados subidos. Análisis completo en curso...'
         });
 
         // 2. Trigger asynchronous processing
-        processLabResultsAsync(id, file.path).catch(err => {
+        processLabResultsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
             console.error('Error in background lab processing:', err);
         });
 
@@ -233,21 +255,34 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 };
 
 // Background Processor for Lab Results
-async function processLabResultsAsync(oitId: string, filePath: string) {
+// Background Processor for Lab Results
+async function processLabResultsAsync(oitId: string, filenames: string[]) {
     try {
-        console.log(`Starting background lab analysis for OIT ${oitId}`);
+        console.log(`Starting background lab analysis for OIT ${oitId} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');
-        let extractedText = '';
+        const path = require('path');
+        let fullCombinedText = '';
 
-        try {
-            if (filePath.endsWith('.pdf')) {
-                extractedText = await pdfService.extractText(filePath);
-            } else {
-                extractedText = fs.readFileSync(filePath, 'utf-8');
+        for (const filename of filenames) {
+            const filePath = path.join(__dirname, '../../uploads', filename);
+
+            if (!fs.existsSync(filePath)) {
+                console.warn(`[LAB_RESULTS] File not found: ${filePath}`);
+                continue;
             }
-        } catch (readErr) {
-            console.error("Error extracting text from lab file:", readErr);
-            extractedText = "Error al leer documento de laboratorio.";
+
+            let extractedText = '';
+            try {
+                if (filename.endsWith('.pdf')) {
+                    extractedText = await pdfService.extractText(filePath);
+                } else {
+                    extractedText = fs.readFileSync(filePath, 'utf-8');
+                }
+            } catch (readErr) {
+                console.error("Error extracting text from lab file:", readErr);
+                extractedText = "[Error al leer documento de laboratorio]";
+            }
+            fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
         }
 
         // Get OIT Context for better analysis
@@ -255,7 +290,7 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
         const oitContext = oit?.description || '';
 
         // Analyze with AI - Now returns text
-        const analysis = await aiService.analyzeLabResults(extractedText || "Texto no extraído", oitContext);
+        const analysis = await aiService.analyzeLabResults(fullCombinedText, oitContext);
 
         // Update OIT with results - Save as plain text
         await prisma.oIT.update({
@@ -279,13 +314,13 @@ async function processLabResultsAsync(oitId: string, filePath: string) {
             }
         }
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('Background lab analysis failed:', error);
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente.",
-                status: 'REVIEW_NEEDED'
+                status: 'REVIEW_NEEDED',
+                labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente."
             } as any
         });
     }
@@ -1365,23 +1400,46 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se proporcionó archivo de planillas' });
         }
 
-        // Save file URL and trigger analysis
+        // Fetch current OIT to append file
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
+        let fileList: string[] = [];
+
+        if (currentOit?.samplingSheetUrl) {
+            try {
+                // Try parsing as JSON array
+                const parsed = JSON.parse(currentOit.samplingSheetUrl);
+                if (Array.isArray(parsed)) {
+                    fileList = parsed;
+                } else {
+                    // Legacy: it was a single string URL
+                    fileList = [currentOit.samplingSheetUrl];
+                }
+            } catch (e) {
+                // Not JSON, assume simple string
+                fileList = [currentOit.samplingSheetUrl];
+            }
+        }
+
+        const newPath = `uploads/${file.filename}`;
+        fileList.push(newPath);
+
+        // Save file URL list and trigger analysis
         await prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: `uploads/${file.filename}`,
-                samplingSheetAnalysis: null,
+                samplingSheetUrl: JSON.stringify(fileList),
+                samplingSheetAnalysis: null, // Reset analysis to force refresh
             } as any
         });
 
         res.json({
             success: true,
-            samplingSheetUrl: `/uploads/${file.filename}`,
-            message: 'Planillas subidas. Analizando...'
+            samplingSheetUrl: JSON.stringify(fileList), // Return updated list
+            message: 'Planillas subidas. Analizando todos los archivos...'
         });
 
-        // Trigger async analysis
-        processSamplingSheetsAsync(id, file.path).catch(err => {
+        // Trigger async analysis with ALL files
+        processSamplingSheetsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
             console.error('Error in background sampling sheets processing:', err);
         });
 
@@ -1392,40 +1450,61 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
 };
 
 // Background Processor for Sampling Sheets
-async function processSamplingSheetsAsync(oitId: string, filePath: string) {
+async function processSamplingSheetsAsync(oitId: string, filenames: string[]) {
     try {
-        console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}`);
+        console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');
-        let extractedText = '';
+        const path = require('path');
+        let fullCombinedText = '';
 
-        try {
-            if (filePath.endsWith('.pdf')) {
-                extractedText = await pdfService.extractText(filePath);
-            } else if (filePath.match(/\.(xlsx|xls)$/i)) {
-                // Parse Excel file
-                const xlsx = require('xlsx');
-                const workbook = xlsx.readFile(filePath);
+        for (const filename of filenames) {
+            const filePath = path.join(__dirname, '../../uploads', filename); // Adjust path logic as needed
+            // NOTE: file.path in controller gives full path, but here we reconstructed from URL.
+            // Better to make sure we resolve correctly.
+            // Assuming uploads are in projectRoot/uploads or similar.
+            // Adjusting based on standard multer behavior usually saving to 'uploads/' rel to CWD.
+            // Let's assume the controller passed paths or filenames relative to uploads dir.
 
-                // Convert all sheets to text representation
-                let allSheetsText = "";
-                workbook.SheetNames.forEach((sheetName: string) => {
-                    const sheet = workbook.Sheets[sheetName];
-                    const csvData = xlsx.utils.sheet_to_csv(sheet);
-                    allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
-                });
-                extractedText = allSheetsText;
-            } else {
-                extractedText = fs.readFileSync(filePath, 'utf-8');
+            // Let's check permissions or existence
+            if (!fs.existsSync(filePath)) {
+                console.warn(`[SAMPLING_SHEETS] File not found: ${filePath}`);
+                continue;
             }
-        } catch (readErr) {
-            console.error("[SAMPLING_SHEETS] Error extracting text:", readErr);
-            extractedText = "Error al leer documento.";
+
+            let extractedText = '';
+            try {
+                console.log(`[SAMPLING_SHEETS] Processing file: ${filename}`);
+                if (filename.endsWith('.pdf')) {
+                    extractedText = await pdfService.extractText(filePath);
+                } else if (filename.match(/\.(xlsx|xls)$/i)) {
+                    // Parse Excel file
+                    const xlsx = require('xlsx');
+                    const workbook = xlsx.readFile(filePath);
+
+                    // Convert all sheets to text representation
+                    let allSheetsText = "";
+                    workbook.SheetNames.forEach((sheetName: string) => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const csvData = xlsx.utils.sheet_to_csv(sheet);
+                        allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
+                    });
+                    extractedText = allSheetsText;
+                } else {
+                    // Try text read
+                    extractedText = fs.readFileSync(filePath, 'utf-8');
+                }
+            } catch (readErr) {
+                console.error(`[SAMPLING_SHEETS] Error extracting text from ${filename}:`, readErr);
+                extractedText = `[Error leyendo ${filename}]`;
+            }
+
+            fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
         }
 
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
         const oitContext = oit?.description || '';
 
-        const analysis = await aiService.analyzeSamplingSheets(extractedText, oitContext);
+        const analysis = await aiService.analyzeSamplingSheets(fullCombinedText, oitContext);
 
         await prisma.oIT.update({
             where: { id: oitId },

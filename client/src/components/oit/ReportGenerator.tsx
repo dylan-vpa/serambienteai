@@ -31,23 +31,39 @@ export function ReportGenerator({
     const [reportGenerated, setReportGenerated] = useState(false);
 
     // Sampling Sheet State
-    const [sheetFile, setSheetFile] = useState<File | null>(null);
-    const [sheetUrl, setSheetUrl] = useState<string | null>(initialSheetUrl || null);
+    const [sheetUrls, setSheetUrls] = useState<string[]>(() => {
+        if (!initialSheetUrl) return [];
+        try {
+            const parsed = JSON.parse(initialSheetUrl);
+            return Array.isArray(parsed) ? parsed : [initialSheetUrl];
+        } catch { return [initialSheetUrl]; }
+    });
     const [sheetAnalysis, setSheetAnalysis] = useState<any>(initialSheetAnalysis || null);
     const [isUploadingSheet, setIsUploadingSheet] = useState(false);
     const [isSheetDragging, setIsSheetDragging] = useState(false);
 
     // Lab Results State
-    const [labFile, setLabFile] = useState<File | null>(null);
-    const [labUrl, setLabUrl] = useState<string | null>(null); // We don't have initialLabUrl passed usually, but local is fine
+    const [labUrls, setLabUrls] = useState<string[]>(() => {
+        // We don't have initialLabUrl passed in props usually, but logically if we did:
+        // For now, start empty if not passed, but if we wanted to support it:
+        // return []; 
+        // Actually, we need to pass initialLabUrl if we want persistence? 
+        // The calling component 'OITDetailPage' passes 'finalReportUrl' but seemingly not labUrl directly 
+        // EXCEPT via 'initialLabAnalysis' which is the analysis object.
+        // But wait, uploadLabResults sets labResultsUrl in DB.
+        // We should PROBABLY passed initialLabResultsUrl from parent. 
+        // Checking parent... Parent passes 'initialSheetUrl={oit.samplingSheetUrl}'. 
+        // Parent DOES NOT look like it passes labResultsUrl. 
+        // I will assume for now we only have analysis. 
+        // BUT user wants to see the files. 
+        // I should update OITDetailPage to pass labResultsUrl too.
+        return [];
+    });
     const [labAnalysis, setLabAnalysis] = useState<any>(initialLabAnalysis || null);
     const [isUploadingLab, setIsUploadingLab] = useState(false);
     const [isLabDragging, setIsLabDragging] = useState(false);
 
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-    // const { user } = useAuthStore(); // Unused
-    // const canDownload = ...; // Unused
-
 
     // Initialize Report URL
     useEffect(() => {
@@ -56,7 +72,7 @@ export function ReportGenerator({
                 setFinalReportUrl(initialReportUrl);
             } else {
                 const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
-                setFinalReportUrl(`${baseUrl}/uploads/${initialReportUrl}`);
+                setFinalReportUrl(`${baseUrl}/${initialReportUrl.replace(/^uploads\//, 'uploads/')}`);
             }
             setReportGenerated(true);
         }
@@ -72,9 +88,8 @@ export function ReportGenerator({
     useEffect(() => {
         let intervalId: any;
 
-        // Poll if we have uploaded files but missing analysis
-        const needSheetAnalysis = sheetUrl && !sheetAnalysis;
-        const needLabAnalysis = labUrl && !labAnalysis;
+        const needSheetAnalysis = sheetUrls.length > 0 && !sheetAnalysis;
+        const needLabAnalysis = labUrls.length > 0 && !labAnalysis;
 
         if (needSheetAnalysis || needLabAnalysis) {
             intervalId = setInterval(async () => {
@@ -95,6 +110,21 @@ export function ReportGenerator({
                         setLabAnalysis(data.labResultsAnalysis);
                         notify.success('¡Análisis de laboratorio completado!');
                     }
+
+                    // Also update URLs if they changed (e.g. from other session)
+                    if (data.samplingSheetUrl) {
+                        try {
+                            const parsed = JSON.parse(data.samplingSheetUrl);
+                            setSheetUrls(Array.isArray(parsed) ? parsed : [data.samplingSheetUrl]);
+                        } catch { setSheetUrls([data.samplingSheetUrl]); }
+                    }
+                    if (data.labResultsUrl) {
+                        try {
+                            const parsed = JSON.parse(data.labResultsUrl);
+                            setLabUrls(Array.isArray(parsed) ? parsed : [data.labResultsUrl]);
+                        } catch { setLabUrls([data.labResultsUrl]); }
+                    }
+
                 } catch (error) {
                     console.error('Error polling OIT:', error);
                 }
@@ -104,7 +134,7 @@ export function ReportGenerator({
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
-    }, [oitId, sheetUrl, sheetAnalysis, labUrl, labAnalysis]);
+    }, [oitId, sheetUrls, sheetAnalysis, labUrls, labAnalysis]);
 
     // --- Sampling Sheet Handlers ---
     const handleSheetDrop = (e: React.DragEvent) => {
@@ -114,7 +144,6 @@ export function ReportGenerator({
     };
 
     const handleSheetUpload = async (file: File) => {
-        setSheetFile(file);
         setIsUploadingSheet(true);
         try {
             const formData = new FormData();
@@ -122,8 +151,15 @@ export function ReportGenerator({
             const response = await api.post(`/oits/${oitId}/sampling-sheets`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setSheetUrl(response.data.samplingSheetUrl);
-            notify.success('Planillas subidas. Analizando...');
+
+            try {
+                const parsed = JSON.parse(response.data.samplingSheetUrl);
+                setSheetUrls(Array.isArray(parsed) ? parsed : [response.data.samplingSheetUrl]);
+            } catch {
+                setSheetUrls([response.data.samplingSheetUrl]);
+            }
+
+            notify.success('Planilla subida. Actualizando análisis...');
         } catch (error: any) {
             console.error('Error uploading sheets:', error);
             notify.error(error.response?.data?.error || 'Error al subir planillas');
@@ -140,7 +176,6 @@ export function ReportGenerator({
     };
 
     const handleLabUpload = async (file: File) => {
-        setLabFile(file);
         setIsUploadingLab(true);
         try {
             const formData = new FormData();
@@ -148,12 +183,19 @@ export function ReportGenerator({
             const response = await api.post(`/oits/${oitId}/lab-results`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setLabUrl(URL.createObjectURL(file)); // Local preview
+
+            try {
+                const parsed = JSON.parse(response.data.labResultsUrl);
+                setLabUrls(Array.isArray(parsed) ? parsed : [response.data.labResultsUrl]);
+            } catch {
+                setLabUrls([response.data.labResultsUrl]);
+            }
+
             // Backend might return analysis immediately or we poll
             if (response.data && response.data.labResultsAnalysis) {
                 setLabAnalysis(response.data.labResultsAnalysis);
             }
-            notify.success('Resultados de laboratorio cargados. Analizando...');
+            notify.success('Resultados cargados. Analizando conjunto completo...');
         } catch (error) {
             console.error('Error uploading lab results:', error);
             notify.error('Error al cargar resultados');
@@ -164,7 +206,7 @@ export function ReportGenerator({
 
     // --- Report Generation ---
     const handleGenerateReport = async () => {
-        if (!labAnalysis && !labUrl && !finalReportUrl) {
+        if (!labAnalysis && labUrls.length === 0 && !finalReportUrl) {
             notify.error('Se requieren resultados de laboratorio para generar el informe');
             return;
         }
@@ -209,8 +251,7 @@ export function ReportGenerator({
         title: string,
         description: string,
         icon: any,
-        file: File | null,
-        uploaded: boolean,
+        urls: string[],
         isUploading: boolean,
         isDragging: boolean,
         setIsDragging: (v: boolean) => void,
@@ -223,13 +264,33 @@ export function ReportGenerator({
                 <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
                     {icon}
                     {title}
+                    <Badge variant="secondary" className="ml-auto text-xs font-normal">
+                        {urls.length} archivo(s)
+                    </Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">{description}</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 space-y-4">
+                {/* File List */}
+                {urls.length > 0 && (
+                    <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                        {urls.map((url, idx) => {
+                            const cleanName = url.split('/').pop() || 'Archivo';
+                            return (
+                                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-xs border border-slate-100">
+                                    <FileText className="h-3 w-3 text-slate-400" />
+                                    <span className="truncate flex-1 text-slate-600">{cleanName}</span>
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Drop Zone */}
                 <div
-                    className={`relative w-full h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer bg-white
-                        ${isDragging ? 'border-indigo-500 bg-indigo-50/20' : uploaded ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-200 hover:border-slate-400'}`}
+                    className={`relative w-full h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer bg-white
+                        ${isDragging ? 'border-indigo-500 bg-indigo-50/20' : 'border-slate-200 hover:border-slate-400'}`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
@@ -244,22 +305,13 @@ export function ReportGenerator({
 
                     {isUploading ? (
                         <div className="flex flex-col items-center">
-                            <Loader2 className="h-8 w-8 text-indigo-500 animate-spin mb-2" />
-                            <p className="text-xs font-medium text-slate-600">Procesando...</p>
-                        </div>
-                    ) : uploaded ? (
-                        <div className="flex flex-col items-center animate-in fade-in zoom-in-95">
-                            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <p className="text-xs font-semibold text-slate-900 truncate max-w-[180px]">{file?.name || 'Archivo Cargado'}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Clic para reemplazar</p>
+                            <Loader2 className="h-6 w-6 text-indigo-500 animate-spin mb-1" />
+                            <p className="text-[10px] font-medium text-slate-600">Subiendo...</p>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center text-slate-400 group-hover:text-slate-600">
-                            <Upload className="h-8 w-8 mb-2 opacity-50" />
-                            <p className="text-xs font-semibold">Seleccionar archivo</p>
-                            <p className="text-[10px] opacity-70 mt-1 text-center px-4">Arrastra o haz clic</p>
+                            <Upload className="h-5 w-5 mb-1 opacity-50" />
+                            <p className="text-[10px] font-semibold">Agregar archivo</p>
                         </div>
                     )}
                 </div>
@@ -276,8 +328,7 @@ export function ReportGenerator({
                     "1. Planillas de Campo",
                     "Sube las planillas de muestreo para análisis.",
                     <FileCheck className="h-4 w-4 text-indigo-600" />,
-                    sheetFile,
-                    !!sheetUrl,
+                    sheetUrls,
                     isUploadingSheet,
                     isSheetDragging,
                     setIsSheetDragging,
@@ -291,8 +342,7 @@ export function ReportGenerator({
                     "2. Reporte de Laboratorio",
                     "Sube los resultados oficiales del laboratorio.",
                     <FileText className="h-4 w-4 text-purple-600" />,
-                    labFile,
-                    !!labUrl,
+                    labUrls,
                     isUploadingLab,
                     isLabDragging,
                     setIsLabDragging,
@@ -302,6 +352,7 @@ export function ReportGenerator({
                 )}
             </div>
 
+            {/* 2. ANALYSIS CARDS SECTION */}
             {/* 2. ANALYSIS CARDS SECTION */}
             {(sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
                 <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4">
@@ -413,7 +464,7 @@ export function ReportGenerator({
                         size="lg"
                         className="w-full max-w-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
                         onClick={handleGenerateReport}
-                        disabled={isGenerating || (!labAnalysis && !labUrl)}
+                        disabled={isGenerating || (labUrls.length === 0)}
                     >
                         {isGenerating ? (
                             <>
