@@ -21,9 +21,9 @@ const storage = multer.diskStorage({
 
 // File filter
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    // Allow PDF, Word docs, Text, and Excel/CSV files
-    const allowedExtensions = /pdf|doc|docx|txt|xlsx|xls|csv/;
-    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain|application\/vnd.ms-excel|application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet|text\/csv/;
+    // Allow PDF, Word docs, Text, Excel/CSV, and Images
+    const allowedExtensions = /pdf|doc|docx|txt|xlsx|xls|csv|jpg|jpeg|png/;
+    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain|application\/vnd.ms-excel|application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet|text\/csv|image\/jpeg|image\/png/;
 
     const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedMimeTypes.test(file.mimetype);
@@ -32,7 +32,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
         cb(null, true);
     } else {
         console.log('❌ [MULTER] Rejected file:', file.originalname, file.mimetype);
-        cb(new Error('Only PDF, DOC, DOCX, TXT, Excel, and CSV files are allowed'));
+        cb(new Error('Only PDF, DOC, DOCX, TXT, Excel, CSV, and Image files are allowed'));
     }
 };
 

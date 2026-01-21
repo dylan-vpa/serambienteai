@@ -1817,7 +1817,9 @@ export const updateServiceDates = async (req: Request, res: Response) => {
         await prisma.oIT.update({
             where: { id },
             data: {
-                serviceDates: JSON.stringify(serviceDates)
+                serviceDates: JSON.stringify(serviceDates),
+                status: 'SCHEDULED',
+                planningAccepted: true
             } as any
         });
 
